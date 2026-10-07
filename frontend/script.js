@@ -19,7 +19,7 @@ function navigateTo(viewId) {
 }
 
 // URL base de tu API Backend
-const API_URL = 'http://localhost:3000/api/users';
+const API_URL = 'https://userhub-app.onrender.com';
 
 // Función para obtener usuarios de PostgreSQL
 async function fetchUsers() {
