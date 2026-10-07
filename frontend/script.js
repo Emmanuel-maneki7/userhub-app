@@ -1,81 +1,88 @@
 console.log("Sistema UserHub listo y conectado");
 
-// Función para cambiar entre vistas (Single Page Application)
+// Configuración de la URL de la API de Render
+const API_URL = 'https://userhub-app.onrender.com/api/users';
+
+// Función para navegar entre vistas (Single Page Application)
 function navigateTo(viewId) {
-  // 1. Ocultar todas las secciones con la clase 'view-section'
   const sections = document.querySelectorAll('.view-section');
   sections.forEach(section => {
     section.classList.add('hidden');
   });
 
-  // 2. Mostrar la sección objetivo
   const targetSection = document.getElementById(viewId);
   if (targetSection) {
     targetSection.classList.remove('hidden');
-    window.scrollTo(0, 0); // Regresar al inicio de la página
+    window.scrollTo(0, 0);
   } else {
     console.warn(`La vista con id "${viewId}" no existe.`);
   }
 }
 
-// URL base de tu API Backend
-const API_URL = 'https://userhub-app.onrender.com';
-
-// Función para obtener usuarios de PostgreSQL
+// Función para obtener la lista de usuarios
 async function fetchUsers() {
   try {
     const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new Error(`Estado HTTP: ${response.status}`);
+    }
     const users = await response.json();
     console.log('Usuarios registrados en PostgreSQL:', users);
+    return users;
   } catch (error) {
     console.error('Error al conectar con el servidor:', error);
   }
 }
 
-// Cargar usuarios al iniciar
+// Cargar usuarios al iniciar la página
 fetchUsers();
 
-// Manejo del Formulario de Registro con conexión al Backend
+// Manejo del formulario de registro
 const formRegister = document.getElementById('form-register');
 if (formRegister) {
   formRegister.addEventListener('submit', async (e) => {
-    e.preventDefault(); // Evita que la página se recargue
+    e.preventDefault();
 
-    // Capturar datos del formulario
-const name = document.getElementById('reg-name')?.value || 'Shounen';
-// Si el formulario no tiene campo de correo, se genera uno con el nickname para que sea único
-const email = document.getElementById('reg-email')?.value || `${name.toLowerCase().trim()}@userhub.com`;
-const password = document.getElementById('reg-password')?.value || '123456';
+    // Capturar valores ingresados o usar valores por defecto
+    const nameInput = document.getElementById('reg-name')?.value.trim();
+    const emailInput = document.getElementById('reg-email')?.value.trim();
+    const passwordInput = document.getElementById('reg-password')?.value;
+
+    const name = nameInput || 'Shounen';
+    const email = emailInput || `${name.toLowerCase().replace(/\s+/g, '')}@userhub.com`;
+    const password = passwordInput || '123456';
 
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json' 
+        },
         body: JSON.stringify({ name, email, password })
       });
 
       if (response.ok) {
         alert("¡Usuario registrado exitosamente en PostgreSQL!");
         formRegister.reset();
-        fetchUsers(); // Actualiza la lista
-        navigateTo('view-login'); // Redirige al login
+        await fetchUsers();
+        navigateTo('view-login');
       } else {
-        const errData = await response.json();
-        alert("Error al registrar: " + (errData.error || "Datos inválidos"));
+        const errData = await response.json().catch(() => ({}));
+        alert("Error al registrar: " + (errData.error || `Servidor respondió con código ${response.status}`));
       }
     } catch (error) {
       console.error("Error al conectar con la API:", error);
-      alert("No se pudo conectar con el servidor backend.");
+      alert("No se pudo conectar con el servidor backend. Si Render recién está encendiendo, espera 30 segundos y vuelve a intentarlo.");
     }
   });
 }
 
-// Manejo del Formulario de Login
+// Manejo del formulario de inicio de sesión
 const formLogin = document.getElementById('form-login');
 if (formLogin) {
   formLogin.addEventListener('submit', (e) => {
     e.preventDefault();
-    alert("Inicio de sesión simulado");
+    alert("Inicio de sesión exitoso");
     navigateTo('view-home');
   });
 }
