@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UserHub - Gestión de Perfiles & Tiers</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons CDN -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Custom Config for Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Logo / Title -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('view-home')">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <i class="ph-bold ph-ranking text-2xl text-white"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-bold bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">UserHub</span>
+                    <span class="text-xs text-indigo-400 block font-medium -mt-1">TIER SYSTEM</span>
+                </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div class="flex items-center space-x-3" id="nav-actions">
+                <!-- Navigation items dynamically injected -->
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+
+        <!-- VIEW 1: HOME / VISITOR LANDING -->
+        <section id="view-home" class="view-section transition-opacity duration-300">
+            <div class="text-center max-w-3xl mx-auto py-12">
+                <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold mb-6">
+                    <i class="ph-bold ph-sparkle"></i>
+                    <span>Sistema de Niveles & Perfiles</span>
+                </div>
+                <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight mb-6 bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+                    Gestión Inteligente de Comunidad y Tiers
+                </h1>
+                <p class="text-slate-400 text-lg mb-8 leading-relaxed">
+                    Registra tu usuario, completa tu perfil y obtén tu asignación de nivel en nuestras tablas dinámicas de TIER organizadas por la administración.
+                </p>
+                <div class="flex flex-wrap items-center justify-center gap-4">
+                    <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center space-x-2">
+                        <i class="ph-bold ph-user-plus text-lg"></i>
+                        <span>Registrarse Ahora</span>
+                    </button>
+                    <button onclick="navigateTo('view-login')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 transition-all hover:scale-[1.02] flex items-center space-x-2">
+                        <i class="ph-bold ph-sign-in text-lg"></i>
+                        <span>Iniciar Sesión</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PUBLIC TIER BOARDS PREVIEW -->
+            <div class="mt-12 space-y-8">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-100">Tablas de Posiciones TIER</h2>
+                        <p class="text-sm text-slate-400">Listado público de usuarios organizados por su división actual.</p>
+                    </div>
+                </div>
+
+                <div id="public-tiers-container" class="space-y-6">
+                    <!-- Dynamic Tier Tables Injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: LOGIN -->
+        <section id="view-login" class="view-section hidden max-w-md mx-auto py-12">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-indigo-600/10 rounded-full blur-2xl"></div>
+                
+                <div class="text-center mb-8">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto mb-3">
+                        <i class="ph-bold ph-keyhole text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Iniciar Sesión</h2>
+                    <p class="text-slate-400 text-sm mt-1">Accede a tu cuenta o al panel de control</p>
+                </div>
+
+                <form id="form-login" onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Nickname</label>
+                        <div class="relative">
+                            <i class="ph-bold ph-user absolute left-3.5 top-3.5 text-slate-500"></i>
+                            <input type="text" id="login-nickname" required placeholder="Ej: ShadowPlayer" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Contraseña</label>
+                        <div class="relative">
+                            <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-slate-500"></i>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/25 transition-all text-sm flex items-center justify-center space-x-2">
+                        <span>Ingresar</span>
+                        <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-6 border-t border-slate-800/80 text-center text-xs text-slate-400">
+                    <p>¿No tienes cuenta? <button onclick="navigateTo('view-register')" class="text-indigo-400 hover:underline font-semibold">Regístrate gratis</button></p>
+                    <p class="mt-3 text-[11px] text-slate-500 bg-slate-950 p-2.5 rounded-lg border border-slate-800/50">
+                        🔑 <strong>Acceso Admin Demo:</strong> Nickname: <code class="text-indigo-300">ADMIN</code> | Clave: <code class="text-indigo-300">1234</code>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: REGISTER -->
+        <section id="view-register" class="view-section hidden max-w-md mx-auto py-12">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+                <div class="text-center mb-8">
+                    <div class="w-12 h-12 rounded-xl bg-violet-600/20 text-violet-400 flex items-center justify-center mx-auto mb-3">
+                        <i class="ph-bold ph-user-plus text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white">Crear Cuenta</h2>
+                    <p class="text-slate-400 text-sm mt-1">Únete para formar parte del ranking</p>
+                </div>
+
+                <form id="form-register" onsubmit="handleRegister(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Nickname de Usuario</label>
+                        <div class="relative">
+                            <i class="ph-bold ph-at absolute left-3.5 top-3.5 text-slate-500"></i>
+                            <input type="text" id="reg-nickname" required placeholder="Tu alias único" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Contraseña</label>
+                        <div class="relative">
+                            <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-slate-500"></i>
+                            <input type="password" id="reg-password" required placeholder="Mínimo 4 caracteres" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-600/25 transition-all text-sm flex items-center justify-center space-x-2">
+                        <span>Registrar e ir a Mi Perfil</span>
+                        <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                </form>
+
+                <div class="mt-6 pt-6 border-t border-slate-800/80 text-center text-xs text-slate-400">
+                    <p>¿Ya tienes cuenta? <button onclick="navigateTo('view-login')" class="text-indigo-400 hover:underline font-semibold">Inicia Sesión</button></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 4: USER PROFILE EDIT -->
+        <section id="view-profile-edit" class="view-section hidden max-w-2xl mx-auto py-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-6 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <i class="ph-bold ph-user-gear text-indigo-400"></i>
+                            <span>Personalizar Datos de Perfil</span>
+                        </h2>
+                        <p class="text-slate-400 text-sm">Completa la información requerida para la verificación de Tier.</p>
+                    </div>
+                </div>
+
+                <form id="form-profile-edit" onsubmit="handleSaveProfile(event)" class="space-y-6">
+                    <!-- Nickname (Read Only) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nickname (Identificador)</label>
+                        <input type="text" id="prof-nickname" disabled class="w-full bg-slate-950/60 border border-slate-800/80 rounded-xl py-2.5 px-4 text-slate-400 text-sm font-mono cursor-not-allowed">
+                    </div>
+
+                    <!-- Nombres y Apellidos -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Nombres y Apellidos Completos</label>
+                        <input type="text" id="prof-nombres" required placeholder="Ej: Carlos Eduardo Mendoza" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                    </div>
+
+                    <!-- Modo / Estilo de Juego -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Modo / Categoría Preferida</label>
+                            <select id="prof-modo" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
+                                <option value="Individual / Solo">Individual / Solo</option>
+                                <option value="Dúo / Pareja">Dúo / Pareja</option>
+                                <option value="Squad / Equipo">Squad / Equipo</option>
+                                <option value="Competitivo">Competitivo</option>
+                                <option value="Casual / Casual">Casual</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Clan / Familia / Organización</label>
+</div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">Clan / Familia / Organización</label>
+                <input type="text" id="prof-familia">
+            </div>
+        </form>
+    </section>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>
