@@ -152,14 +152,8 @@ async function fetchUsers() {
 
         users.forEach(u => {
             const username = u.nickname || u.name;
-            if (username) {
-                if (!state.assignments[username]) {
-                    state.assignments[username] = { tierId: '', tagIds: [] };
-                }
-                if (u.tier && u.tier.name) {
-                    const matchTier = state.tiers.find(t => t.name.toLowerCase().trim() === u.tier.name.toLowerCase().trim());
-                    if (matchTier) state.assignments[username].tierId = matchTier.id;
-                }
+            if (username && !state.assignments[username]) {
+                state.assignments[username] = { tagIds: [] };
             }
         });
 
@@ -188,7 +182,7 @@ async function handleRegister(e) {
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno', puntos: 0 };
+            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno' };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -213,7 +207,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ', puntos: 0 };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -247,8 +241,7 @@ async function handleLogin(e) {
             nickname: foundUser.nickname || foundUser.name || nickname,
             nombres: foundUser.nombres || foundUser.name || nickname,
             modo: parseModo,
-            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
-            puntos: foundUser.puntos || 0
+            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -335,18 +328,6 @@ async function handleSaveProfile(e) {
         } catch (err) {
             console.error("Error al sincronizar perfil con backend:", err);
         }
-    } else {
-        try {
-            await fetch(`${API_URL}/nickname/${encodeURIComponent(state.currentUser.nickname)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombres, modo, familia })
-            });
-            await fetchUsers();
-            renderPublicTiers();
-        } catch (err) {
-            console.error("Error actualizando por nickname:", err);
-        }
     }
 
     alert("Perfil actualizado correctamente.");
@@ -388,7 +369,6 @@ function renderProfileCard() {
     if (!container || !state.currentUser) return;
 
     const assign = state.assignments[state.currentUser.nickname] || {};
-    const tier = state.tiers.find(t => t.id === assign.tierId || t.name.toLowerCase().trim() === (assign.tierName || '').toLowerCase().trim());
     const userTagIds = assign.tagIds || [];
     const userTags = state.tags.filter(t => userTagIds.includes(t.id));
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
@@ -405,11 +385,6 @@ function renderProfileCard() {
                         <p class="text-slate-400 text-sm">${escapeHtml(state.currentUser.nombres || 'Sin nombre asignado')}</p>
                     </div>
                 </div>
-                ${tier ? `
-                    <span class="px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg" style="background-color: ${tier.color}">
-                        ${escapeHtml(tier.name)}
-                    </span>
-                ` : `<span class="px-3 py-1 rounded-full text-xs font-medium text-slate-500 bg-slate-800">Sin Tier</span>`}
             </div>
 
             <div class="grid grid-cols-2 gap-4 my-6 py-4 border-y border-slate-800/80">
@@ -516,7 +491,7 @@ function renderAdminTabsList() {
     }
 }
 
-// GESTIÓN DE TIERS CON PESTAÑA ASIGNADA
+// GESTIÓN DE TIERS
 async function handleCreateTier(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tier-name');
@@ -547,7 +522,7 @@ async function handleCreateTier(e) {
 async function deleteTier(tierId) {
     const tier = state.tiers.find(t => t.id === tierId);
     if (!tier) return;
-    if (!confirm(`¿Eliminar el tier "${tier.name}"? Los usuarios que lo tengan quedarán sin tier.`)) return;
+    if (!confirm(`¿Eliminar el tier "${tier.name}"? Los usuarios asignados perderán este Tier.`)) return;
 
     try {
         const response = await fetch(`${API_BASE}/tiers/${tier.dbId}`, { method: 'DELETE' });
@@ -733,20 +708,51 @@ function renderAdminClansList() {
     `).join('');
 }
 
-async function updateUserPoints(username, newPoints) {
+// ASIGNACIÓN MÚLTIPLE DE TIERS Y PUNTOS EN PANEL ADMIN
+async function addUserToTier(userId, tierId, puntos = 0) {
+    if (!tierId) return;
+
+    try {
+        await fetch(`${API_BASE}/users/${userId}/tiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierId: Number(tierId), puntos: Number(puntos) })
+        });
+        await fetchUsers();
+        renderAdminUserTable();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al asignar tier/puntos al usuario:", err);
+    }
+}
+
+async function updateUserTierPoints(userId, tierId, newPoints) {
     const pts = parseInt(newPoints, 10);
     if (isNaN(pts)) return;
 
     try {
-        await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
-            method: 'PUT',
+        await fetch(`${API_BASE}/users/${userId}/tiers`, {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ puntos: pts })
+            body: JSON.stringify({ tierId: Number(tierId), puntos: pts })
         });
         await fetchUsers();
         renderPublicTiers();
     } catch (err) {
         console.error("Error al actualizar puntos:", err);
+    }
+}
+
+async function removeUserTier(userId, tierId) {
+    try {
+        await fetch(`${API_BASE}/users/${userId}/tiers/${tierId}`, {
+            method: 'DELETE'
+        });
+        await fetchUsers();
+        renderAdminUserTable();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al quitar tier al usuario:", err);
     }
 }
 
@@ -757,27 +763,56 @@ function renderAdminUserTable() {
     const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
 
     if (allUsers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = allUsers.map(user => {
         const username = user.nickname || user.name || 'Usuario';
-        const userAssign = state.assignments[username] || { tierId: '', tagIds: [] };
-        const userPoints = user.puntos || 0;
+        const userAssign = state.assignments[username] || { tagIds: [] };
+        const userRanks = user.tierRanks || [];
+
+        // Identificar qué Tiers aún NO tiene asignados este usuario
+        const assignedTierIds = userRanks.map(tr => tr.tierId);
+        const availableTiers = state.tiers.filter(t => !assignedTierIds.includes(t.dbId));
 
         return `
-            <tr class="hover:bg-slate-950/40 transition-colors">
-                <td class="py-3 px-4 font-semibold text-indigo-400">${escapeHtml(username)}</td>
-                <td class="py-3 px-4 text-slate-300">${escapeHtml(user.email || `${username.toLowerCase()}@userhub.com`)}</td>
+            <tr class="hover:bg-slate-950/40 transition-colors border-b border-slate-800/60">
+                <td class="py-3 px-4 font-semibold text-indigo-400 align-top">${escapeHtml(username)}</td>
+                <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@userhub.com`)}</td>
                 
-                <td class="py-3 px-4 text-center">
-                    <input type="number" value="${userPoints}" 
-                           onchange="updateUserPoints('${username}', this.value)" 
-                           class="w-20 bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-500 text-center">
+                <!-- TIERS Y PUNTOS ASIGNADOS MÚLTIPLES -->
+                <td class="py-3 px-4 space-y-2 align-top">
+                    <div class="space-y-1.5">
+                        ${userRanks.length > 0 ? userRanks.map(tr => `
+                            <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-lg">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white" style="background-color: ${tr.tier.color}">
+                                    ${escapeHtml(tr.tier.name)}
+                                </span>
+                                <input type="number" value="${tr.puntos}" 
+                                       onchange="updateUserTierPoints(${user.id},${tr.tierId}, this.value)" 
+                                       class="w-16 bg-slate-900 border border-slate-700 rounded py-0.5 px-1 text-xs text-amber-400 font-bold text-center focus:outline-none focus:border-amber-500">
+                                <span class="text-[10px] text-slate-500">pts</span>
+                                <button onclick="removeUserTier(${user.id},${tr.tierId})" class="text-slate-500 hover:text-red-400 ml-auto transition-colors">
+                                    <i class="ph-bold ph-x"></i>
+                                </button>
+                            </div>
+                        `).join('') : '<span class="text-xs text-slate-500 italic">Sin Tiers asignados</span>'}
+                    </div>
+
+                    ${availableTiers.length > 0 ? `
+                        <div class="pt-1">
+                            <select onchange="addUserToTier(${user.id}, this.value)" class="bg-indigo-950/50 border border-indigo-800/50 rounded-lg py-1 px-2 text-xs text-indigo-300 focus:outline-none focus:border-indigo-500 w-full">
+                                <option value="">+ Añadir a otro Tier...</option>
+                                ${availableTiers.map(tier => `
+                                    <option value="${tier.dbId}">${escapeHtml(tier.name)}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
                 </td>
 
-                <td class="py-3 px-4">
+                <td class="py-3 px-4 align-top">
                     <div class="flex flex-wrap gap-1">
                         ${state.tags.map(tag => {
                             const isChecked = userAssign.tagIds.includes(tag.id);
@@ -791,48 +826,14 @@ function renderAdminUserTable() {
                         }).join('')}
                     </div>
                 </td>
-
-                <td class="py-3 px-4">
-                    <select onchange="assignUserTier('${username}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
-                        <option value="">Sin Tier</option>
-                        ${state.tiers.map(tier => `
-                            <option value="${tier.name}" ${(userAssign.tierName || '').toLowerCase().trim() === tier.name.toLowerCase().trim() || userAssign.tierId === tier.id ? 'selected' : ''}>
-                                ${escapeHtml(tier.name)}
-                            </option>
-                        `).join('')}
-                    </select>
-                </td>
             </tr>
         `;
     }).join('');
 }
 
-async function assignUserTier(username, tierName) {
-    if (!state.assignments[username]) {
-        state.assignments[username] = { tierId: '', tagIds: [] };
-    }
-    
-    const selectedTier = state.tiers.find(t => t.name.toLowerCase().trim() === (tierName || '').toLowerCase().trim());
-    state.assignments[username].tierId = selectedTier ? selectedTier.id : '';
-    state.assignments[username].tierName = tierName;
-    saveState();
-
-    try {
-        await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tierName: tierName || 'Sin Tier' })
-        });
-        await fetchUsers();
-        renderPublicTiers();
-    } catch (err) {
-        console.error("Error asignando Tier:", err);
-    }
-}
-
 function toggleUserTag(username, tagId) {
     if (!state.assignments[username]) {
-        state.assignments[username] = { tierId: '', tagIds: [] };
+        state.assignments[username] = { tagIds: [] };
     }
     const tagIds = state.assignments[username].tagIds;
     const index = tagIds.indexOf(tagId);
@@ -910,34 +911,35 @@ function renderPublicTiers() {
     }
 
     container.innerHTML = filteredTiers.map(tier => {
-        const targetName = tier.name.toLowerCase().trim();
+        let membersWithPoints = [];
 
-        let members = state.users.filter(u => {
+        state.users.forEach(u => {
             const uname = u.nickname || u.name;
-            if (!uname || uname.toLowerCase() === 'admin') return false;
+            if (!uname || uname.toLowerCase() === 'admin') return;
 
-            if (u.tier && u.tier.name && u.tier.name.toLowerCase().trim() === targetName) {
-                return true;
+            const userRank = (u.tierRanks || []).find(tr => tr.tierId === tier.dbId);
+            if (userRank) {
+                membersWithPoints.push({
+                    user: u,
+                    puntos: userRank.puntos
+                });
             }
-
-            const assign = state.assignments[uname];
-            return assign && (assign.tierId === tier.id || (assign.tierName || '').toLowerCase().trim() === targetName);
         });
 
-        // ORDENAR MIEMBROS POR PUNTOS DE MAYOR A MENOR
-        members.sort((a, b) => (b.puntos || 0) - (a.puntos || 0));
+        // Ordenar usuarios por puntos de mayor a menor dentro de este Tier
+        membersWithPoints.sort((a, b) => b.puntos - a.puntos);
 
         return `
             <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
                 <div class="px-6 py-4 flex items-center justify-between border-b border-slate-800/80" style="border-left: 6px solid ${tier.color}">
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
                         <span>${escapeHtml(tier.name)}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${members.length} miembros</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${membersWithPoints.length} miembros</span>
                     </h3>
                 </div>
 
                 <div class="p-4 overflow-x-auto">
-                    ${members.length > 0 ? `
+                    ${membersWithPoints.length > 0 ? `
                         <table class="w-full text-left border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
@@ -949,10 +951,11 @@ function renderPublicTiers() {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/50">
-                                ${members.map((u, index) => {
+                                ${membersWithPoints.map((item, index) => {
+                                    const u = item.user;
                                     const uname = u.nickname || u.name;
                                     const familiaText = u.familia || 'Sin Familia / Ninguno';
-                                    const puntos = u.puntos || 0;
+                                    const puntos = item.puntos;
                                     
                                     let rankBadge = `<span class="font-bold text-slate-400">#${index + 1}</span>`;
                                     if (index === 0) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-black border border-amber-500/40 text-xs">🥇</span>`;
