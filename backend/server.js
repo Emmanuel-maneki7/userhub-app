@@ -11,10 +11,10 @@ app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ message: "Backend OK" });
+  res.json({ message: "Backend funcionando correctamente" });
 });
 
-// GET: Obtener todos los usuarios con su Tier
+// GET: Obtener todos los usuarios con su Tier asignado
 app.get('/api/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -31,7 +31,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// POST: Registrar un usuario
+// POST: Registrar usuario
 app.post('/api/users', async (req, res) => {
   const { nickname, password } = req.body;
 
@@ -89,7 +89,7 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// PUT: Actualizar Tier por Nickname (Llamado desde el Admin)
+// PUT: Asignar Tier por Nickname
 app.put('/api/users/nickname/:nickname', async (req, res) => {
   const { nickname } = req.params;
   const { tierName, nombres, modo, familia } = req.body;
@@ -102,7 +102,6 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
 
     let tierId = null;
     if (tierName && tierName !== 'Sin Tier') {
-      // Upsert: buscar o crear el Tier en la base de datos si no existe aún
       const tierObj = await prisma.tier.upsert({
         where: { name: tierName },
         update: {},
@@ -114,7 +113,7 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        ...(tierName !== undefined && { tierId }),
+        tierId: tierId,
         ...(nombres !== undefined && { nombres }),
         ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
         ...(familia !== undefined && { familia })
@@ -124,12 +123,12 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
 
     res.json(updatedUser);
   } catch (error) {
-    console.error("Error actualizando por nickname:", error);
-    res.status(400).json({ error: "No se pudo actualizar el usuario" });
+    console.error("Error al actualizar por nickname:", error);
+    res.status(400).json({ error: "No se pudo actualizar la información" });
   }
 });
 
-// PUT: Actualizar por ID (Formulario de usuario)
+// PUT: Actualizar datos de perfil por ID
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const { nombres, modo, familia } = req.body;
@@ -146,8 +145,8 @@ app.put('/api/users/:id', async (req, res) => {
     });
     res.json(updatedUser);
   } catch (error) {
-    console.error("Error actualizando perfil:", error);
-    res.status(400).json({ error: "No se pudo actualizar el usuario" });
+    console.error("Error al actualizar perfil:", error);
+    res.status(400).json({ error: "No se pudo actualizar el perfil" });
   }
 });
 
