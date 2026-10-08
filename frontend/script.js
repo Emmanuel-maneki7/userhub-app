@@ -1,32 +1,55 @@
 console.log("Sistema UserHub listo y conectado");
 
-const API_URL = 'https://userhub-app.onrender.com/api/users';
+const API_BASE = 'https://userhub-app.onrender.com/api';
+const API_URL = `${API_BASE}/users`;
 
 let state = {
     currentUser: JSON.parse(localStorage.getItem('uh_current_user')) || null,
-    tiers: JSON.parse(localStorage.getItem('uh_tiers')) || [
+    tiers: [
         { id: 'tier-s', name: 'TIER S', color: '#6366f1' },
         { id: 'tier-a', name: 'TIER A', color: '#10b981' },
         { id: 'tier-b', name: 'TIER B', color: '#f59e0b' }
     ],
-    tags: JSON.parse(localStorage.getItem('uh_tags')) || [
+    tags: [
         { id: 'tag-vip', name: 'VIP', color: '#eab308' },
         { id: 'tag-pro', name: 'PRO', color: '#ef4444' }
     ],
-    clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Clan / Ninguno', 'Clan Alpha', 'Audition Kings'],
+    clans: ['Sin Clan / Ninguno', 'Clan Alpha', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
     users: []
 };
 
 function saveState() {
-    localStorage.setItem('uh_tiers', JSON.stringify(state.tiers));
-    localStorage.setItem('uh_tags', JSON.stringify(state.tags));
-    localStorage.setItem('uh_clans', JSON.stringify(state.clans));
-    localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
     if (state.currentUser) {
         localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
     } else {
         localStorage.removeItem('uh_current_user');
+    }
+    localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
+}
+
+async function fetchGlobalConfig() {
+    try {
+        const [clansRes, tiersRes] = await Promise.all([
+            fetch(`${API_BASE}/clans`),
+            fetch(`${API_BASE}/tiers`)
+        ]);
+
+        if (clansRes.ok) {
+            const dbClans = await clansRes.json();
+            if (dbClans.length > 0) {
+                state.clans = ['Sin Clan / Ninguno', ...dbClans.map(c => c.name).filter(n => n !== 'Sin Clan / Ninguno')];
+            }
+        }
+
+        if (tiersRes.ok) {
+            const dbTiers = await tiersRes.json();
+            if (dbTiers.length > 0) {
+                state.tiers = dbTiers.map(t => ({ id: `tier-${t.id}`, name: t.name, color: t.color }));
+            }
+        }
+    } catch (err) {
+        console.error("Error al cargar configuración global:", err);
     }
 }
 
@@ -108,6 +131,7 @@ function renderNavActions() {
 
 async function fetchUsers() {
     try {
+        await fetchGlobalConfig();
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
         const users = await response.json();
@@ -394,7 +418,7 @@ function renderAdminPanel() {
     renderAdminUserTable();
 }
 
-function handleCreateTier(e) {
+async function handleCreateTier(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tier-name');
     const colorInput = document.getElementById('tier-color');
@@ -404,12 +428,19 @@ function handleCreateTier(e) {
 
     if (!name) return;
 
-    state.tiers.push({ id: 'tier-' + Date.now(), name, color });
-    saveState();
-
-    nameInput.value = '';
-    renderAdminPanel();
-    alert(`Tier "${name}" creado con éxito.`);
+    try {
+        await fetch(`${API_BASE}/tiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, color })
+        });
+        await fetchGlobalConfig();
+        nameInput.value = '';
+        renderAdminPanel();
+        alert(`Tier "${name}" creado e integrado en la base de datos.`);
+    } catch (err) {
+        console.error("Error creando tier:", err);
+    }
 }
 
 function deleteTier(tierId) {
@@ -483,28 +514,36 @@ function renderAdminTagsList() {
     `).join('');
 }
 
-function handleCreateClan(e) {
+async function handleCreateClan(e) {
     e.preventDefault();
     const clanInput = document.getElementById('clan-name');
     const clanName = clanInput.value.trim();
 
     if (!clanName) return;
-    if (state.clans.includes(clanName)) {
-        alert("Este clan ya existe.");
-        return;
-    }
 
-    state.clans.push(clanName);
-    saveState();
-    clanInput.value = '';
-    renderAdminPanel();
-    alert(`Clan "${clanName}" creado.`);
+    try {
+        await fetch(`${API_BASE}/clans`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: clanName })
+        });
+        await fetchGlobalConfig();
+        clanInput.value = '';
+        renderAdminPanel();
+        alert(`Clan "${clanName}" creado e integrado en la base de datos.`);
+    } catch (err) {
+        console.error("Error creando clan:", err);
+    }
 }
 
-function deleteClan(clanName) {
-    state.clans = state.clans.filter(c => c !== clanName);
-    saveState();
-    renderAdminPanel();
+async function deleteClan(clanName) {
+    try {
+        await fetch(`${API_BASE}/clans/${encodeURIComponent(clanName)}`, { method: 'DELETE' });
+        await fetchGlobalConfig();
+        renderAdminPanel();
+    } catch (err) {
+        console.error("Error eliminando clan:", err);
+    }
 }
 
 function renderAdminClansList() {
