@@ -824,7 +824,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formReg) formReg.addEventListener('submit', handleRegister);
 
     const formLog = document.getElementById('form-login');
+    if (formLog) formLog.ondblclick = null; // Prevenir doble clic accidental
     if (formLog) formLog.addEventListener('submit', handleLogin);
+
+    // Asegurar que los formularios de edición de perfil también enlacen correctamente si existen
+    const formProfile = document.getElementById('form-profile-edit');
+    if (formProfile) formProfile.addEventListener('submit', handleSaveProfile);
 
     document.addEventListener('click', (e) => {
         const btn = document.getElementById('mode-dropdown-btn');
