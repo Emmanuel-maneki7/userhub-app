@@ -6,19 +6,22 @@ const app = express();
 const prisma = new PrismaClient();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 
-// Ruta de prueba / Health Check
+// Health Check
 app.get('/api/health', (req, res) => {
   res.json({ message: "Servidor Backend de UserHub funcionando correctamente" });
 });
 
-// GET: Obtener todos los usuarios
+// GET: Obtener todos los usuarios con su Tier y Tags
 app.get('/api/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
+      include: {
+        tier: true,
+        tags: true
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.json(users);
@@ -28,7 +31,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// POST: Registrar un nuevo usuario
+// POST: Registrar usuario
 app.post('/api/users', async (req, res) => {
   const { nickname, password } = req.body;
 
@@ -43,8 +46,11 @@ app.post('/api/users', async (req, res) => {
         password,
         nombres: nickname,
         modo: 'NORMAL',
-        familia: 'Sin Clan / Ninguno',
-        tier: 'Sin Tier'
+        familia: 'Sin Clan / Ninguno'
+      },
+      include: {
+        tier: true,
+        tags: true
       }
     });
     res.status(201).json(newUser);
@@ -54,7 +60,7 @@ app.post('/api/users', async (req, res) => {
   }
 });
 
-// POST: Iniciar sesión (Login)
+// POST: Login
 app.post('/api/users/login', async (req, res) => {
   const { nickname, password } = req.body;
 
@@ -63,16 +69,19 @@ app.post('/api/users/login', async (req, res) => {
   }
 
   try {
-    // Credencial oficial de Administrador
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
       return res.json({
         message: "Login de administrador exitoso",
-        user: { id: 0, nickname: 'Admin', role: 'admin', nombres: 'Administrador Principal' }
+        user: { id: 0, nickname: 'Admin', nombres: 'Administrador Principal' }
       });
     }
 
     const user = await prisma.user.findFirst({
-      where: { nickname, password }
+      where: { nickname, password },
+      include: {
+        tier: true,
+        tags: true
+      }
     });
 
     if (user) {
@@ -89,30 +98,33 @@ app.post('/api/users/login', async (req, res) => {
 // PUT: Actualizar usuario por ID
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombres, modo, familia, tier, tags } = req.body;
+  const { nombres, modo, familia, tierId } = req.body;
 
   try {
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
-      data: { 
+      data: {
         ...(nombres !== undefined && { nombres }),
         ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
         ...(familia !== undefined && { familia }),
-        ...(tier !== undefined && { tier }),
-        ...(tags !== undefined && { tags: typeof tags === 'object' ? JSON.stringify(tags) : tags })
+        ...(tierId !== undefined && { tierId: tierId ? Number(tierId) : null })
+      },
+      include: {
+        tier: true,
+        tags: true
       }
     });
     res.json(updatedUser);
   } catch (error) {
-    console.error("Error al actualizar usuario por ID:", error);
-    res.status(400).json({ error: "No se pudo actualizar la información del usuario" });
+    console.error("Error al actualizar usuario:", error);
+    res.status(400).json({ error: "No se pudo actualizar el usuario" });
   }
 });
 
-// PUT: Actualizar usuario por Nickname (Útil para el Admin)
+// PUT: Actualizar usuario por Nickname (Sincronización Admin)
 app.put('/api/users/nickname/:nickname', async (req, res) => {
   const { nickname } = req.params;
-  const { nombres, modo, familia, tier, tags } = req.body;
+  const { nombres, modo, familia, tierId } = req.body;
 
   try {
     const user = await prisma.user.findFirst({ where: { nickname } });
@@ -122,22 +134,24 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
 
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { 
+      data: {
         ...(nombres !== undefined && { nombres }),
         ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
         ...(familia !== undefined && { familia }),
-        ...(tier !== undefined && { tier }),
-        ...(tags !== undefined && { tags: typeof tags === 'object' ? JSON.stringify(tags) : tags })
+        ...(tierId !== undefined && { tierId: tierId ? Number(tierId) : null })
+      },
+      include: {
+        tier: true,
+        tags: true
       }
     });
     res.json(updatedUser);
   } catch (error) {
     console.error("Error al actualizar usuario por nickname:", error);
-    res.status(400).json({ error: "No se pudo actualizar la información del usuario" });
+    res.status(400).json({ error: "No se pudo actualizar el usuario" });
   }
 });
 
-// Inicializar el servidor
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
