@@ -188,7 +188,7 @@ async function handleRegister(e) {
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno' };
+            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno', puntos: 0 };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -213,7 +213,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ' };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ', puntos: 0 };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -247,7 +247,8 @@ async function handleLogin(e) {
             nickname: foundUser.nickname || foundUser.name || nickname,
             nombres: foundUser.nombres || foundUser.name || nickname,
             modo: parseModo,
-            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno'
+            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
+            puntos: foundUser.puntos || 0
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -564,7 +565,6 @@ async function deleteTier(tierId) {
     }
 }
 
-// Mueve un tier dentro de su misma pestaña y guarda el orden en el servidor
 async function moveTier(tierId, direction) {
     const tier = state.tiers.find(t => t.id === tierId);
     if (!tier) return;
@@ -733,6 +733,23 @@ function renderAdminClansList() {
     `).join('');
 }
 
+async function updateUserPoints(username, newPoints) {
+    const pts = parseInt(newPoints, 10);
+    if (isNaN(pts)) return;
+
+    try {
+        await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ puntos: pts })
+        });
+        await fetchUsers();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al actualizar puntos:", err);
+    }
+}
+
 function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
@@ -740,19 +757,26 @@ function renderAdminUserTable() {
     const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
 
     if (allUsers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = allUsers.map(user => {
         const username = user.nickname || user.name || 'Usuario';
         const userAssign = state.assignments[username] || { tierId: '', tagIds: [] };
+        const userPoints = user.puntos || 0;
 
         return `
             <tr class="hover:bg-slate-950/40 transition-colors">
                 <td class="py-3 px-4 font-semibold text-indigo-400">${escapeHtml(username)}</td>
                 <td class="py-3 px-4 text-slate-300">${escapeHtml(user.email || `${username.toLowerCase()}@userhub.com`)}</td>
                 
+                <td class="py-3 px-4 text-center">
+                    <input type="number" value="${userPoints}" 
+                           onchange="updateUserPoints('${username}', this.value)" 
+                           class="w-20 bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-xs text-amber-400 font-bold focus:outline-none focus:border-amber-500 text-center">
+                </td>
+
                 <td class="py-3 px-4">
                     <div class="flex flex-wrap gap-1">
                         ${state.tags.map(tag => {
@@ -824,7 +848,6 @@ function toggleUserTag(username, tagId) {
     renderPublicTiers();
 }
 
-// RENDERIZADO DE PESTAÑAS EN LA VISTA PÚBLICA
 function renderTabsNavigation() {
     const container = document.getElementById('tabs-navigation');
     if (!container) return;
@@ -879,7 +902,6 @@ function renderPublicTiers() {
         return;
     }
 
-    // Filtrar los Tiers que pertenecen exclusivamente a la pestaña activa seleccionada
     const filteredTiers = state.tiers.filter(t => t.tabId === activeTabId);
 
     if (filteredTiers.length === 0) {
@@ -890,7 +912,7 @@ function renderPublicTiers() {
     container.innerHTML = filteredTiers.map(tier => {
         const targetName = tier.name.toLowerCase().trim();
 
-        const members = state.users.filter(u => {
+        let members = state.users.filter(u => {
             const uname = u.nickname || u.name;
             if (!uname || uname.toLowerCase() === 'admin') return false;
 
@@ -901,6 +923,9 @@ function renderPublicTiers() {
             const assign = state.assignments[uname];
             return assign && (assign.tierId === tier.id || (assign.tierName || '').toLowerCase().trim() === targetName);
         });
+
+        // ORDENAR MIEMBROS POR PUNTOS DE MAYOR A MENOR
+        members.sort((a, b) => (b.puntos || 0) - (a.puntos || 0));
 
         return `
             <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
@@ -916,16 +941,24 @@ function renderPublicTiers() {
                         <table class="w-full text-left border-collapse text-xs sm:text-sm">
                             <thead>
                                 <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
+                                    <th class="py-3 px-4 w-16 text-center">Puesto</th>
                                     <th class="py-3 px-4">Nickname</th>
+                                    <th class="py-3 px-4 text-center">Puntos</th>
                                     <th class="py-3 px-4">Familia</th>
                                     <th class="py-3 px-4">Modo</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-800/50">
-                                ${members.map(u => {
+                                ${members.map((u, index) => {
                                     const uname = u.nickname || u.name;
                                     const familiaText = u.familia || 'Sin Familia / Ninguno';
+                                    const puntos = u.puntos || 0;
                                     
+                                    let rankBadge = `<span class="font-bold text-slate-400">#${index + 1}</span>`;
+                                    if (index === 0) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-black border border-amber-500/40 text-xs">🥇</span>`;
+                                    else if (index === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-300/20 text-slate-300 font-black border border-slate-300/40 text-xs">🥈</span>`;
+                                    else if (index === 2) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-600 font-black border border-amber-700/40 text-xs">🥉</span>`;
+
                                     let modoArr = ['NORMAL'];
                                     try {
                                         if (u.modo) {
@@ -937,10 +970,16 @@ function renderPublicTiers() {
                                     const modoText = Array.isArray(modoArr) ? modoArr.join(', ') : modoArr;
 
                                     return `
-                                        <tr class="hover:bg-slate-950/40 transition-colors">
+                                        <tr class="hover:bg-slate-950/40 transition-colors ${index === 0 ? 'bg-amber-500/5' : ''}">
+                                            <td class="py-3 px-4 text-center font-bold">
+                                                ${rankBadge}
+                                            </td>
                                             <td class="py-3 px-4 font-bold text-slate-100 flex items-center gap-2">
                                                 <i class="ph-bold ph-user-circle text-indigo-400 text-lg"></i>
                                                 <span>${escapeHtml(uname)}</span>
+                                            </td>
+                                            <td class="py-3 px-4 text-center font-extrabold text-amber-400">
+                                                ${puntos} pts
                                             </td>
                                             <td class="py-3 px-4 text-slate-300 font-medium">
                                                 ${escapeHtml(familiaText)}
