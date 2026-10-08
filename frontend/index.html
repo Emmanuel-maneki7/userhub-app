@@ -21,7 +21,7 @@
                             400: '#e6738c',
                             500: '#c92a52',
                             600: '#a31d3f',
-                            700: '#800020', // Vino clásico
+                            700: '#800020',
                             800: '#5c081d',
                             900: '#3b1120',
                             950: '#1c0a11'
@@ -59,7 +59,6 @@
     <header class="bg-wine-950/80 backdrop-blur-md border-b border-wine-900 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('view-home')">
-                <!-- LOGO DE LA MARCA (referenciando logo.jpg) -->
                 <div class="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-wine-900/50 border border-wine-700/50 flex-shrink-0">
                     <img src="logo.jpg" alt="Audition World Class LATAM Logo" class="w-full h-full object-cover">
                 </div>
@@ -82,7 +81,7 @@
 
         <!-- VIEW 1: HOME / VISITOR LANDING -->
         <section id="view-home" class="view-section transition-opacity duration-300">
-            <div class="text-center max-w-3xl mx-auto py-8">
+            <div class="text-center max-w-3xl mx-auto py-12">
                 <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-wine-900/50 border border-wine-700/50 text-wine-300 text-xs font-semibold mb-6">
                     <i class="ph-bold ph-trophy text-wine-400"></i>
                     <span>Comunidad Competitiva LATAM</span>
@@ -94,34 +93,30 @@
                     Compite en tus modos preferidos, acumula puntos y posiciona a tu familia en lo más alto del ranking regional.
                 </p>
                 <div id="home-cta-buttons" class="flex flex-wrap items-center justify-center gap-4">
-                    <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2">
-                        <i class="ph-bold ph-user-plus text-lg"></i>
-                        <span>Registrarse Ahora</span>
-                    </button>
-                    <button onclick="navigateTo('view-login')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2">
-                        <i class="ph-bold ph-sign-in text-lg"></i>
-                        <span>Iniciar Sesión</span>
-                    </button>
+                    <!-- Botones dinámicos -->
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW SEPARADA: TABLA DE TIERS -->
+        <section id="view-tiers" class="view-section hidden transition-opacity duration-300 space-y-6">
+            <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                        <i class="ph-bold ph-ranking text-wine-400"></i>
+                        <span>Tablas de Clasificación TIER</span>
+                    </h2>
+                    <p class="text-sm text-slate-400">Clasificación oficial por modos de juego y categoría.</p>
                 </div>
             </div>
 
-            <!-- TIER BOARDS CONTAINER -->
-            <div class="mt-8 space-y-6">
-                <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-100">Tablas de Clasificación TIER</h2>
-                        <p class="text-sm text-slate-400">Clasificación oficial por modos de juego y categoría.</p>
-                    </div>
-                </div>
+            <!-- PESTAÑAS DINÁMICAS DE MODOS -->
+            <div id="tabs-navigation" class="flex flex-wrap gap-2 pb-2">
+                <!-- Se llena dinámicamente -->
+            </div>
 
-                <!-- PESTAÑAS DINÁMICAS DE MODOS -->
-                <div id="tabs-navigation" class="flex flex-wrap gap-2 pb-2">
-                    <!-- Se llena dinámicamente -->
-                </div>
-
-                <div id="public-tiers-container" class="space-y-6">
-                    <!-- Se llena dinámicamente -->
-                </div>
+            <div id="public-tiers-container" class="space-y-6">
+                <!-- Se llena dinámicamente -->
             </div>
         </section>
 
