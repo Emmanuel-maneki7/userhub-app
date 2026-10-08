@@ -332,12 +332,30 @@ function fillProfileEditForm() {
 
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
+        // Garantizar que la lista de familias cargada desde la DB se muestre correctamente
+        const currentFamilia = state.currentUser.familia || 'Sin Familia / Ninguno';
+        
         clanSelect.innerHTML = state.clans.map(clan => `
-            <option value="${escapeHtml(clan)}" ${state.currentUser.familia === clan ? 'selected' : ''}>
+            <option value="${escapeHtml(clan)}" ${currentFamilia === clan ? 'selected' : ''}>
                 ${escapeHtml(clan)}
             </option>
         `).join('');
     }
+
+    const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
+    const allCb = document.getElementById('cb-all-modes');
+    
+    if (userModos.includes('ALL MODES')) {
+        if (allCb) allCb.checked = true;
+        document.querySelectorAll('.mode-cb').forEach(cb => cb.checked = true);
+    } else {
+        if (allCb) allCb.checked = false;
+        document.querySelectorAll('.mode-cb').forEach(cb => {
+            cb.checked = userModos.includes(cb.value);
+        });
+    }
+    updateModeBtnText();
+}
 
     const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
     const allCb = document.getElementById('cb-all-modes');
