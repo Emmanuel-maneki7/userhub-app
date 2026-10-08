@@ -543,10 +543,58 @@ async function handleCreateTier(e) {
     }
 }
 
-function deleteTier(tierId) {
-    state.tiers = state.tiers.filter(t => t.id !== tierId);
-    saveState();
-    renderAdminPanel();
+async function deleteTier(tierId) {
+    const tier = state.tiers.find(t => t.id === tierId);
+    if (!tier) return;
+    if (!confirm(`¿Eliminar el tier "${tier.name}"? Los usuarios que lo tengan quedarán sin tier.`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/tiers/${tier.dbId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            alert("Error: " + (err.error || "No se pudo eliminar el tier"));
+            return;
+        }
+        await fetchUsers();
+        renderAdminPanel();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error eliminando tier:", err);
+        alert("No se pudo conectar con el servidor.");
+    }
+}
+
+// Mueve un tier dentro de su misma pestaña y guarda el orden en el servidor
+async function moveTier(tierId, direction) {
+    const tier = state.tiers.find(t => t.id === tierId);
+    if (!tier) return;
+
+    const sameTab = state.tiers.filter(t => t.tabId === tier.tabId);
+    const pos = sameTab.findIndex(t => t.id === tierId);
+    const neighbor = sameTab[pos + direction];
+    if (!neighbor) return;
+
+    const i = state.tiers.findIndex(t => t.id === tier.id);
+    const j = state.tiers.findIndex(t => t.id === neighbor.id);
+    [state.tiers[i], state.tiers[j]] = [state.tiers[j], state.tiers[i]];
+
+    renderAdminTiersList();
+    renderPublicTiers();
+
+    try {
+        const response = await fetch(`${API_BASE}/tiers/reorder`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: state.tiers.map(t => t.dbId) })
+        });
+        if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
+    } catch (err) {
+        console.error("Error guardando el orden:", err);
+        alert("No se pudo guardar el orden. Se restaurará la lista.");
+        await fetchGlobalConfig();
+        renderAdminTiersList();
+        renderPublicTiers();
+    }
 }
 
 function renderAdminTiersList() {
@@ -561,6 +609,10 @@ function renderAdminTiersList() {
     container.innerHTML = state.tiers.map((tier, idx) => {
         const parentTab = state.tabs.find(t => t.id === tier.tabId);
         const tabName = parentTab ? parentTab.name : 'Sin pestaña';
+        const sameTab = state.tiers.filter(t => t.tabId === tier.tabId);
+        const pos = sameTab.findIndex(t => t.id === tier.id);
+        const canUp = pos > 0;
+        const canDown = pos < sameTab.length - 1;
 
         return `
             <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
@@ -572,6 +624,12 @@ function renderAdminTiersList() {
                     </div>
                 </div>
                 <div class="flex items-center space-x-1">
+                    <button onclick="moveTier('${tier.id}', -1)" ${canUp ? '' : 'disabled'} class="text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                        <i class="ph-bold ph-arrow-up"></i>
+                    </button>
+                    <button onclick="moveTier('${tier.id}', 1)" ${canDown ? '' : 'disabled'} class="text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                        <i class="ph-bold ph-arrow-down"></i>
+                    </button>
                     <button onclick="deleteTier('${tier.id}')" class="text-slate-500 hover:text-red-400 transition-colors ml-2">
                         <i class="ph-bold ph-trash"></i>
                     </button>
