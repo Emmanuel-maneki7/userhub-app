@@ -12,8 +12,8 @@ model User {
   nickname  String   @unique
   password  String
   nombres   String?
-  modo      String?  @default("Individual / Solo")
-  familia   String?
+  modo      String?  @default("NORMAL")
+  familia   String?  @default("Sin Clan / Ninguno")
   tierId    Int?
   tier      Tier?    @relation(fields: [tierId], references: [id])
   tags      Tag[]
@@ -23,7 +23,7 @@ model User {
 model Tier {
   id        Int      @id @default(autoincrement())
   name      String   @unique
-  color     String   @default("#3b82f6")
+  color     String   @default("#6366f1")
   order     Int      @default(0)
   users     User[]
   createdAt DateTime @default(now())
@@ -32,7 +32,13 @@ model Tier {
 model Tag {
   id        Int      @id @default(autoincrement())
   name      String   @unique
-  color     String   @default("#6366f1")
+  color     String   @default("#eab308")
   users     User[]
+  createdAt DateTime @default(now())
+}
+
+model Clan {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
   createdAt DateTime @default(now())
 }
