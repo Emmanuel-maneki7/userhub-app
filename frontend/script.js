@@ -112,6 +112,22 @@ async function fetchUsers() {
         if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
         const users = await response.json();
         state.users = users;
+
+        // Sincronizar asignaciones con lo proveniente de PostgreSQL
+        users.forEach(u => {
+            const username = u.nickname || u.name;
+            if (username) {
+                if (!state.assignments[username]) {
+                    state.assignments[username] = { tierId: '', tagIds: [] };
+                }
+                if (u.tierId) state.assignments[username].tierId = u.tierId;
+                if (u.tier && u.tier.name) {
+                    const localTier = state.tiers.find(t => t.name.toLowerCase() === u.tier.name.toLowerCase());
+                    if (localTier) state.assignments[username].tierId = localTier.id;
+                }
+            }
+        });
+
         renderPublicTiers();
         return users;
     } catch (error) {
@@ -183,11 +199,21 @@ async function handleLogin(e) {
             return;
         }
 
+        let parseModo = ['NORMAL'];
+        try {
+            if (foundUser.modo) {
+                parseModo = foundUser.modo.startsWith('[') ? JSON.parse(foundUser.modo) : [foundUser.modo];
+            }
+        } catch (err) {
+            parseModo = [foundUser.modo || 'NORMAL'];
+        }
+
         state.currentUser = {
-            nickname: foundUser.name || foundUser.nickname || nickname,
-            nombres: foundUser.name || nickname,
-            modo: ['NORMAL'],
-            familia: state.clans[0] || 'Sin Clan'
+            id: foundUser.id,
+            nickname: foundUser.nickname || foundUser.name || nickname,
+            nombres: foundUser.nombres || foundUser.name || nickname,
+            modo: parseModo,
+            familia: foundUser.familia || state.clans[0] || 'Sin Clan'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -245,7 +271,7 @@ function getSelectedModes() {
     return selected.length > 0 ? selected : ['NORMAL'];
 }
 
-function handleSaveProfile(e) {
+async function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
 
@@ -254,6 +280,24 @@ function handleSaveProfile(e) {
     state.currentUser.familia = document.getElementById('prof-familia').value;
 
     saveState();
+
+    // Guardar en Backend si el usuario tiene ID
+    if (state.currentUser.id) {
+        try {
+            await fetch(`${API_URL}/${state.currentUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombres: state.currentUser.nombres,
+                    modo: state.currentUser.modo,
+                    familia: state.currentUser.familia
+                })
+            });
+        } catch (err) {
+            console.error("Error al sincronizar perfil con backend:", err);
+        }
+    }
+
     alert("Perfil actualizado correctamente.");
     navigateTo('view-profile-card');
 }
@@ -263,7 +307,6 @@ function fillProfileEditForm() {
     document.getElementById('prof-nickname').value = state.currentUser.nickname || '';
     document.getElementById('prof-nombres').value = state.currentUser.nombres || '';
 
-    // Llenar Clanes
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
         clanSelect.innerHTML = state.clans.map(clan => `
@@ -273,7 +316,6 @@ function fillProfileEditForm() {
         `).join('');
     }
 
-    // Marcar Modos
     const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
     const allCb = document.getElementById('cb-all-modes');
     
@@ -447,7 +489,6 @@ function renderAdminTagsList() {
     `).join('');
 }
 
-// GESTIÓN DE CLANES
 function handleCreateClan(e) {
     e.preventDefault();
     const clanInput = document.getElementById('clan-name');
@@ -506,13 +547,13 @@ function renderAdminUserTable() {
     }
 
     tbody.innerHTML = allUsers.map(user => {
-        const username = user.name || user.nickname || 'Usuario';
+        const username = user.nickname || user.name || 'Usuario';
         const userAssign = state.assignments[username] || { tierId: '', tagIds: [] };
 
         return `
             <tr class="hover:bg-slate-950/40 transition-colors">
                 <td class="py-3 px-4 font-semibold text-indigo-400">${escapeHtml(username)}</td>
-                <td class="py-3 px-4 text-slate-300">${escapeHtml(user.email || 'N/A')}</td>
+                <td class="py-3 px-4 text-slate-300">${escapeHtml(user.email || `${username.toLowerCase()}@userhub.com`)}</td>
                 
                 <td class="py-3 px-4">
                     <div class="flex flex-wrap gap-1">
@@ -544,13 +585,24 @@ function renderAdminUserTable() {
     }).join('');
 }
 
-function assignUserTier(username, tierId) {
+async function assignUserTier(username, tierId) {
     if (!state.assignments[username]) {
         state.assignments[username] = { tierId: '', tagIds: [] };
     }
     state.assignments[username].tierId = tierId;
     saveState();
     renderPublicTiers();
+
+    // Sincronizar asignación de Tier con el backend de Render
+    try {
+        await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierId: tierId ? 1 : null })
+        });
+    } catch (err) {
+        console.error("Error al guardar Tier en servidor:", err);
+    }
 }
 
 function toggleUserTag(username, tagId) {
@@ -667,7 +719,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const formLog = document.getElementById('form-login');
     if (formLog) formLog.addEventListener('submit', handleLogin);
 
-    // Cerrar el menú desplegable si se hace clic afuera
     document.addEventListener('click', (e) => {
         const btn = document.getElementById('mode-dropdown-btn');
         const menu = document.getElementById('mode-dropdown-menu');
