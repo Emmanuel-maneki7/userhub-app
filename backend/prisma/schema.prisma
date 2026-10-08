@@ -14,6 +14,7 @@ model User {
   nombres   String?
   modo      String?  @default("NORMAL")
   familia   String?  @default("Sin Familia / Ninguno")
+  puntos    Int      @default(0) // <-- Nuevo campo para el ranking de puntaje
   tierId    Int?
   tier      Tier?    @relation(fields: [tierId], references: [id], onDelete: SetNull)
   tags      Tag[]
