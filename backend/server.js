@@ -14,6 +14,44 @@ app.get('/api/health', (req, res) => {
   res.json({ message: "Backend OK" });
 });
 
+// GET: Obtener pestañas con sus tiers asociados
+app.get('/api/tabs', async (req, res) => {
+  try {
+    const tabs = await prisma.modeTab.findMany({
+      include: { tiers: true },
+      orderBy: { id: 'asc' }
+    });
+    res.json(tabs);
+  } catch (error) {
+    console.error("Error al obtener pestañas:", error);
+    res.status(500).json({ error: "Error al obtener pestañas" });
+  }
+});
+
+// POST: Crear Pestaña
+app.post('/api/tabs', async (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: "El nombre de la pestaña es obligatorio" });
+
+  try {
+    const newTab = await prisma.modeTab.create({ data: { name } });
+    res.status(201).json(newTab);
+  } catch (error) {
+    res.status(400).json({ error: "La pestaña ya existe o no se pudo crear" });
+  }
+});
+
+// DELETE: Eliminar Pestaña
+app.delete('/api/tabs/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.modeTab.delete({ where: { id: Number(id) } });
+    res.json({ message: "Pestaña eliminada correctamente" });
+  } catch (error) {
+    res.status(400).json({ error: "No se pudo eliminar la pestaña" });
+  }
+});
+
 // GET: Obtener usuarios con Tier y Tags
 app.get('/api/users', async (req, res) => {
   try {
@@ -63,26 +101,37 @@ app.delete('/api/clans/:name', async (req, res) => {
   }
 });
 
-// GET: Obtener Tiers globales
+// GET: Obtener Tiers globales con su pestaña asociada
 app.get('/api/tiers', async (req, res) => {
   try {
-    const tiers = await prisma.tier.findMany({ orderBy: { id: 'asc' } });
+    const tiers = await prisma.tier.findMany({
+      include: { tab: true },
+      orderBy: { order: 'asc' }
+    });
     res.json(tiers);
   } catch (error) {
+    console.error("Error al obtener tiers:", error);
     res.status(500).json({ error: "Error al obtener tiers" });
   }
 });
 
-// POST: Crear Tier global
+// POST: Crear o actualizar Tier global con Pestaña asignada
 app.post('/api/tiers', async (req, res) => {
-  const { name, color } = req.body;
+  const { name, color, tabId } = req.body;
   if (!name) return res.status(400).json({ error: "Nombre de tier obligatorio" });
 
   try {
     const newTier = await prisma.tier.upsert({
       where: { name },
-      update: { color: color || '#6366f1' },
-      create: { name, color: color || '#6366f1' }
+      update: { 
+        color: color || '#6366f1',
+        ...(tabId && { tabId: Number(tabId) })
+      },
+      create: { 
+        name, 
+        color: color || '#6366f1',
+        tabId: tabId ? Number(tabId) : null
+      }
     });
     res.status(201).json(newTier);
   } catch (error) {
