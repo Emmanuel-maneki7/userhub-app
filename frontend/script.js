@@ -129,19 +129,16 @@ async function handleRegister(e) {
         return;
     }
 
-    const email = `${nickname.toLowerCase().replace(/\s+/g, '')}@userhub.com`;
-    const name = nickname;
-
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ nickname, password })
         });
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: name, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Clan' };
+            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Clan' };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
