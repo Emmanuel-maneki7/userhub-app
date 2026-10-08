@@ -13,6 +13,7 @@ let state = {
         { id: 'tag-vip', name: 'VIP', color: '#eab308' },
         { id: 'tag-pro', name: 'PRO', color: '#ef4444' }
     ],
+    clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Clan / Ninguno', 'Clan Alpha', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
     users: []
 };
@@ -20,6 +21,7 @@ let state = {
 function saveState() {
     localStorage.setItem('uh_tiers', JSON.stringify(state.tiers));
     localStorage.setItem('uh_tags', JSON.stringify(state.tags));
+    localStorage.setItem('uh_clans', JSON.stringify(state.clans));
     localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
     if (state.currentUser) {
         localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
@@ -29,7 +31,6 @@ function saveState() {
 }
 
 function navigateTo(viewId) {
-    // Si intenta ingresar al panel admin sin ser Admin, redirigir al home
     if (viewId === 'view-admin' && (!state.currentUser || state.currentUser.nickname.toLowerCase() !== 'admin')) {
         viewId = 'view-home';
     }
@@ -120,7 +121,6 @@ async function fetchUsers() {
 
 async function handleRegister(e) {
     e.preventDefault();
-
     const nickname = document.getElementById('reg-nickname')?.value.trim();
     const password = document.getElementById('reg-password')?.value;
 
@@ -141,7 +141,7 @@ async function handleRegister(e) {
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: name, modo: 'Individual / Solo', familia: '-' };
+            state.currentUser = { nickname, nombres: name, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Clan' };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -165,26 +165,22 @@ async function handleLogin(e) {
         return;
     }
 
-    // Acceso Administrador
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: 'Competitivo', familia: 'UserHub HQ' };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
         return;
     }
 
-    // Aseguramos tener los usuarios más recientes desde el backend
     await fetchUsers();
 
-    // Buscar coincidencia exacta por nickname (name) y clave
     const foundUser = state.users.find(u => 
         (u.name && u.name.toLowerCase() === nickname.toLowerCase()) || 
         (u.nickname && u.nickname.toLowerCase() === nickname.toLowerCase())
     );
 
     if (foundUser) {
-        // Si el backend devuelve la contraseña, la verificamos. Si no, validamos que el usuario exista registrado.
         if (foundUser.password && foundUser.password !== password) {
             alert("Usuario / contraseña incorrecto");
             return;
@@ -193,8 +189,8 @@ async function handleLogin(e) {
         state.currentUser = {
             nickname: foundUser.name || foundUser.nickname || nickname,
             nombres: foundUser.name || nickname,
-            modo: 'Individual / Solo',
-            familia: '-'
+            modo: ['NORMAL'],
+            familia: state.clans[0] || 'Sin Clan'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -211,13 +207,54 @@ function handleLogout() {
     navigateTo('view-home');
 }
 
+// MULTISELECT MODO PREFERIDO
+function toggleModeDropdown() {
+    const menu = document.getElementById('mode-dropdown-menu');
+    if (menu) menu.classList.toggle('hidden');
+}
+
+function handleModeCheckboxChange(cb) {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb) allCb.checked = false;
+    updateModeBtnText();
+}
+
+function handleAllModesToggle(allCb) {
+    const checkboxes = document.querySelectorAll('.mode-cb');
+    checkboxes.forEach(cb => {
+        cb.checked = allCb.checked;
+    });
+    updateModeBtnText();
+}
+
+function updateModeBtnText() {
+    const btnText = document.getElementById('mode-btn-text');
+    const allCb = document.getElementById('cb-all-modes');
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+
+    if (allCb && allCb.checked) {
+        btnText.textContent = "ALL MODES";
+    } else if (selected.length === 0) {
+        btnText.textContent = "Seleccionar modos...";
+    } else {
+        btnText.textContent = selected.join(', ');
+    }
+}
+
+function getSelectedModes() {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb && allCb.checked) return ['ALL MODES'];
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+    return selected.length > 0 ? selected : ['NORMAL'];
+}
+
 function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
 
     state.currentUser.nombres = document.getElementById('prof-nombres').value;
-    state.currentUser.modo = document.getElementById('prof-modo').value;
-    state.currentUser.familia = document.getElementById('prof-familia').value || '-';
+    state.currentUser.modo = getSelectedModes();
+    state.currentUser.familia = document.getElementById('prof-familia').value;
 
     saveState();
     alert("Perfil actualizado correctamente.");
@@ -228,8 +265,31 @@ function fillProfileEditForm() {
     if (!state.currentUser) return;
     document.getElementById('prof-nickname').value = state.currentUser.nickname || '';
     document.getElementById('prof-nombres').value = state.currentUser.nombres || '';
-    document.getElementById('prof-modo').value = state.currentUser.modo || 'Individual / Solo';
-    document.getElementById('prof-familia').value = state.currentUser.familia !== '-' ? state.currentUser.familia : '';
+
+    // Llenar Clanes
+    const clanSelect = document.getElementById('prof-familia');
+    if (clanSelect) {
+        clanSelect.innerHTML = state.clans.map(clan => `
+            <option value="${escapeHtml(clan)}" ${state.currentUser.familia === clan ? 'selected' : ''}>
+                ${escapeHtml(clan)}
+            </option>
+        `).join('');
+    }
+
+    // Marcar Modos
+    const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
+    const allCb = document.getElementById('cb-all-modes');
+    
+    if (userModos.includes('ALL MODES')) {
+        if (allCb) allCb.checked = true;
+        document.querySelectorAll('.mode-cb').forEach(cb => cb.checked = true);
+    } else {
+        if (allCb) allCb.checked = false;
+        document.querySelectorAll('.mode-cb').forEach(cb => {
+            cb.checked = userModos.includes(cb.value);
+        });
+    }
+    updateModeBtnText();
 }
 
 function renderProfileCard() {
@@ -240,6 +300,7 @@ function renderProfileCard() {
     const tier = state.tiers.find(t => t.id === assign.tierId);
     const userTagIds = assign.tagIds || [];
     const userTags = state.tags.filter(t => userTagIds.includes(t.id));
+    const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
 
     container.innerHTML = `
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
@@ -262,12 +323,12 @@ function renderProfileCard() {
 
             <div class="grid grid-cols-2 gap-4 my-6 py-4 border-y border-slate-800/80">
                 <div>
-                    <span class="block text-xs text-slate-500 uppercase font-semibold">Modo / Estilo</span>
-                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.modo || 'No especificado')}</span>
+                    <span class="block text-xs text-slate-500 uppercase font-semibold">Modo Preferido</span>
+                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(modosText)}</span>
                 </div>
                 <div>
                     <span class="block text-xs text-slate-500 uppercase font-semibold">Clan / Familia</span>
-                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.familia || '-')}</span>
+                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.familia || 'Sin Clan')}</span>
                 </div>
             </div>
 
@@ -296,6 +357,7 @@ function renderProfileCard() {
 function renderAdminPanel() {
     renderAdminTiersList();
     renderAdminTagsList();
+    renderAdminClansList();
     renderAdminUserTable();
 }
 
@@ -388,6 +450,50 @@ function renderAdminTagsList() {
     `).join('');
 }
 
+// GESTIÓN DE CLANES
+function handleCreateClan(e) {
+    e.preventDefault();
+    const clanInput = document.getElementById('clan-name');
+    const clanName = clanInput.value.trim();
+
+    if (!clanName) return;
+    if (state.clans.includes(clanName)) {
+        alert("Este clan ya existe.");
+        return;
+    }
+
+    state.clans.push(clanName);
+    saveState();
+    clanInput.value = '';
+    renderAdminPanel();
+    alert(`Clan "${clanName}" creado.`);
+}
+
+function deleteClan(clanName) {
+    state.clans = state.clans.filter(c => c !== clanName);
+    saveState();
+    renderAdminPanel();
+}
+
+function renderAdminClansList() {
+    const container = document.getElementById('admin-clans-list');
+    if (!container) return;
+
+    if (state.clans.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay clanes creados.</p>`;
+        return;
+    }
+
+    container.innerHTML = state.clans.map(clan => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <span class="font-bold text-slate-200">${escapeHtml(clan)}</span>
+            <button onclick="deleteClan('${escapeHtml(clan)}')" class="text-slate-500 hover:text-red-400 transition-colors">
+                <i class="ph-bold ph-trash"></i>
+            </button>
+        </div>
+    `).join('');
+}
+
 function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
@@ -468,12 +574,10 @@ function toggleUserTag(username, tagId) {
     renderPublicTiers();
 }
 
-// RENDERIZAR TABLAS EN HOME (Solo si inició sesión)
 function renderPublicTiers() {
     const container = document.getElementById('public-tiers-container');
     if (!container) return;
 
-    // BLOQUEO: Si el usuario NO ha iniciado sesión
     if (!state.currentUser) {
         container.innerHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
@@ -565,6 +669,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formLog = document.getElementById('form-login');
     if (formLog) formLog.addEventListener('submit', handleLogin);
+
+    // Cerrar el menú desplegable si se hace clic afuera
+    document.addEventListener('click', (e) => {
+        const btn = document.getElementById('mode-dropdown-btn');
+        const menu = document.getElementById('mode-dropdown-menu');
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
+    });
 
     fetchUsers();
     navigateTo('view-home');
