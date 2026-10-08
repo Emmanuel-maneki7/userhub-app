@@ -14,6 +14,25 @@ model User {
   nombres   String?
   modo      String?  @default("Individual / Solo")
   familia   String?
-  tier      String?  @default("Sin Clasificar")
+  tierId    Int?
+  tier      Tier?    @relation(fields: [tierId], references: [id])
+  tags      Tag[]
+  createdAt DateTime @default(now())
+}
+
+model Tier {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String   @default("#3b82f6")
+  order     Int      @default(0)
+  users     User[]
+  createdAt DateTime @default(now())
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String   @default("#6366f1")
+  users     User[]
   createdAt DateTime @default(now())
 }
