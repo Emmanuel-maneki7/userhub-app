@@ -5,7 +5,7 @@ const API_URL = `${API_BASE}/users`;
 
 let state = {
     currentUser: JSON.parse(localStorage.getItem('uh_current_user')) || null,
-    tiers: [
+    tiers: JSON.parse(localStorage.getItem('uh_tiers')) || [
         { id: 'tier-s', name: 'TIER S', color: '#6366f1' },
         { id: 'tier-a', name: 'TIER A', color: '#10b981' },
         { id: 'tier-b', name: 'TIER B', color: '#f59e0b' }
@@ -14,18 +14,20 @@ let state = {
         { id: 'tag-vip', name: 'VIP', color: '#eab308' },
         { id: 'tag-pro', name: 'PRO', color: '#ef4444' }
     ],
-    clans: ['Sin Clan / Ninguno', 'Clan Alpha', 'Audition Kings'],
+    clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Familia / Ninguno', 'TalentYouth', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
     users: []
 };
 
 function saveState() {
+    localStorage.setItem('uh_tiers', JSON.stringify(state.tiers));
+    localStorage.setItem('uh_clans', JSON.stringify(state.clans));
+    localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
     if (state.currentUser) {
         localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
     } else {
         localStorage.removeItem('uh_current_user');
     }
-    localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
 }
 
 async function fetchGlobalConfig() {
@@ -38,13 +40,13 @@ async function fetchGlobalConfig() {
         if (clansRes.ok) {
             const dbClans = await clansRes.json();
             if (dbClans.length > 0) {
-                state.clans = ['Sin Clan / Ninguno', ...dbClans.map(c => c.name).filter(n => n !== 'Sin Clan / Ninguno')];
+                state.clans = ['Sin Familia / Ninguno', ...dbClans.map(c => c.name).filter(n => n !== 'Sin Familia / Ninguno')];
             }
         }
 
         if (tiersRes.ok) {
             const dbTiers = await tiersRes.json();
-            if (dbTiers.length > 0) {
+            if (dbTiers.length > 0 && !localStorage.getItem('uh_tiers_reordered')) {
                 state.tiers = dbTiers.map(t => ({ id: `tier-${t.id}`, name: t.name, color: t.color }));
             }
         }
@@ -175,7 +177,7 @@ async function handleRegister(e) {
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Clan' };
+            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno' };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -234,7 +236,7 @@ async function handleLogin(e) {
             nickname: foundUser.nickname || foundUser.name || nickname,
             nombres: foundUser.nombres || foundUser.name || nickname,
             modo: parseModo,
-            familia: foundUser.familia || state.clans[0] || 'Sin Clan'
+            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -312,6 +314,8 @@ async function handleSaveProfile(e) {
                     familia: state.currentUser.familia
                 })
             });
+            await fetchUsers();
+            renderPublicTiers();
         } catch (err) {
             console.error("Error al sincronizar perfil con backend:", err);
         }
@@ -385,8 +389,8 @@ function renderProfileCard() {
                     <span class="text-slate-200 text-sm font-medium">${escapeHtml(modosText)}</span>
                 </div>
                 <div>
-                    <span class="block text-xs text-slate-500 uppercase font-semibold">Clan / Familia</span>
-                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.familia || 'Sin Clan')}</span>
+                    <span class="block text-xs text-slate-500 uppercase font-semibold">Familia</span>
+                    <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.familia || 'Sin Familia / Ninguno')}</span>
                 </div>
             </div>
 
@@ -443,6 +447,20 @@ async function handleCreateTier(e) {
     }
 }
 
+function moveTier(index, direction) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= state.tiers.length) return;
+
+    const temp = state.tiers[index];
+    state.tiers[index] = state.tiers[newIndex];
+    state.tiers[newIndex] = temp;
+
+    localStorage.setItem('uh_tiers_reordered', 'true');
+    saveState();
+    renderAdminTiersList();
+    renderPublicTiers();
+}
+
 function deleteTier(tierId) {
     state.tiers = state.tiers.filter(t => t.id !== tierId);
     saveState();
@@ -458,15 +476,23 @@ function renderAdminTiersList() {
         return;
     }
 
-    container.innerHTML = state.tiers.map(tier => `
+    container.innerHTML = state.tiers.map((tier, idx) => `
         <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
             <div class="flex items-center space-x-2">
                 <span class="w-3 h-3 rounded-full" style="background-color: ${tier.color}"></span>
                 <span class="font-bold text-slate-200">${escapeHtml(tier.name)}</span>
             </div>
-            <button onclick="deleteTier('${tier.id}')" class="text-slate-500 hover:text-red-400 transition-colors">
-                <i class="ph-bold ph-trash"></i>
-            </button>
+            <div class="flex items-center space-x-1">
+                <button onclick="moveTier(${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 text-slate-600"' : 'class="text-indigo-400 hover:text-indigo-300 p-1"'}>
+                    <i class="ph-bold ph-caret-up text-sm"></i>
+                </button>
+                <button onclick="moveTier(${idx}, 1)" ${idx === state.tiers.length - 1 ? 'disabled class="opacity-30 text-slate-600"' : 'class="text-indigo-400 hover:text-indigo-300 p-1"'}>
+                    <i class="ph-bold ph-caret-down text-sm"></i>
+                </button>
+                <button onclick="deleteTier('${tier.id}')" class="text-slate-500 hover:text-red-400 transition-colors ml-2">
+                    <i class="ph-bold ph-trash"></i>
+                </button>
+            </div>
         </div>
     `).join('');
 }
@@ -530,9 +556,9 @@ async function handleCreateClan(e) {
         await fetchGlobalConfig();
         clanInput.value = '';
         renderAdminPanel();
-        alert(`Clan "${clanName}" creado e integrado en la base de datos.`);
+        alert(`Familia "${clanName}" creada e integrada en la base de datos.`);
     } catch (err) {
-        console.error("Error creando clan:", err);
+        console.error("Error creando familia:", err);
     }
 }
 
@@ -542,7 +568,7 @@ async function deleteClan(clanName) {
         await fetchGlobalConfig();
         renderAdminPanel();
     } catch (err) {
-        console.error("Error eliminando clan:", err);
+        console.error("Error eliminando familia:", err);
     }
 }
 
@@ -551,7 +577,7 @@ function renderAdminClansList() {
     if (!container) return;
 
     if (state.clans.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay clanes creados.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay familias creadas.</p>`;
         return;
     }
 
@@ -712,32 +738,50 @@ function renderPublicTiers() {
                     </h3>
                 </div>
 
-                <div class="p-4">
+                <div class="p-4 overflow-x-auto">
                     ${members.length > 0 ? `
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                            ${members.map(u => {
-                                const uname = u.nickname || u.name;
-                                const userTags = ((state.assignments[uname] || {}).tagIds || [])
-                                    .map(tid => state.tags.find(t => t.id === tid))
-                                    .filter(Boolean);
+                        <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
+                                    <th class="py-3 px-4">Nickname</th>
+                                    <th class="py-3 px-4">Familia</th>
+                                    <th class="py-3 px-4">Modo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/50">
+                                ${members.map(u => {
+                                    const uname = u.nickname || u.name;
+                                    const familiaText = u.familia || 'Sin Familia / Ninguno';
+                                    
+                                    let modoArr = ['NORMAL'];
+                                    try {
+                                        if (u.modo) {
+                                            modoArr = u.modo.startsWith('[') ? JSON.parse(u.modo) : [u.modo];
+                                        }
+                                    } catch (e) {
+                                        modoArr = [u.modo || 'NORMAL'];
+                                    }
+                                    const modoText = Array.isArray(modoArr) ? modoArr.join(', ') : modoArr;
 
-                                return `
-                                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between">
-                                        <div class="space-y-1">
-                                            <span class="font-semibold text-slate-100 text-sm block">${escapeHtml(uname)}</span>
-                                            <div class="flex flex-wrap gap-1">
-                                                ${userTags.map(tag => `
-                                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white" style="background-color: ${tag.color}">
-                                                        ${escapeHtml(tag.name)}
-                                                    </span>
-                                                `).join('')}
-                                            </div>
-                                        </div>
-                                        <i class="ph-bold ph-user-circle text-slate-600 text-xl"></i>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
+                                    return `
+                                        <tr class="hover:bg-slate-950/40 transition-colors">
+                                            <td class="py-3 px-4 font-bold text-slate-100 flex items-center gap-2">
+                                                <i class="ph-bold ph-user-circle text-indigo-400 text-lg"></i>
+                                                <span>${escapeHtml(uname)}</span>
+                                            </td>
+                                            <td class="py-3 px-4 text-slate-300 font-medium">
+                                                ${escapeHtml(familiaText)}
+                                            </td>
+                                            <td class="py-3 px-4 text-indigo-300 font-medium">
+                                                <span class="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/50 text-indigo-300 text-xs font-semibold">
+                                                    ${escapeHtml(modoText)}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
                     ` : `<p class="text-xs text-slate-500 italic py-2">No hay miembros asignados a este Tier actualmente.</p>`}
                 </div>
             </div>
