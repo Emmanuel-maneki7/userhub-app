@@ -28,38 +28,38 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// GET: Obtener Clanes globales
+// GET: Obtener Familias/Clanes globales
 app.get('/api/clans', async (req, res) => {
   try {
     const clans = await prisma.clan.findMany({ orderBy: { name: 'asc' } });
     res.json(clans);
   } catch (error) {
-    console.error("Error al obtener clanes:", error);
-    res.status(500).json({ error: "Error al obtener clanes" });
+    console.error("Error al obtener familias:", error);
+    res.status(500).json({ error: "Error al obtener familias" });
   }
 });
 
-// POST: Crear Clan global
+// POST: Crear Familia/Clan global
 app.post('/api/clans', async (req, res) => {
   const { name } = req.body;
-  if (!name) return res.status(400).json({ error: "El nombre del clan es obligatorio" });
+  if (!name) return res.status(400).json({ error: "El nombre de la familia es obligatorio" });
 
   try {
     const newClan = await prisma.clan.create({ data: { name } });
     res.status(201).json(newClan);
   } catch (error) {
-    res.status(400).json({ error: "El clan ya existe o no se pudo crear" });
+    res.status(400).json({ error: "La familia ya existe o no se pudo crear" });
   }
 });
 
-// DELETE: Eliminar Clan global
+// DELETE: Eliminar Familia/Clan global
 app.delete('/api/clans/:name', async (req, res) => {
   const { name } = req.params;
   try {
     await prisma.clan.delete({ where: { name } });
-    res.json({ message: "Clan eliminado correctamente" });
+    res.json({ message: "Familia eliminada correctamente" });
   } catch (error) {
-    res.status(400).json({ error: "No se pudo eliminar el clan" });
+    res.status(400).json({ error: "No se pudo eliminar la familia" });
   }
 });
 
@@ -81,8 +81,8 @@ app.post('/api/tiers', async (req, res) => {
   try {
     const newTier = await prisma.tier.upsert({
       where: { name },
-      update: { color: color || '#3b82f6' },
-      create: { name, color: color || '#3b82f6' }
+      update: { color: color || '#6366f1' },
+      create: { name, color: color || '#6366f1' }
     });
     res.status(201).json(newTier);
   } catch (error) {
@@ -104,7 +104,7 @@ app.post('/api/users', async (req, res) => {
         password,
         nombres: nickname,
         modo: 'NORMAL',
-        familia: 'Sin Clan / Ninguno'
+        familia: 'Sin Familia / Ninguno'
       },
       include: { tier: true, tags: true }
     });
@@ -161,12 +161,14 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
       tierId = tierObj.id;
     }
 
+    const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
+
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         tierId: tierId,
         ...(nombres !== undefined && { nombres }),
-        ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
+        ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia })
       },
       include: { tier: true, tags: true }
@@ -174,6 +176,7 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
 
     res.json(updatedUser);
   } catch (error) {
+    console.error("Error al actualizar por nickname:", error);
     res.status(400).json({ error: "No se pudo actualizar el usuario" });
   }
 });
@@ -184,17 +187,20 @@ app.put('/api/users/:id', async (req, res) => {
   const { nombres, modo, familia } = req.body;
 
   try {
+    const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
+
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
       data: {
         ...(nombres !== undefined && { nombres }),
-        ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
+        ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia })
       },
       include: { tier: true, tags: true }
     });
     res.json(updatedUser);
   } catch (error) {
+    console.error("Error al actualizar perfil por ID:", error);
     res.status(400).json({ error: "No se pudo actualizar el perfil" });
   }
 });
