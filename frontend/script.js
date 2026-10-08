@@ -1,4 +1,4 @@
-console.log("Sistema UserHub listo y conectado");
+console.log("Sistema Audition World Class LATAM listo y conectado");
 
 const API_BASE = 'https://userhub-app.onrender.com/api';
 const API_URL = `${API_BASE}/users`;
@@ -8,8 +8,8 @@ let state = {
     tabs: [],
     tiers: [],
     tags: [
-        { id: 'tag-vip', name: 'VIP', color: '#eab308' },
-        { id: 'tag-pro', name: 'PRO', color: '#ef4444' }
+        { id: 'tag-vip', name: 'VIP', color: '#c92a52' },
+        { id: 'tag-pro', name: 'PRO', color: '#800020' }
     ],
     clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Familia / Ninguno', 'TalentYouth', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
@@ -81,7 +81,7 @@ function navigateTo(viewId) {
     }
 
     renderNavActions();
-    if (viewId === 'view-home') fetchUsers().then(() => renderPublicTiers());
+    if (viewId === 'view-home' || viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') renderAdminPanel();
     if (viewId === 'view-profile-card') renderProfileCard();
     if (viewId === 'view-profile-edit') fillProfileEditForm();
@@ -95,23 +95,30 @@ function renderNavActions() {
     if (state.currentUser) {
         const isAdmin = state.currentUser.nickname.toLowerCase() === 'admin';
         navContainer.innerHTML = `
-            <span class="text-xs text-slate-400 hidden sm:inline">Hola, <b class="text-indigo-400">${escapeHtml(state.currentUser.nickname)}</b></span>
+            <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b></span>
             ${isAdmin ? `
-                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1">
+                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1 shadow-md shadow-wine-900/40">
                     <i class="ph-bold ph-shield-check"></i> <span>Panel Admin</span>
                 </button>
             ` : ''}
-            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-slate-700">
+            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-ranking"></i> <span>Tabla Tiers</span>
+            </button>
+            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-user"></i> <span>Mi Perfil</span>
             </button>
-            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-400 text-xs font-semibold flex items-center space-x-1 border border-red-500/30">
+            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 text-xs font-semibold flex items-center space-x-1 border border-red-900/50">
                 <i class="ph-bold ph-sign-out"></i> <span>Salir</span>
             </button>
         `;
 
         if (ctaButtons) {
             ctaButtons.innerHTML = `
-                <button onclick="navigateTo('view-profile-card')" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center space-x-2">
+                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-ranking text-lg"></i>
+                    <span>Ver Tabla de Tiers</span>
+                </button>
+                <button onclick="navigateTo('view-profile-card')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2">
                     <i class="ph-bold ph-user text-lg"></i>
                     <span>Ver Mi Perfil</span>
                 </button>
@@ -119,23 +126,26 @@ function renderNavActions() {
         }
     } else {
         navContainer.innerHTML = `
-            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-slate-700">
+            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-ranking"></i> <span>Tabla Tiers</span>
+            </button>
+            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-sign-in"></i> <span>Iniciar Sesión</span>
             </button>
-            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center space-x-1">
+            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold">
                 <i class="ph-bold ph-user-plus"></i> <span>Registrarse</span>
             </button>
         `;
 
         if (ctaButtons) {
             ctaButtons.innerHTML = `
-                <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center space-x-2">
+                <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2">
                     <i class="ph-bold ph-user-plus text-lg"></i>
                     <span>Registrarse Ahora</span>
                 </button>
-                <button onclick="navigateTo('view-login')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 transition-all hover:scale-[1.02] flex items-center space-x-2">
-                    <i class="ph-bold ph-sign-in text-lg"></i>
-                    <span>Iniciar Sesión</span>
+                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-ranking text-lg"></i>
+                    <span>Ver Tabla Tiers</span>
                 </button>
             `;
         }
@@ -207,7 +217,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'UserHub HQ' };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -374,10 +384,10 @@ function renderProfileCard() {
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
 
     container.innerHTML = `
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
             <div class="flex items-start justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center text-3xl font-bold border border-indigo-500/30">
+                    <div class="w-16 h-16 rounded-2xl bg-wine-900/50 text-wine-400 flex items-center justify-center text-3xl font-bold border border-wine-700/50">
                         ${escapeHtml(state.currentUser.nickname.charAt(0).toUpperCase())}
                     </div>
                     <div>
@@ -387,30 +397,30 @@ function renderProfileCard() {
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 my-6 py-4 border-y border-slate-800/80">
+            <div class="grid grid-cols-2 gap-4 my-6 py-4 border-y border-wine-900/80">
                 <div>
-                    <span class="block text-xs text-slate-500 uppercase font-semibold">Modo Preferido</span>
+                    <span class="block text-xs text-wine-400 uppercase font-semibold">Modo Preferido</span>
                     <span class="text-slate-200 text-sm font-medium">${escapeHtml(modosText)}</span>
                 </div>
                 <div>
-                    <span class="block text-xs text-slate-500 uppercase font-semibold">Familia</span>
+                    <span class="block text-xs text-wine-400 uppercase font-semibold">Familia</span>
                     <span class="text-slate-200 text-sm font-medium">${escapeHtml(state.currentUser.familia || 'Sin Familia / Ninguno')}</span>
                 </div>
             </div>
 
             <div class="mb-6">
-                <span class="block text-xs text-slate-500 uppercase font-semibold mb-2">Etiquetas Asignadas</span>
+                <span class="block text-xs text-wine-400 uppercase font-semibold mb-2">Etiquetas Asignadas</span>
                 <div class="flex flex-wrap gap-2">
                     ${userTags.length > 0 ? userTags.map(tag => `
                         <span class="px-2.5 py-1 rounded-md text-xs font-semibold text-white" style="background-color: ${tag.color}">
                             ${escapeHtml(tag.name)}
                         </span>
-                    `).join('') : '<span class="text-xs text-slate-600 italic">Sin etiquetas asignadas por el Administrador.</span>'}
+                    `).join('') : '<span class="text-xs text-slate-500 italic">Sin etiquetas asignadas por el Administrador.</span>'}
                 </div>
             </div>
 
             <div class="flex justify-end">
-                <button onclick="navigateTo('view-profile-edit')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
+                <button onclick="navigateTo('view-profile-edit')" class="px-4 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
                     <i class="ph-bold ph-pencil"></i>
                     <span>Editar Perfil</span>
                 </button>
@@ -476,7 +486,7 @@ function renderAdminTabsList() {
     }
 
     container.innerHTML = state.tabs.map(tab => `
-        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+        <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
             <span class="font-bold text-slate-200">${escapeHtml(tab.name)}</span>
             <button onclick="deleteTab(${tab.id})" class="text-slate-500 hover:text-red-400 transition-colors">
                 <i class="ph-bold ph-trash"></i>
@@ -590,19 +600,19 @@ function renderAdminTiersList() {
         const canDown = pos < sameTab.length - 1;
 
         return `
-            <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
                 <div class="flex items-center space-x-2">
                     <span class="w-3 h-3 rounded-full" style="background-color: ${tier.color}"></span>
                     <div>
                         <span class="font-bold text-slate-200 block">${escapeHtml(tier.name)}</span>
-                        <span class="text-[10px] text-indigo-400">Modo: ${escapeHtml(tabName)}</span>
+                        <span class="text-[10px] text-wine-400">Modo: ${escapeHtml(tabName)}</span>
                     </div>
                 </div>
                 <div class="flex items-center space-x-1">
-                    <button onclick="moveTier('${tier.id}', -1)" ${canUp ? '' : 'disabled'} class="text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                    <button onclick="moveTier('${tier.id}', -1)" ${canUp ? '' : 'disabled'} class="text-slate-500 hover:text-wine-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                         <i class="ph-bold ph-arrow-up"></i>
                     </button>
-                    <button onclick="moveTier('${tier.id}', 1)" ${canDown ? '' : 'disabled'} class="text-slate-500 hover:text-indigo-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                    <button onclick="moveTier('${tier.id}', 1)" ${canDown ? '' : 'disabled'} class="text-slate-500 hover:text-wine-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                         <i class="ph-bold ph-arrow-down"></i>
                     </button>
                     <button onclick="deleteTier('${tier.id}')" class="text-slate-500 hover:text-red-400 transition-colors ml-2">
@@ -699,7 +709,7 @@ function renderAdminClansList() {
     }
 
     container.innerHTML = state.clans.map(clan => `
-        <div class="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+        <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
             <span class="font-bold text-slate-200">${escapeHtml(clan)}</span>
             <button onclick="deleteClan('${escapeHtml(clan)}')" class="text-slate-500 hover:text-red-400 transition-colors">
                 <i class="ph-bold ph-trash"></i>
@@ -772,26 +782,24 @@ function renderAdminUserTable() {
         const userAssign = state.assignments[username] || { tagIds: [] };
         const userRanks = user.tierRanks || [];
 
-        // Identificar qué Tiers aún NO tiene asignados este usuario
         const assignedTierIds = userRanks.map(tr => tr.tierId);
         const availableTiers = state.tiers.filter(t => !assignedTierIds.includes(t.dbId));
 
         return `
-            <tr class="hover:bg-slate-950/40 transition-colors border-b border-slate-800/60">
-                <td class="py-3 px-4 font-semibold text-indigo-400 align-top">${escapeHtml(username)}</td>
-                <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@userhub.com`)}</td>
+            <tr class="hover:bg-wine-900/20 transition-colors border-b border-wine-900/60">
+                <td class="py-3 px-4 font-semibold text-wine-400 align-top">${escapeHtml(username)}</td>
+                <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@audition.latam`)}</td>
                 
-                <!-- TIERS Y PUNTOS ASIGNADOS MÚLTIPLES -->
                 <td class="py-3 px-4 space-y-2 align-top">
                     <div class="space-y-1.5">
                         ${userRanks.length > 0 ? userRanks.map(tr => `
-                            <div class="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-lg">
+                            <div class="flex items-center space-x-2 bg-[#090507] border border-wine-900 p-1.5 rounded-lg">
                                 <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white" style="background-color: ${tr.tier.color}">
                                     ${escapeHtml(tr.tier.name)}
                                 </span>
                                 <input type="number" value="${tr.puntos}" 
                                        onchange="updateUserTierPoints(${user.id},${tr.tierId}, this.value)" 
-                                       class="w-16 bg-slate-900 border border-slate-700 rounded py-0.5 px-1 text-xs text-amber-400 font-bold text-center focus:outline-none focus:border-amber-500">
+                                       class="w-16 bg-wine-950 border border-wine-800 rounded py-0.5 px-1 text-xs text-amber-400 font-bold text-center focus:outline-none focus:border-amber-500">
                                 <span class="text-[10px] text-slate-500">pts</span>
                                 <button onclick="removeUserTier(${user.id},${tr.tierId})" class="text-slate-500 hover:text-red-400 ml-auto transition-colors">
                                     <i class="ph-bold ph-x"></i>
@@ -802,7 +810,7 @@ function renderAdminUserTable() {
 
                     ${availableTiers.length > 0 ? `
                         <div class="pt-1">
-                            <select onchange="addUserToTier(${user.id}, this.value)" class="bg-indigo-950/50 border border-indigo-800/50 rounded-lg py-1 px-2 text-xs text-indigo-300 focus:outline-none focus:border-indigo-500 w-full">
+                            <select onchange="addUserToTier(${user.id}, this.value)" class="bg-wine-950/80 border border-wine-800 rounded-lg py-1 px-2 text-xs text-wine-300 focus:outline-none focus:border-wine-500 w-full">
                                 <option value="">+ Añadir a otro Tier...</option>
                                 ${availableTiers.map(tier => `
                                     <option value="${tier.dbId}">${escapeHtml(tier.name)}</option>
@@ -818,7 +826,7 @@ function renderAdminUserTable() {
                             const isChecked = userAssign.tagIds.includes(tag.id);
                             return `
                                 <button onclick="toggleUserTag('${username}', '${tag.id}')" 
-                                    class="px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${isChecked ? 'text-white border-transparent' : 'text-slate-500 border-slate-800 bg-slate-950'}"
+                                    class="px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${isChecked ? 'text-white border-transparent' : 'text-slate-500 border-wine-900 bg-[#090507]'}"
                                     style="${isChecked ? `background-color: ${tag.color}` : ''}">
                                     ${escapeHtml(tag.name)}
                                 </button>
@@ -863,7 +871,7 @@ function renderTabsNavigation() {
     }
 
     container.innerHTML = state.tabs.map(tab => `
-        <button onclick="setActiveTab(${tab.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTabId === tab.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'}">
+        <button onclick="setActiveTab(${tab.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTabId === tab.id ? 'bg-wine-700 text-white shadow-lg shadow-wine-900/50' : 'bg-wine-950 text-slate-400 hover:bg-wine-900 border border-wine-900'}">
             ${escapeHtml(tab.name)}
         </button>
     `).join('');
@@ -882,19 +890,19 @@ function renderPublicTiers() {
 
     if (!state.currentUser) {
         container.innerHTML = `
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
-                <div class="w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 text-center space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto">
                     <i class="ph-bold ph-lock-key text-2xl"></i>
                 </div>
                 <h3 class="text-xl font-bold text-white">Contenido Privado</h3>
                 <p class="text-slate-400 text-sm max-w-md mx-auto">
-                    Debes registrarte o iniciar sesión con tu cuenta para visualizar las tablas de posiciones TIER y los miembros de la comunidad.
+                    Debes registrarte o iniciar sesión con tu cuenta para visualizar las tablas de posiciones TIER de Audition World Class LATAM.
                 </p>
                 <div class="pt-2 flex justify-center gap-3">
-                    <button onclick="navigateTo('view-login')" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all">
+                    <button onclick="navigateTo('view-login')" class="px-5 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-sm font-semibold transition-all">
                         Iniciar Sesión
                     </button>
-                    <button onclick="navigateTo('view-register')" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-sm font-semibold transition-all">
+                    <button onclick="navigateTo('view-register')" class="px-5 py-2 bg-wine-950 hover:bg-wine-900 text-slate-200 border border-wine-800 rounded-xl text-sm font-semibold transition-all">
                         Registrarse
                     </button>
                 </div>
@@ -926,15 +934,14 @@ function renderPublicTiers() {
             }
         });
 
-        // Ordenar usuarios por puntos de mayor a menor dentro de este Tier
         membersWithPoints.sort((a, b) => b.puntos - a.puntos);
 
         return `
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-                <div class="px-6 py-4 flex items-center justify-between border-b border-slate-800/80" style="border-left: 6px solid ${tier.color}">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl overflow-hidden shadow-xl">
+                <div class="px-6 py-4 flex items-center justify-between border-b border-wine-900/80" style="border-left: 6px solid ${tier.color}">
                     <h3 class="text-lg font-bold text-white flex items-center gap-2">
                         <span>${escapeHtml(tier.name)}</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono">${membersWithPoints.length} miembros</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-wine-900/80 text-wine-300 font-mono">${membersWithPoints.length} miembros</span>
                     </h3>
                 </div>
 
@@ -942,7 +949,7 @@ function renderPublicTiers() {
                     ${membersWithPoints.length > 0 ? `
                         <table class="w-full text-left border-collapse text-xs sm:text-sm">
                             <thead>
-                                <tr class="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[11px] tracking-wider">
+                                <tr class="border-b border-wine-900/80 text-wine-300 font-semibold uppercase text-[11px] tracking-wider">
                                     <th class="py-3 px-4 w-16 text-center">Puesto</th>
                                     <th class="py-3 px-4">Nickname</th>
                                     <th class="py-3 px-4 text-center">Puntos</th>
@@ -950,7 +957,7 @@ function renderPublicTiers() {
                                     <th class="py-3 px-4">Modo</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-800/50">
+                            <tbody class="divide-y divide-wine-900/40">
                                 ${membersWithPoints.map((item, index) => {
                                     const u = item.user;
                                     const uname = u.nickname || u.name;
@@ -973,12 +980,12 @@ function renderPublicTiers() {
                                     const modoText = Array.isArray(modoArr) ? modoArr.join(', ') : modoArr;
 
                                     return `
-                                        <tr class="hover:bg-slate-950/40 transition-colors ${index === 0 ? 'bg-amber-500/5' : ''}">
+                                        <tr class="hover:bg-wine-900/30 transition-colors ${index === 0 ? 'bg-amber-500/5' : ''}">
                                             <td class="py-3 px-4 text-center font-bold">
                                                 ${rankBadge}
                                             </td>
                                             <td class="py-3 px-4 font-bold text-slate-100 flex items-center gap-2">
-                                                <i class="ph-bold ph-user-circle text-indigo-400 text-lg"></i>
+                                                <i class="ph-bold ph-user-circle text-wine-400 text-lg"></i>
                                                 <span>${escapeHtml(uname)}</span>
                                             </td>
                                             <td class="py-3 px-4 text-center font-extrabold text-amber-400">
@@ -987,8 +994,8 @@ function renderPublicTiers() {
                                             <td class="py-3 px-4 text-slate-300 font-medium">
                                                 ${escapeHtml(familiaText)}
                                             </td>
-                                            <td class="py-3 px-4 text-indigo-300 font-medium">
-                                                <span class="px-2.5 py-1 rounded-lg bg-indigo-950/80 border border-indigo-800/50 text-indigo-300 text-xs font-semibold">
+                                            <td class="py-3 px-4 text-wine-300 font-medium">
+                                                <span class="px-2.5 py-1 rounded-lg bg-wine-950/80 border border-wine-800 text-wine-300 text-xs font-semibold">
                                                     ${escapeHtml(modoText)}
                                                 </span>
                                             </td>
