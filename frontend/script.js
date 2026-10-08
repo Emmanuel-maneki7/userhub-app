@@ -1,9 +1,7 @@
 console.log("Sistema UserHub listo y conectado");
 
-// Configuración de la URL de la API de Render
 const API_URL = 'https://userhub-app.onrender.com/api/users';
 
-// Estado de la aplicación en memoria (sincronizado con localStorage)
 let state = {
     currentUser: JSON.parse(localStorage.getItem('uh_current_user')) || null,
     tiers: JSON.parse(localStorage.getItem('uh_tiers')) || [
@@ -15,11 +13,10 @@ let state = {
         { id: 'tag-vip', name: 'VIP', color: '#eab308' },
         { id: 'tag-pro', name: 'PRO', color: '#ef4444' }
     ],
-    assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {}, // { nickname: { tierId, tagIds: [] } }
+    assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
     users: []
 };
 
-// Guardar estado en localStorage
 function saveState() {
     localStorage.setItem('uh_tiers', JSON.stringify(state.tiers));
     localStorage.setItem('uh_tags', JSON.stringify(state.tags));
@@ -31,8 +28,12 @@ function saveState() {
     }
 }
 
-// Navegación entre vistas (SPA)
 function navigateTo(viewId) {
+    // Si intenta ingresar al panel admin sin ser Admin, redirigir al home
+    if (viewId === 'view-admin' && (!state.currentUser || state.currentUser.nickname.toLowerCase() !== 'admin')) {
+        viewId = 'view-home';
+    }
+
     const sections = document.querySelectorAll('.view-section');
     sections.forEach(section => section.classList.add('hidden'));
 
@@ -40,11 +41,8 @@ function navigateTo(viewId) {
     if (targetSection) {
         targetSection.classList.remove('hidden');
         window.scrollTo(0, 0);
-    } else {
-        console.warn(`La vista con id "${viewId}" no existe.`);
     }
 
-    // Actualizar barra de navegación y vistas según pantalla
     renderNavActions();
     if (viewId === 'view-home') renderPublicTiers();
     if (viewId === 'view-admin') renderAdminPanel();
@@ -52,9 +50,9 @@ function navigateTo(viewId) {
     if (viewId === 'view-profile-edit') fillProfileEditForm();
 }
 
-// Renderizar botones dinámicos en la barra superior (Header)
 function renderNavActions() {
     const navContainer = document.getElementById('nav-actions');
+    const ctaButtons = document.getElementById('home-cta-buttons');
     if (!navContainer) return;
 
     if (state.currentUser) {
@@ -73,6 +71,15 @@ function renderNavActions() {
                 <i class="ph-bold ph-sign-out"></i> <span>Salir</span>
             </button>
         `;
+
+        if (ctaButtons) {
+            ctaButtons.innerHTML = `
+                <button onclick="navigateTo('view-profile-card')" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-user text-lg"></i>
+                    <span>Ver Mi Perfil</span>
+                </button>
+            `;
+        }
     } else {
         navContainer.innerHTML = `
             <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-slate-700">
@@ -82,17 +89,28 @@ function renderNavActions() {
                 <i class="ph-bold ph-user-plus"></i> <span>Registrarse</span>
             </button>
         `;
+
+        if (ctaButtons) {
+            ctaButtons.innerHTML = `
+                <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold transition-all shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-user-plus text-lg"></i>
+                    <span>Registrarse Ahora</span>
+                </button>
+                <button onclick="navigateTo('view-login')" class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold border border-slate-700 transition-all hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-sign-in text-lg"></i>
+                    <span>Iniciar Sesión</span>
+                </button>
+            `;
+        }
     }
 }
 
-// Obtener usuarios del backend PostgreSQL
 async function fetchUsers() {
     try {
         const response = await fetch(API_URL);
         if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
         const users = await response.json();
         state.users = users;
-        console.log('Usuarios registrados en PostgreSQL:', users);
         renderPublicTiers();
         return users;
     } catch (error) {
@@ -100,7 +118,6 @@ async function fetchUsers() {
     }
 }
 
-// Manejador del Registro
 async function handleRegister(e) {
     e.preventDefault();
 
@@ -108,7 +125,7 @@ async function handleRegister(e) {
     const password = document.getElementById('reg-password')?.value;
 
     if (!nickname || !password) {
-        alert("Por favor completa los campos.");
+        alert("Por favor completa todos los campos.");
         return;
     }
 
@@ -124,7 +141,6 @@ async function handleRegister(e) {
 
         if (response.ok) {
             alert("¡Usuario registrado exitosamente!");
-            // Auto-login
             state.currentUser = { nickname, nombres: name, modo: 'Individual / Solo', familia: '-' };
             saveState();
             await fetchUsers();
@@ -135,16 +151,21 @@ async function handleRegister(e) {
         }
     } catch (error) {
         console.error("Error al conectar con la API:", error);
-        alert("No se pudo conectar con el backend de Render. Espera unos segundos e intenta nuevamente.");
+        alert("No se pudo conectar con el servidor backend. Intenta nuevamente.");
     }
 }
 
-// Manejador de Login
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     const nickname = document.getElementById('login-nickname')?.value.trim();
     const password = document.getElementById('login-password')?.value;
 
+    if (!nickname || !password) {
+        alert("Usuario / contraseña incorrecto");
+        return;
+    }
+
+    // Acceso Administrador
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
         state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: 'Competitivo', familia: 'UserHub HQ' };
         saveState();
@@ -153,15 +174,36 @@ function handleLogin(e) {
         return;
     }
 
-    if (nickname) {
-        state.currentUser = { nickname, nombres: nickname, modo: 'Individual / Solo', familia: '-' };
+    // Aseguramos tener los usuarios más recientes desde el backend
+    await fetchUsers();
+
+    // Buscar coincidencia exacta por nickname (name) y clave
+    const foundUser = state.users.find(u => 
+        (u.name && u.name.toLowerCase() === nickname.toLowerCase()) || 
+        (u.nickname && u.nickname.toLowerCase() === nickname.toLowerCase())
+    );
+
+    if (foundUser) {
+        // Si el backend devuelve la contraseña, la verificamos. Si no, validamos que el usuario exista registrado.
+        if (foundUser.password && foundUser.password !== password) {
+            alert("Usuario / contraseña incorrecto");
+            return;
+        }
+
+        state.currentUser = {
+            nickname: foundUser.name || foundUser.nickname || nickname,
+            nombres: foundUser.name || nickname,
+            modo: 'Individual / Solo',
+            familia: '-'
+        };
         saveState();
-        alert(`¡Bienvenido de nuevo, ${nickname}!`);
+        alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
         navigateTo('view-home');
+    } else {
+        alert("Usuario / contraseña incorrecto");
     }
 }
 
-// Cerrar Sesión
 function handleLogout() {
     state.currentUser = null;
     saveState();
@@ -169,7 +211,6 @@ function handleLogout() {
     navigateTo('view-home');
 }
 
-// Formulario Guardar Perfil
 function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
@@ -183,7 +224,6 @@ function handleSaveProfile(e) {
     navigateTo('view-profile-card');
 }
 
-// Cargar campos en Formulario de Edición de Perfil
 function fillProfileEditForm() {
     if (!state.currentUser) return;
     document.getElementById('prof-nickname').value = state.currentUser.nickname || '';
@@ -192,7 +232,6 @@ function fillProfileEditForm() {
     document.getElementById('prof-familia').value = state.currentUser.familia !== '-' ? state.currentUser.familia : '';
 }
 
-// Mostrar Tarjeta del Perfil
 function renderProfileCard() {
     const container = document.getElementById('profile-card-container');
     if (!container || !state.currentUser) return;
@@ -253,15 +292,13 @@ function renderProfileCard() {
     `;
 }
 
-// --- FUNCIONES DEL PANEL DE ADMINISTRACIÓN ---
-
+// ADMIN FUNCTIONS
 function renderAdminPanel() {
     renderAdminTiersList();
     renderAdminTagsList();
     renderAdminUserTable();
 }
 
-// Crear Nuevo Tier
 function handleCreateTier(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tier-name');
@@ -272,13 +309,7 @@ function handleCreateTier(e) {
 
     if (!name) return;
 
-    const newTier = {
-        id: 'tier-' + Date.now(),
-        name,
-        color
-    };
-
-    state.tiers.push(newTier);
+    state.tiers.push({ id: 'tier-' + Date.now(), name, color });
     saveState();
 
     nameInput.value = '';
@@ -286,14 +317,12 @@ function handleCreateTier(e) {
     alert(`Tier "${name}" creado con éxito.`);
 }
 
-// Eliminar Tier
 function deleteTier(tierId) {
     state.tiers = state.tiers.filter(t => t.id !== tierId);
     saveState();
     renderAdminPanel();
 }
 
-// Listar Tiers en el Panel Admin
 function renderAdminTiersList() {
     const container = document.getElementById('admin-tiers-list');
     if (!container) return;
@@ -316,7 +345,6 @@ function renderAdminTiersList() {
     `).join('');
 }
 
-// Crear Nueva Etiqueta
 function handleCreateTag(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tag-name');
@@ -327,13 +355,7 @@ function handleCreateTag(e) {
 
     if (!name) return;
 
-    const newTag = {
-        id: 'tag-' + Date.now(),
-        name,
-        color
-    };
-
-    state.tags.push(newTag);
+    state.tags.push({ id: 'tag-' + Date.now(), name, color });
     saveState();
 
     nameInput.value = '';
@@ -341,14 +363,12 @@ function handleCreateTag(e) {
     alert(`Etiqueta "${name}" creada.`);
 }
 
-// Eliminar Etiqueta
 function deleteTag(tagId) {
     state.tags = state.tags.filter(t => t.id !== tagId);
     saveState();
     renderAdminPanel();
 }
 
-// Listar Etiquetas en el Panel Admin
 function renderAdminTagsList() {
     const container = document.getElementById('admin-tags-list');
     if (!container) return;
@@ -368,19 +388,17 @@ function renderAdminTagsList() {
     `).join('');
 }
 
-// Renderizar Tabla de Asignación a Usuarios en Admin
 function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
 
-    // Combinar usuarios de la API y el usuario admin local
     const allUsers = [...state.users];
     if (!allUsers.find(u => (u.name || u.nickname) === 'Admin')) {
         allUsers.unshift({ name: 'Admin', email: 'admin@userhub.com' });
     }
 
     if (allUsers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
         return;
     }
 
@@ -392,9 +410,7 @@ function renderAdminUserTable() {
             <tr class="hover:bg-slate-950/40 transition-colors">
                 <td class="py-3 px-4 font-semibold text-indigo-400">${escapeHtml(username)}</td>
                 <td class="py-3 px-4 text-slate-300">${escapeHtml(user.email || 'N/A')}</td>
-                <td class="py-3 px-4 text-slate-400 text-xs">Comunidad</td>
                 
-                <!-- Selector de Etiquetas -->
                 <td class="py-3 px-4">
                     <div class="flex flex-wrap gap-1">
                         ${state.tags.map(tag => {
@@ -410,7 +426,6 @@ function renderAdminUserTable() {
                     </div>
                 </td>
 
-                <!-- Selector de Tier -->
                 <td class="py-3 px-4">
                     <select onchange="assignUserTier('${username}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
                         <option value="">Sin Tier</option>
@@ -426,7 +441,6 @@ function renderAdminUserTable() {
     }).join('');
 }
 
-// Asignar Tier a Usuario
 function assignUserTier(username, tierId) {
     if (!state.assignments[username]) {
         state.assignments[username] = { tierId: '', tagIds: [] };
@@ -436,7 +450,6 @@ function assignUserTier(username, tierId) {
     renderPublicTiers();
 }
 
-// Alternar Etiqueta de Usuario
 function toggleUserTag(username, tagId) {
     if (!state.assignments[username]) {
         state.assignments[username] = { tierId: '', tagIds: [] };
@@ -455,11 +468,34 @@ function toggleUserTag(username, tagId) {
     renderPublicTiers();
 }
 
-// --- RENDERIZAR TABLAS PÚBLICAS EN EL HOME ---
-
+// RENDERIZAR TABLAS EN HOME (Solo si inició sesión)
 function renderPublicTiers() {
     const container = document.getElementById('public-tiers-container');
     if (!container) return;
+
+    // BLOQUEO: Si el usuario NO ha iniciado sesión
+    if (!state.currentUser) {
+        container.innerHTML = `
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center mx-auto">
+                    <i class="ph-bold ph-lock-key text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white">Contenido Privado</h3>
+                <p class="text-slate-400 text-sm max-w-md mx-auto">
+                    Debes registrarte o iniciar sesión con tu cuenta para visualizar las tablas de posiciones TIER y los miembros de la comunidad.
+                </p>
+                <div class="pt-2 flex justify-center gap-3">
+                    <button onclick="navigateTo('view-login')" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition-all">
+                        Iniciar Sesión
+                    </button>
+                    <button onclick="navigateTo('view-register')" class="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-sm font-semibold transition-all">
+                        Registrarse
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
 
     if (state.tiers.length === 0) {
         container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No se han creado Tiers aún en la administración.</p>`;
@@ -467,7 +503,6 @@ function renderPublicTiers() {
     }
 
     container.innerHTML = state.tiers.map(tier => {
-        // Filtrar usuarios pertenecientes a este Tier
         const members = Object.keys(state.assignments).filter(uname => state.assignments[uname].tierId === tier.id);
 
         return `
@@ -511,7 +546,6 @@ function renderPublicTiers() {
     }).join('');
 }
 
-// Utilidad anti-XSS
 function escapeHtml(str) {
     if (typeof str !== 'string') return str;
     return str.replace(/[&<>"']/g, function (m) {
@@ -525,19 +559,13 @@ function escapeHtml(str) {
     });
 }
 
-// Inicialización de Eventos y Carga
 document.addEventListener('DOMContentLoaded', () => {
-    // Vincular formulario de registro si existe
     const formReg = document.getElementById('form-register');
     if (formReg) formReg.addEventListener('submit', handleRegister);
 
-    // Vincular formulario de login si existe
     const formLog = document.getElementById('form-login');
     if (formLog) formLog.addEventListener('submit', handleLogin);
 
-    // Cargar usuarios de Render al iniciar
     fetchUsers();
-
-    // Navegar a la vista inicial
     navigateTo('view-home');
-});v
+});
