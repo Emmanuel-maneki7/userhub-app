@@ -45,7 +45,7 @@ function navigateTo(viewId) {
     }
 
     renderNavActions();
-    if (viewId === 'view-home') renderPublicTiers();
+    if (viewId === 'view-home') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') renderAdminPanel();
     if (viewId === 'view-profile-card') renderProfileCard();
     if (viewId === 'view-profile-edit') fillProfileEditForm();
@@ -113,22 +113,23 @@ async function fetchUsers() {
         const users = await response.json();
         state.users = users;
 
-        // Sincronizar asignaciones con lo proveniente de PostgreSQL
+        // Sincronizar asignaciones locales con la respuesta real del servidor PostgreSQL
         users.forEach(u => {
             const username = u.nickname || u.name;
             if (username) {
                 if (!state.assignments[username]) {
                     state.assignments[username] = { tierId: '', tagIds: [] };
                 }
-                if (u.tierId) state.assignments[username].tierId = u.tierId;
+                // Si el servidor devuelve objeto tier o id
                 if (u.tier && u.tier.name) {
-                    const localTier = state.tiers.find(t => t.name.toLowerCase() === u.tier.name.toLowerCase());
-                    if (localTier) state.assignments[username].tierId = localTier.id;
+                    const matchedTier = state.tiers.find(t => t.name.toLowerCase().trim() === u.tier.name.toLowerCase().trim());
+                    if (matchedTier) state.assignments[username].tierId = matchedTier.id;
+                } else if (u.tierId) {
+                    state.assignments[username].tierId = u.tierId;
                 }
             }
         });
 
-        renderPublicTiers();
         return users;
     } catch (error) {
         console.error('Error al conectar con el servidor:', error);
@@ -281,7 +282,6 @@ async function handleSaveProfile(e) {
 
     saveState();
 
-    // Guardar en Backend si el usuario tiene ID
     if (state.currentUser.id) {
         try {
             await fetch(`${API_URL}/${state.currentUser.id}`, {
@@ -536,10 +536,8 @@ function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
 
-    const allUsers = [...state.users];
-    if (!allUsers.find(u => (u.name || u.nickname) === 'Admin')) {
-        allUsers.unshift({ name: 'Admin', email: 'admin@userhub.com' });
-    }
+    // Filtrar para no mostrar al Admin en la tabla si no se desea
+    const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
 
     if (allUsers.length === 0) {
         tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
@@ -591,18 +589,20 @@ async function assignUserTier(username, tierId) {
     }
     state.assignments[username].tierId = tierId;
     saveState();
-    renderPublicTiers();
 
-    // Sincronizar asignación de Tier con el backend de Render
+    // Guardar asignación en Render
+    const selectedTier = state.tiers.find(t => t.id === tierId);
     try {
         await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tierId: tierId ? 1 : null })
+            body: JSON.stringify({ tierName: selectedTier ? selectedTier.name : 'Sin Tier' })
         });
     } catch (err) {
         console.error("Error al guardar Tier en servidor:", err);
     }
+
+    renderPublicTiers();
 }
 
 function toggleUserTag(username, tagId) {
@@ -623,6 +623,7 @@ function toggleUserTag(username, tagId) {
     renderPublicTiers();
 }
 
+// RENDER DE LAS TABLAS DE TIERS PÚBLICAS
 function renderPublicTiers() {
     const container = document.getElementById('public-tiers-container');
     if (!container) return;
@@ -656,7 +657,19 @@ function renderPublicTiers() {
     }
 
     container.innerHTML = state.tiers.map(tier => {
-        const members = Object.keys(state.assignments).filter(uname => state.assignments[uname].tierId === tier.id);
+        // Buscar usuarios que pertenezcan a este Tier tanto por asignación como por datos del servidor
+        const members = state.users.filter(u => {
+            const username = u.nickname || u.name;
+            if (!username || username.toLowerCase() === 'admin') return false;
+
+            const localAssign = state.assignments[username];
+            if (localAssign && localAssign.tierId === tier.id) return true;
+
+            if (u.tier && u.tier.name && u.tier.name.toLowerCase().trim() === tier.name.toLowerCase().trim()) return true;
+            if (u.tierName && u.tierName.toLowerCase().trim() === tier.name.toLowerCase().trim()) return true;
+
+            return false;
+        });
 
         return `
             <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
@@ -670,8 +683,9 @@ function renderPublicTiers() {
                 <div class="p-4">
                     ${members.length > 0 ? `
                         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                            ${members.map(username => {
-                                const userTags = (state.assignments[username].tagIds || [])
+                            ${members.map(u => {
+                                const username = u.nickname || u.name;
+                                const userTags = ((state.assignments[username] || {}).tagIds || [])
                                     .map(tid => state.tags.find(t => t.id === tid))
                                     .filter(Boolean);
 
@@ -727,6 +741,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    fetchUsers();
+    fetchUsers().then(() => renderPublicTiers());
     navigateTo('view-home');
 });
