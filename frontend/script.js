@@ -277,6 +277,7 @@ function updateModeBtnText() {
     const allCb = document.getElementById('cb-all-modes');
     const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
 
+    if (!btnText) return;
     if (allCb && allCb.checked) {
         btnText.textContent = "ALL MODES";
     } else if (selected.length === 0) {
@@ -297,27 +298,42 @@ async function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
 
-    state.currentUser.nombres = document.getElementById('prof-nombres').value;
-    state.currentUser.modo = getSelectedModes();
-    state.currentUser.familia = document.getElementById('prof-familia').value;
+    const nombres = document.getElementById('prof-nombres').value;
+    const modo = getSelectedModes();
+    const familia = document.getElementById('prof-familia').value;
+
+    state.currentUser.nombres = nombres;
+    state.currentUser.modo = modo;
+    state.currentUser.familia = familia;
 
     saveState();
 
     if (state.currentUser.id) {
         try {
-            await fetch(`${API_URL}/${state.currentUser.id}`, {
+            const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    nombres: state.currentUser.nombres,
-                    modo: state.currentUser.modo,
-                    familia: state.currentUser.familia
-                })
+                body: JSON.stringify({ nombres, modo, familia })
+            });
+
+            if (response.ok) {
+                await fetchUsers();
+                renderPublicTiers();
+            }
+        } catch (err) {
+            console.error("Error al sincronizar perfil con backend:", err);
+        }
+    } else {
+        try {
+            await fetch(`${API_URL}/nickname/${encodeURIComponent(state.currentUser.nickname)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nombres, modo, familia })
             });
             await fetchUsers();
             renderPublicTiers();
         } catch (err) {
-            console.error("Error al sincronizar perfil con backend:", err);
+            console.error("Error actualizando por nickname:", err);
         }
     }
 
@@ -332,30 +348,13 @@ function fillProfileEditForm() {
 
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
-        // Garantizar que la lista de familias cargada desde la DB se muestre correctamente
         const currentFamilia = state.currentUser.familia || 'Sin Familia / Ninguno';
-        
         clanSelect.innerHTML = state.clans.map(clan => `
             <option value="${escapeHtml(clan)}" ${currentFamilia === clan ? 'selected' : ''}>
                 ${escapeHtml(clan)}
             </option>
         `).join('');
     }
-
-    const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
-    const allCb = document.getElementById('cb-all-modes');
-    
-    if (userModos.includes('ALL MODES')) {
-        if (allCb) allCb.checked = true;
-        document.querySelectorAll('.mode-cb').forEach(cb => cb.checked = true);
-    } else {
-        if (allCb) allCb.checked = false;
-        document.querySelectorAll('.mode-cb').forEach(cb => {
-            cb.checked = userModos.includes(cb.value);
-        });
-    }
-    updateModeBtnText();
-}
 
     const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
     const allCb = document.getElementById('cb-all-modes');
@@ -459,7 +458,7 @@ async function handleCreateTier(e) {
         await fetchGlobalConfig();
         nameInput.value = '';
         renderAdminPanel();
-        alert(`Tier "${name}" creado e integrado en la base de datos.`);
+        alert(`Tier "${name}" creado.`);
     } catch (err) {
         console.error("Error creando tier:", err);
     }
@@ -574,7 +573,7 @@ async function handleCreateClan(e) {
         await fetchGlobalConfig();
         clanInput.value = '';
         renderAdminPanel();
-        alert(`Familia "${clanName}" creada e integrada en la base de datos.`);
+        alert(`Familia "${clanName}" creada.`);
     } catch (err) {
         console.error("Error creando familia:", err);
     }
