@@ -14,7 +14,7 @@ app.get('/api/health', (req, res) => {
   res.json({ message: "Backend OK" });
 });
 
-// GET: Obtener pestañas con sus tiers asociados
+// GET: Pestañas con sus Tiers asociados
 app.get('/api/tabs', async (req, res) => {
   try {
     const tabs = await prisma.modeTab.findMany({
@@ -52,11 +52,16 @@ app.delete('/api/tabs/:id', async (req, res) => {
   }
 });
 
-// GET: Obtener usuarios con Tier y Tags (ordenados por fecha)
+// GET: Obtener usuarios con sus Múltiples Tiers y Puntos
 app.get('/api/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      include: { tier: true, tags: true },
+      include: {
+        tierRanks: {
+          include: { tier: true }
+        },
+        tags: true
+      },
       orderBy: { createdAt: 'desc' }
     });
     res.json(users);
@@ -66,7 +71,7 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-// GET: Obtener Familias/Clanes globales
+// GET: Familias/Clanes
 app.get('/api/clans', async (req, res) => {
   try {
     const clans = await prisma.clan.findMany({ orderBy: { name: 'asc' } });
@@ -77,7 +82,7 @@ app.get('/api/clans', async (req, res) => {
   }
 });
 
-// POST: Crear Familia/Clan global
+// POST: Crear Familia
 app.post('/api/clans', async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: "El nombre de la familia es obligatorio" });
@@ -90,7 +95,7 @@ app.post('/api/clans', async (req, res) => {
   }
 });
 
-// DELETE: Eliminar Familia/Clan global
+// DELETE: Eliminar Familia
 app.delete('/api/clans/:name', async (req, res) => {
   const { name } = req.params;
   try {
@@ -101,7 +106,7 @@ app.delete('/api/clans/:name', async (req, res) => {
   }
 });
 
-// GET: Obtener Tiers globales con su pestaña asociada (ordenados)
+// GET: Tiers globales
 app.get('/api/tiers', async (req, res) => {
   try {
     const tiers = await prisma.tier.findMany({
@@ -115,7 +120,7 @@ app.get('/api/tiers', async (req, res) => {
   }
 });
 
-// POST: Crear o actualizar Tier global con Pestaña asignada
+// POST: Crear Tier
 app.post('/api/tiers', async (req, res) => {
   const { name, color, tabId } = req.body;
   if (!name) return res.status(400).json({ error: "Nombre de tier obligatorio" });
@@ -146,7 +151,7 @@ app.post('/api/tiers', async (req, res) => {
   }
 });
 
-// PUT: Guardar el orden de los tiers
+// PUT: Reordenar Tiers
 app.put('/api/tiers/reorder', async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids)) {
@@ -181,7 +186,7 @@ app.delete('/api/tiers/:id', async (req, res) => {
   }
 });
 
-// POST: Registrar usuario
+// POST: Registrar Usuario
 app.post('/api/users', async (req, res) => {
   const { nickname, password } = req.body;
   if (!nickname || !password) {
@@ -195,10 +200,9 @@ app.post('/api/users', async (req, res) => {
         password,
         nombres: nickname,
         modo: 'NORMAL',
-        familia: 'Sin Familia / Ninguno',
-        puntos: 0
+        familia: 'Sin Familia / Ninguno'
       },
-      include: { tier: true, tags: true }
+      include: { tierRanks: { include: { tier: true } }, tags: true }
     });
     res.status(201).json(newUser);
   } catch (error) {
@@ -221,7 +225,7 @@ app.post('/api/users/login', async (req, res) => {
 
     const user = await prisma.user.findFirst({
       where: { nickname, password },
-      include: { tier: true, tags: true }
+      include: { tierRanks: { include: { tier: true } }, tags: true }
     });
 
     if (user) {
@@ -234,55 +238,60 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// PUT: Actualizar usuario por Nickname (puntos, tier, nombres, modo, familia)
-app.put('/api/users/nickname/:nickname', async (req, res) => {
-  const { nickname } = req.params;
-  const { tierName, nombres, modo, familia, puntos } = req.body;
+// POST: Asignar o actualizar Tier y Puntos a un Usuario
+app.post('/api/users/:userId/tiers', async (req, res) => {
+  const { userId } = req.params;
+  const { tierId, puntos } = req.body;
+
+  if (!tierId) return res.status(400).json({ error: "tierId es obligatorio" });
 
   try {
-    const user = await prisma.user.findFirst({ where: { nickname } });
-    if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
-
-    let tierUpdate = {};
-    if (tierName !== undefined) {
-      if (tierName && tierName !== 'Sin Tier') {
-        const last = await prisma.tier.findFirst({
-          orderBy: { order: 'desc' },
-          select: { order: true }
-        });
-        const tierObj = await prisma.tier.upsert({
-          where: { name: tierName },
-          update: {},
-          create: { name: tierName, color: '#6366f1', order: last ? last.order + 1 : 0 }
-        });
-        tierUpdate = { tierId: tierObj.id };
-      } else {
-        tierUpdate = { tierId: null };
-      }
-    }
-
-    const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
-
-    const updatedUser = await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        ...tierUpdate,
-        ...(nombres !== undefined && { nombres }),
-        ...(formattedModo !== undefined && { modo: formattedModo }),
-        ...(familia !== undefined && { familia }),
+    const rank = await prisma.userTierRank.upsert({
+      where: {
+        userId_tierId: {
+          userId: Number(userId),
+          tierId: Number(tierId)
+        }
+      },
+      update: {
         ...(puntos !== undefined && { puntos: Number(puntos) })
       },
-      include: { tier: true, tags: true }
+      create: {
+        userId: Number(userId),
+        tierId: Number(tierId),
+        puntos: Number(puntos || 0)
+      },
+      include: { tier: true }
     });
 
-    res.json(updatedUser);
+    res.json(rank);
   } catch (error) {
-    console.error("Error al actualizar por nickname:", error);
-    res.status(400).json({ error: "No se pudo actualizar el usuario" });
+    console.error("Error al asignar tier/puntos:", error);
+    res.status(400).json({ error: "No se pudo asignar el tier al usuario" });
   }
 });
 
-// PUT: Actualizar perfil por ID
+// DELETE: Quitar un Tier a un Usuario
+app.delete('/api/users/:userId/tiers/:tierId', async (req, res) => {
+  const { userId, tierId } = req.params;
+
+  try {
+    await prisma.userTierRank.delete({
+      where: {
+        userId_tierId: {
+          userId: Number(userId),
+          tierId: Number(tierId)
+        }
+      }
+    });
+    res.json({ message: "Tier removido del usuario correctamente" });
+  } catch (error) {
+    console.error("Error al remover tier:", error);
+    res.status(400).json({ error: "No se pudo remover el Tier" });
+  }
+});
+
+// PUT: Actualizar Perfil (nombres, modo, familia)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const { nombres, modo, familia } = req.body;
@@ -297,7 +306,7 @@ app.put('/api/users/:id', async (req, res) => {
         ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia })
       },
-      include: { tier: true, tags: true }
+      include: { tierRanks: { include: { tier: true } }, tags: true }
     });
     res.json(updatedUser);
   } catch (error) {
