@@ -9,8 +9,11 @@ datasource db {
 
 model User {
   id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String
+  nickname  String   @unique
   password  String
+  nombres   String?
+  modo      String?  @default("Individual / Solo")
+  familia   String?
+  tier      String?  @default("Sin Clasificar")
   createdAt DateTime @default(now())
 }
