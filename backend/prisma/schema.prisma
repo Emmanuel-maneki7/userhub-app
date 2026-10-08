@@ -13,9 +13,9 @@ model User {
   password  String
   nombres   String?
   modo      String?  @default("NORMAL")
-  familia   String?  @default("Sin Clan / Ninguno")
+  familia   String?  @default("Sin Familia / Ninguno")
   tierId    Int?
-  tier      Tier?    @relation(fields: [tierId], references: [id])
+  tier      Tier?    @relation(fields: [tierId], references: [id], onDelete: SetNull)
   tags      Tag[]
   createdAt DateTime @default(now())
 }
@@ -25,7 +25,16 @@ model Tier {
   name      String   @unique
   color     String   @default("#6366f1")
   order     Int      @default(0)
+  tabId     Int?
+  tab       ModeTab? @relation(fields: [tabId], references: [id], onDelete: Cascade)
   users     User[]
+  createdAt DateTime @default(now())
+}
+
+model ModeTab {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  tiers     Tier[]
   createdAt DateTime @default(now())
 }
 
