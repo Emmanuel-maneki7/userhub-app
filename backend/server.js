@@ -52,7 +52,7 @@ app.delete('/api/tabs/:id', async (req, res) => {
   }
 });
 
-// GET: Obtener usuarios con Tier y Tags
+// GET: Obtener usuarios con Tier y Tags (ordenados por fecha)
 app.get('/api/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -121,7 +121,6 @@ app.post('/api/tiers', async (req, res) => {
   if (!name) return res.status(400).json({ error: "Nombre de tier obligatorio" });
 
   try {
-    // El nuevo tier va al final de la lista
     const last = await prisma.tier.findFirst({
       orderBy: { order: 'desc' },
       select: { order: true }
@@ -148,8 +147,6 @@ app.post('/api/tiers', async (req, res) => {
 });
 
 // PUT: Guardar el orden de los tiers
-// Body: { ids: [3, 1, 2] }  -> el orden de la lista es el nuevo orden
-// IMPORTANTE: esta ruta va antes de /api/tiers/:id
 app.put('/api/tiers/reorder', async (req, res) => {
   const { ids } = req.body;
   if (!Array.isArray(ids)) {
@@ -172,7 +169,7 @@ app.put('/api/tiers/reorder', async (req, res) => {
   }
 });
 
-// DELETE: Eliminar Tier (los usuarios quedan "Sin Tier" por onDelete: SetNull)
+// DELETE: Eliminar Tier
 app.delete('/api/tiers/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -198,7 +195,8 @@ app.post('/api/users', async (req, res) => {
         password,
         nombres: nickname,
         modo: 'NORMAL',
-        familia: 'Sin Familia / Ninguno'
+        familia: 'Sin Familia / Ninguno',
+        puntos: 0
       },
       include: { tier: true, tags: true }
     });
@@ -236,17 +234,15 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// PUT: Actualizar usuario por Nickname (tier, nombres, modo, familia)
+// PUT: Actualizar usuario por Nickname (puntos, tier, nombres, modo, familia)
 app.put('/api/users/nickname/:nickname', async (req, res) => {
   const { nickname } = req.params;
-  const { tierName, nombres, modo, familia } = req.body;
+  const { tierName, nombres, modo, familia, puntos } = req.body;
 
   try {
     const user = await prisma.user.findFirst({ where: { nickname } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    // Solo se toca el tier si el cliente envió tierName.
-    // Antes, guardar el perfil dejaba al usuario sin tier.
     let tierUpdate = {};
     if (tierName !== undefined) {
       if (tierName && tierName !== 'Sin Tier') {
@@ -273,7 +269,8 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
         ...tierUpdate,
         ...(nombres !== undefined && { nombres }),
         ...(formattedModo !== undefined && { modo: formattedModo }),
-        ...(familia !== undefined && { familia })
+        ...(familia !== undefined && { familia }),
+        ...(puntos !== undefined && { puntos: Number(puntos) })
       },
       include: { tier: true, tags: true }
     });
