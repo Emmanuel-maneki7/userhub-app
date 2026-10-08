@@ -41,10 +41,10 @@ app.post('/api/users', async (req, res) => {
       data: {
         nickname,
         password,
-        nombres: '',
-        modo: 'Individual / Solo',
-        familia: '',
-        tier: 'Sin Clasificar'
+        nombres: nickname,
+        modo: 'NORMAL',
+        familia: 'Sin Clan / Ninguno',
+        tier: 'Sin Tier'
       }
     });
     res.status(201).json(newUser);
@@ -63,11 +63,11 @@ app.post('/api/users/login', async (req, res) => {
   }
 
   try {
-    // Credencial Demo para Administrador
-    if (nickname === 'ADMIN' && password === '1234') {
+    // Credencial oficial de Administrador
+    if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
       return res.json({
         message: "Login de administrador exitoso",
-        user: { id: 0, nickname: 'ADMIN', role: 'admin' }
+        user: { id: 0, nickname: 'Admin', role: 'admin', nombres: 'Administrador Principal' }
       });
     }
 
@@ -86,19 +86,53 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// PUT: Actualizar datos de perfil / Tier del usuario
+// PUT: Actualizar usuario por ID
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombres, modo, familia, tier } = req.body;
+  const { nombres, modo, familia, tier, tags } = req.body;
 
   try {
     const updatedUser = await prisma.user.update({
       where: { id: Number(id) },
-      data: { nombres, modo, familia, tier }
+      data: { 
+        ...(nombres !== undefined && { nombres }),
+        ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
+        ...(familia !== undefined && { familia }),
+        ...(tier !== undefined && { tier }),
+        ...(tags !== undefined && { tags: typeof tags === 'object' ? JSON.stringify(tags) : tags })
+      }
     });
     res.json(updatedUser);
   } catch (error) {
-    console.error("Error al actualizar usuario:", error);
+    console.error("Error al actualizar usuario por ID:", error);
+    res.status(400).json({ error: "No se pudo actualizar la información del usuario" });
+  }
+});
+
+// PUT: Actualizar usuario por Nickname (Útil para el Admin)
+app.put('/api/users/nickname/:nickname', async (req, res) => {
+  const { nickname } = req.params;
+  const { nombres, modo, familia, tier, tags } = req.body;
+
+  try {
+    const user = await prisma.user.findFirst({ where: { nickname } });
+    if (!user) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: user.id },
+      data: { 
+        ...(nombres !== undefined && { nombres }),
+        ...(modo !== undefined && { modo: typeof modo === 'object' ? JSON.stringify(modo) : modo }),
+        ...(familia !== undefined && { familia }),
+        ...(tier !== undefined && { tier }),
+        ...(tags !== undefined && { tags: typeof tags === 'object' ? JSON.stringify(tags) : tags })
+      }
+    });
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error al actualizar usuario por nickname:", error);
     res.status(400).json({ error: "No se pudo actualizar la información del usuario" });
   }
 });
