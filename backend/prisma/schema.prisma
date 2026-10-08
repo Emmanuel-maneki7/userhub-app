@@ -8,28 +8,38 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  nickname  String   @unique
+  id        Int            @id @default(autoincrement())
+  nickname  String         @unique
   password  String
   nombres   String?
-  modo      String?  @default("NORMAL")
-  familia   String?  @default("Sin Familia / Ninguno")
-  puntos    Int      @default(0) // <-- Nuevo campo para el ranking de puntaje
-  tierId    Int?
-  tier      Tier?    @relation(fields: [tierId], references: [id], onDelete: SetNull)
+  modo      String?        @default("NORMAL")
+  familia   String?        @default("Sin Familia / Ninguno")
+  tierRanks UserTierRank[]
   tags      Tag[]
-  createdAt DateTime @default(now())
+  createdAt DateTime       @default(now())
 }
 
 model Tier {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  color     String   @default("#6366f1")
-  order     Int      @default(0)
+  id        Int            @id @default(autoincrement())
+  name      String         @unique
+  color     String         @default("#6366f1")
+  order     Int            @default(0)
   tabId     Int?
-  tab       ModeTab? @relation(fields: [tabId], references: [id], onDelete: Cascade)
-  users     User[]
+  tab       ModeTab?       @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  userRanks UserTierRank[]
+  createdAt DateTime       @default(now())
+}
+
+model UserTierRank {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tierId    Int
+  tier      Tier     @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  puntos    Int      @default(0)
   createdAt DateTime @default(now())
+
+  @@unique([userId, tierId])
 }
 
 model ModeTab {
