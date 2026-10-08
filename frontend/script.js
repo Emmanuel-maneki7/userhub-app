@@ -5,9 +5,9 @@ const API_URL = 'https://userhub-app.onrender.com/api/users';
 let state = {
     currentUser: JSON.parse(localStorage.getItem('uh_current_user')) || null,
     tiers: JSON.parse(localStorage.getItem('uh_tiers')) || [
-        { id: 'tier-s', name: 'Tier S', color: '#6366f1' },
-        { id: 'tier-a', name: 'Tier A', color: '#10b981' },
-        { id: 'tier-b', name: 'Tier B', color: '#f59e0b' }
+        { id: 'tier-s', name: 'TIER S', color: '#6366f1' },
+        { id: 'tier-a', name: 'TIER A', color: '#10b981' },
+        { id: 'tier-b', name: 'TIER B', color: '#f59e0b' }
     ],
     tags: JSON.parse(localStorage.getItem('uh_tags')) || [
         { id: 'tag-vip', name: 'VIP', color: '#eab308' },
@@ -113,7 +113,6 @@ async function fetchUsers() {
         const users = await response.json();
         state.users = users;
 
-        // Actualizar asignaciones locales con los datos globales de la base de datos
         users.forEach(u => {
             const username = u.nickname || u.name;
             if (username) {
@@ -228,7 +227,6 @@ function handleLogout() {
     navigateTo('view-home');
 }
 
-// MULTISELECT MODO PREFERIDO
 function toggleModeDropdown() {
     const menu = document.getElementById('mode-dropdown-menu');
     if (menu) menu.classList.toggle('hidden');
@@ -333,7 +331,7 @@ function renderProfileCard() {
     if (!container || !state.currentUser) return;
 
     const assign = state.assignments[state.currentUser.nickname] || {};
-    const tier = state.tiers.find(t => t.id === assign.tierId);
+    const tier = state.tiers.find(t => t.id === assign.tierId || t.name.toLowerCase().trim() === (assign.tierName || '').toLowerCase().trim());
     const userTagIds = assign.tagIds || [];
     const userTags = state.tags.filter(t => userTagIds.includes(t.id));
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
@@ -389,7 +387,6 @@ function renderProfileCard() {
     `;
 }
 
-// ADMIN FUNCTIONS
 function renderAdminPanel() {
     renderAdminTiersList();
     renderAdminTagsList();
@@ -568,7 +565,7 @@ function renderAdminUserTable() {
                     <select onchange="assignUserTier('${username}', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg py-1 px-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
                         <option value="">Sin Tier</option>
                         ${state.tiers.map(tier => `
-                            <option value="${tier.id}" ${userAssign.tierId === tier.id ? 'selected' : ''}>
+                            <option value="${tier.name}" ${(userAssign.tierName || '').toLowerCase().trim() === tier.name.toLowerCase().trim() || userAssign.tierId === tier.id ? 'selected' : ''}>
                                 ${escapeHtml(tier.name)}
                             </option>
                         `).join('')}
@@ -579,22 +576,21 @@ function renderAdminUserTable() {
     }).join('');
 }
 
-async function assignUserTier(username, tierId) {
+async function assignUserTier(username, tierName) {
     if (!state.assignments[username]) {
         state.assignments[username] = { tierId: '', tagIds: [] };
     }
-    state.assignments[username].tierId = tierId;
+    
+    const selectedTier = state.tiers.find(t => t.name.toLowerCase().trim() === (tierName || '').toLowerCase().trim());
+    state.assignments[username].tierId = selectedTier ? selectedTier.id : '';
+    state.assignments[username].tierName = tierName;
     saveState();
 
-    const selectedTier = state.tiers.find(t => t.id === tierId);
-    const tierName = selectedTier ? selectedTier.name : 'Sin Tier';
-
-    // Enviar cambio al backend en Render
     try {
         await fetch(`${API_URL}/nickname/${encodeURIComponent(username)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tierName })
+            body: JSON.stringify({ tierName: tierName || 'Sin Tier' })
         });
         await fetchUsers();
         renderPublicTiers();
@@ -654,19 +650,18 @@ function renderPublicTiers() {
     }
 
     container.innerHTML = state.tiers.map(tier => {
-        // Filtrar directamente desde la lista global de usuarios devuelta por la base de datos
+        const targetName = tier.name.toLowerCase().trim();
+
         const members = state.users.filter(u => {
             const uname = u.nickname || u.name;
             if (!uname || uname.toLowerCase() === 'admin') return false;
 
-            // Comparar relación tier devuelta por Prisma
-            if (u.tier && u.tier.name && u.tier.name.toLowerCase().trim() === tier.name.toLowerCase().trim()) {
+            if (u.tier && u.tier.name && u.tier.name.toLowerCase().trim() === targetName) {
                 return true;
             }
 
-            // Fallback con asignación local
             const assign = state.assignments[uname];
-            return assign && assign.tierId === tier.id;
+            return assign && (assign.tierId === tier.id || (assign.tierName || '').toLowerCase().trim() === targetName);
         });
 
         return `
