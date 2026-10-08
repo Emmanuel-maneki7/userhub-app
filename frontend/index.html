@@ -97,12 +97,17 @@
             </div>
 
             <!-- TIER BOARDS CONTAINER -->
-            <div class="mt-8 space-y-8">
+            <div class="mt-8 space-y-6">
                 <div class="flex items-center justify-between border-b border-slate-800 pb-4">
                     <div>
                         <h2 class="text-xl font-bold text-slate-100">Tablas de Posiciones TIER</h2>
-                        <p class="text-sm text-slate-400">Listado de usuarios organizados por su división actual.</p>
+                        <p class="text-sm text-slate-400">Listado de usuarios organizados por su división y categoría actual.</p>
                     </div>
+                </div>
+
+                <!-- PESTAÑAS DINÁMICAS DE MODOS -->
+                <div id="tabs-navigation" class="flex flex-wrap gap-2 pb-2">
+                    <!-- Se llena dinámicamente -->
                 </div>
 
                 <div id="public-tiers-container" class="space-y-6">
@@ -262,9 +267,9 @@
                             </div>
                         </div>
 
-                        <!-- CLAN / FAMILIA (DESPLEGABLE DINÁMICO CREADO POR ADMIN) -->
+                        <!-- FAMILIA (DESPLEGABLE DINÁMICO CREADO POR ADMIN) -->
                         <div>
-                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">CLAN / FAMILIA / ORGANIZACIÓN</label>
+                            <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">FAMILIA / ORGANIZACIÓN</label>
                             <select id="prof-familia" class="w-full bg-slate-950 border border-slate-800 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-sm">
                                 <!-- Se llena con los clanes creados por el admin -->
                             </select>
@@ -296,24 +301,47 @@
                         <i class="ph-bold ph-shield-check text-indigo-400"></i>
                         <span>Panel del Administrador</span>
                     </h2>
-                    <p class="text-slate-400 text-sm">Crea Tiers, Etiquetas y Clanes para asignarlos a los miembros.</p>
+                    <p class="text-slate-400 text-sm">Crea Pestañas de Modos, Tiers, Etiquetas y Familias.</p>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- GESTIÓN DE PESTAÑAS / MODOS -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <i class="ph-bold ph-tabs text-indigo-400"></i>
+                        <span>Pestañas (Modos)</span>
+                    </h3>
+
+                    <form id="form-create-tab" onsubmit="handleCreateTab(event)" class="space-y-3">
+                        <input type="text" id="tab-name" placeholder="Nombre (Ej: NORMAL)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+                            <i class="ph-bold ph-plus"></i>
+                            <span>Crear Pestaña</span>
+                        </button>
+                    </form>
+
+                    <div id="admin-tabs-list" class="space-y-2 pt-2"></div>
+                </div>
+
                 <!-- CREAR Y GESTIONAR TIERS -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                     <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
-                        <i class="ph-bold ph-ranking text-indigo-400"></i>
+                        <i class="ph-bold ph-ranking text-blue-400"></i>
                         <span>Gestión de Tiers</span>
                     </h3>
 
                     <form id="form-create-tier" onsubmit="handleCreateTier(event)" class="space-y-3">
-                        <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="tier-name" placeholder="Ej: Tier S" required class="col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
-                            <input type="color" id="tier-color" value="#3b82f6" title="Color" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                        <input type="text" id="tier-name" placeholder="Ej: Tier S" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                        
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="color" id="tier-color" value="#3b82f6" title="Color" class="w-full h-9 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                            <select id="tier-tab-select" required class="bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-indigo-500">
+                                <!-- Se llena con las pestañas creadas -->
+                            </select>
                         </div>
-                        <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+
+                        <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
                             <i class="ph-bold ph-plus"></i>
                             <span>Crear Tier</span>
                         </button>
@@ -332,7 +360,7 @@
                     <form id="form-create-tag" onsubmit="handleCreateTag(event)" class="space-y-3">
                         <div class="grid grid-cols-3 gap-2">
                             <input type="text" id="tag-name" placeholder="Ej: VIP" required class="col-span-2 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
-                            <input type="color" id="tag-color" value="#8b5cf6" title="Color" class="w-full h-10 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
+                            <input type="color" id="tag-color" value="#8b5cf6" title="Color" class="w-full h-9 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer p-1">
                         </div>
                         <button type="submit" class="w-full py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
                             <i class="ph-bold ph-plus"></i>
@@ -343,18 +371,18 @@
                     <div id="admin-tags-list" class="flex flex-wrap gap-2 pt-2"></div>
                 </div>
 
-                <!-- CREAR Y GESTIONAR CLANES -->
+                <!-- CREAR Y GESTIONAR FAMILIAS -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                     <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-slate-800 pb-3">
                         <i class="ph-bold ph-users-three text-emerald-400"></i>
-                        <span>Gestión de Clanes</span>
+                        <span>Familias</span>
                     </h3>
 
                     <form id="form-create-clan" onsubmit="handleCreateClan(event)" class="space-y-3">
-                        <input type="text" id="clan-name" placeholder="Nombre del Clan (Ej: Kings)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
+                        <input type="text" id="clan-name" placeholder="Nombre (Ej: Kings)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500">
                         <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
                             <i class="ph-bold ph-plus"></i>
-                            <span>Crear Clan</span>
+                            <span>Crear Familia</span>
                         </button>
                     </form>
 
