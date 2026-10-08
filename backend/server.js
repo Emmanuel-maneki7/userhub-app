@@ -18,7 +18,7 @@ app.get('/api/health', (req, res) => {
 app.get('/api/tabs', async (req, res) => {
   try {
     const tabs = await prisma.modeTab.findMany({
-      include: { tiers: true },
+      include: { tiers: { orderBy: { order: 'asc' } } },
       orderBy: { id: 'asc' }
     });
     res.json(tabs);
@@ -101,12 +101,12 @@ app.delete('/api/clans/:name', async (req, res) => {
   }
 });
 
-// GET: Obtener Tiers globales con su pestaña asociada
+// GET: Obtener Tiers globales con su pestaña asociada (ordenados)
 app.get('/api/tiers', async (req, res) => {
   try {
     const tiers = await prisma.tier.findMany({
       include: { tab: true },
-      orderBy: { order: 'asc' }
+      orderBy: [{ order: 'asc' }, { id: 'asc' }]
     });
     res.json(tiers);
   } catch (error) {
@@ -121,21 +121,66 @@ app.post('/api/tiers', async (req, res) => {
   if (!name) return res.status(400).json({ error: "Nombre de tier obligatorio" });
 
   try {
+    // El nuevo tier va al final de la lista
+    const last = await prisma.tier.findFirst({
+      orderBy: { order: 'desc' },
+      select: { order: true }
+    });
+    const nextOrder = last ? last.order + 1 : 0;
+
     const newTier = await prisma.tier.upsert({
       where: { name },
-      update: { 
+      update: {
         color: color || '#6366f1',
         ...(tabId && { tabId: Number(tabId) })
       },
-      create: { 
-        name, 
+      create: {
+        name,
         color: color || '#6366f1',
+        order: nextOrder,
         tabId: tabId ? Number(tabId) : null
       }
     });
     res.status(201).json(newTier);
   } catch (error) {
     res.status(400).json({ error: "No se pudo crear el Tier" });
+  }
+});
+
+// PUT: Guardar el orden de los tiers
+// Body: { ids: [3, 1, 2] }  -> el orden de la lista es el nuevo orden
+// IMPORTANTE: esta ruta va antes de /api/tiers/:id
+app.put('/api/tiers/reorder', async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids)) {
+    return res.status(400).json({ error: "Se esperaba una lista de ids" });
+  }
+
+  try {
+    await prisma.$transaction(
+      ids.map((id, index) =>
+        prisma.tier.update({
+          where: { id: Number(id) },
+          data: { order: index }
+        })
+      )
+    );
+    res.json({ message: "Orden actualizado" });
+  } catch (error) {
+    console.error("Error al reordenar tiers:", error);
+    res.status(400).json({ error: "No se pudo guardar el orden" });
+  }
+});
+
+// DELETE: Eliminar Tier (los usuarios quedan "Sin Tier" por onDelete: SetNull)
+app.delete('/api/tiers/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await prisma.tier.delete({ where: { id: Number(id) } });
+    res.json({ message: "Tier eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar tier:", error);
+    res.status(400).json({ error: "No se pudo eliminar el Tier" });
   }
 });
 
@@ -191,7 +236,7 @@ app.post('/api/users/login', async (req, res) => {
   }
 });
 
-// PUT: Asignar Tier por Nickname
+// PUT: Actualizar usuario por Nickname (tier, nombres, modo, familia)
 app.put('/api/users/nickname/:nickname', async (req, res) => {
   const { nickname } = req.params;
   const { tierName, nombres, modo, familia } = req.body;
@@ -200,14 +245,24 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
     const user = await prisma.user.findFirst({ where: { nickname } });
     if (!user) return res.status(404).json({ error: "Usuario no encontrado" });
 
-    let tierId = null;
-    if (tierName && tierName !== 'Sin Tier') {
-      const tierObj = await prisma.tier.upsert({
-        where: { name: tierName },
-        update: {},
-        create: { name: tierName, color: '#6366f1' }
-      });
-      tierId = tierObj.id;
+    // Solo se toca el tier si el cliente envió tierName.
+    // Antes, guardar el perfil dejaba al usuario sin tier.
+    let tierUpdate = {};
+    if (tierName !== undefined) {
+      if (tierName && tierName !== 'Sin Tier') {
+        const last = await prisma.tier.findFirst({
+          orderBy: { order: 'desc' },
+          select: { order: true }
+        });
+        const tierObj = await prisma.tier.upsert({
+          where: { name: tierName },
+          update: {},
+          create: { name: tierName, color: '#6366f1', order: last ? last.order + 1 : 0 }
+        });
+        tierUpdate = { tierId: tierObj.id };
+      } else {
+        tierUpdate = { tierId: null };
+      }
     }
 
     const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
@@ -215,7 +270,7 @@ app.put('/api/users/nickname/:nickname', async (req, res) => {
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
-        tierId: tierId,
+        ...tierUpdate,
         ...(nombres !== undefined && { nombres }),
         ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia })
