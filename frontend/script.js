@@ -375,6 +375,23 @@ async function handleSaveProfile(e) {
     const avatar = document.getElementById('prof-avatar').value.trim() || 'https://i.imgur.com/6VBx3io.png';
     const genero = document.getElementById('prof-genero').value;
 
+    const newPassword = document.getElementById('prof-new-password')?.value;
+    const confirmPassword = document.getElementById('prof-confirm-password')?.value;
+
+    let updateData = { nombres, modo, familia, avatar, genero };
+
+    if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+            alert("⚠️ Las contraseñas ingresadas no coinciden.");
+            return;
+        }
+        if (newPassword.length < 4) {
+            alert("⚠️ La contraseña debe tener al menos 4 caracteres.");
+            return;
+        }
+        updateData.password = newPassword;
+    }
+
     state.currentUser.nombres = nombres;
     state.currentUser.modo = modo;
     state.currentUser.familia = familia;
@@ -388,20 +405,26 @@ async function handleSaveProfile(e) {
             const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombres, modo, familia, avatar, genero })
+                body: JSON.stringify(updateData)
             });
 
             if (response.ok) {
                 await fetchUsers();
                 renderPublicTiers();
+                
+                if (document.getElementById('prof-new-password')) document.getElementById('prof-new-password').value = '';
+                if (document.getElementById('prof-confirm-password')) document.getElementById('prof-confirm-password').value = '';
+                
+                alert("¡Perfil actualizado correctamente!");
+                navigateTo('view-profile-card');
+            } else {
+                alert("Ocurrió un error al guardar los cambios.");
             }
         } catch (err) {
             console.error("Error al sincronizar perfil con backend:", err);
+            alert("Error al conectar con el servidor.");
         }
     }
-
-    alert("Perfil actualizado correctamente.");
-    navigateTo('view-profile-card');
 }
 
 function fillProfileEditForm() {
