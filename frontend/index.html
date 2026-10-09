@@ -96,29 +96,29 @@
                     <!-- Botones dinámicos -->
                 </div>
 
-                <!-- CARRUSEL DE ANUNCIOS -->
+                <!-- CARRUSEL DE ANUNCIOS (ADAPTADO A FORMATO A4 / VERTICAL) -->
                 <div class="pt-6">
-                    <div class="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/60 group">
-                        <!-- Galería de imágenes (Ajustadas con object-contain) -->
-                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full">
-                            <div class="w-full flex-shrink-0 flex items-center justify-center bg-black/40">
-                                <img src="anuncio1.png" alt="Anuncio 1" class="w-full h-auto max-h-[500px] object-contain rounded-2xl mx-auto" onerror="this.src='https://placehold.co/800x350/1c0a11/e6738c?text=Anuncio+1'">
+                    <div class="relative w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/90 group">
+                        <!-- Galería con altura suficiente para imágenes A4 -->
+                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full h-[520px] sm:h-[620px]">
+                            <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
+                                <img src="anuncio1.png" alt="Anuncio 1" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+1+A4'">
                             </div>
-                            <div class="w-full flex-shrink-0 flex items-center justify-center bg-black/40">
-                                <img src="anuncio2.png" alt="Anuncio 2" class="w-full h-auto max-h-[500px] object-contain rounded-2xl mx-auto" onerror="this.src='https://placehold.co/800x350/1c0a11/e6738c?text=Anuncio+2'">
+                            <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
+                                <img src="anuncio2.png" alt="Anuncio 2" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+2+A4'">
                             </div>
                         </div>
 
                         <!-- Flechas de navegación -->
-                        <button onclick="prevSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/70 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                        <button onclick="prevSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
                             <i class="ph-bold ph-caret-left text-lg"></i>
                         </button>
-                        <button onclick="nextSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/70 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                        <button onclick="nextSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
                             <i class="ph-bold ph-caret-right text-lg"></i>
                         </button>
 
                         <!-- Indicadores (Puntos abajito) -->
-                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/80 px-3 py-1.5 rounded-full border border-wine-800/80 z-10">
+                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/90 px-3 py-1.5 rounded-full border border-wine-800/80 z-10">
                             <button onclick="goToSlide(0)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
                             <button onclick="goToSlide(1)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
                         </div>
