@@ -866,7 +866,7 @@ function renderAdminUserTable() {
                         <span class="block text-[10px] text-slate-500 font-normal">${escapeHtml(user.genero || 'Otros')}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@audition.latam`)}</td>
+                <td class="py-3 px-4 text-slate-300 align-top font-medium">${escapeHtml(user.nombres || 'Sin nombre asignado')}</td>
                 
                 <td class="py-3 px-4 space-y-2 align-top">
                     <div class="space-y-1.5">
