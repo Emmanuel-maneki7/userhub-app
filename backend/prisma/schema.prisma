@@ -15,6 +15,7 @@ model User {
   modo      String?        @default("NORMAL")
   familia   String?        @default("Sin Familia / Ninguno")
   avatar    String?        @default("https://i.imgur.com/6VBx3io.png")
+  genero    String?        @default("Otros")
   tierRanks UserTierRank[]
   tags      Tag[]
   createdAt DateTime       @default(now())
