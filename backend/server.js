@@ -186,9 +186,9 @@ app.delete('/api/tiers/:id', async (req, res) => {
   }
 });
 
-// POST: Registrar Usuario
+// POST: Registrar Usuario (Con soporte para Genero)
 app.post('/api/users', async (req, res) => {
-  const { nickname, password } = req.body;
+  const { nickname, password, genero } = req.body;
   if (!nickname || !password) {
     return res.status(400).json({ error: "Nickname y contraseña obligatorios" });
   }
@@ -200,7 +200,9 @@ app.post('/api/users', async (req, res) => {
         password,
         nombres: nickname,
         modo: 'NORMAL',
-        familia: 'Sin Familia / Ninguno'
+        familia: 'Sin Familia / Ninguno',
+        genero: genero || 'Otros',
+        avatar: 'https://i.imgur.com/6VBx3io.png'
       },
       include: { tierRanks: { include: { tier: true } }, tags: true }
     });
@@ -219,7 +221,7 @@ app.post('/api/users/login', async (req, res) => {
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
       return res.json({
         message: "Login admin exitoso",
-        user: { id: 0, nickname: 'Admin', nombres: 'Administrador Principal' }
+        user: { id: 0, nickname: 'Admin', nombres: 'Administrador Principal', genero: 'Otros', avatar: 'https://i.imgur.com/6VBx3io.png' }
       });
     }
 
@@ -291,10 +293,10 @@ app.delete('/api/users/:userId/tiers/:tierId', async (req, res) => {
   }
 });
 
-// PUT: Actualizar Perfil (nombres, modo, familia, avatar)
+// PUT: Actualizar Perfil (nombres, modo, familia, avatar, genero)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombres, modo, familia, avatar } = req.body;
+  const { nombres, modo, familia, avatar, genero } = req.body;
 
   try {
     const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
@@ -305,7 +307,8 @@ app.put('/api/users/:id', async (req, res) => {
         ...(nombres !== undefined && { nombres }),
         ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia }),
-        ...(avatar !== undefined && { avatar })
+        ...(avatar !== undefined && { avatar }),
+        ...(genero !== undefined && { genero })
       },
       include: { tierRanks: { include: { tier: true } }, tags: true }
     });
