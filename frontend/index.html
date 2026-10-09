@@ -58,19 +58,18 @@
     <!-- TOP NAVIGATION BAR -->
     <header class="bg-wine-950/80 backdrop-blur-md border-b border-wine-900 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('view-home')">
-                <div class="w-12 h-12 rounded-xl overflow-hidden shadow-lg shadow-wine-900/50 border border-wine-700/50 flex-shrink-0">
+            <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" onclick="navigateTo('view-home')">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-lg shadow-wine-900/50 border border-wine-700/50 flex-shrink-0">
                     <img src="logo.jpg" alt="Audition World Class LATAM Logo" class="w-full h-full object-cover">
                 </div>
-                <div>
-                    <span class="text-lg sm:text-xl font-extrabold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase">
+                <div class="truncate">
+                    <span class="text-xs sm:text-lg md:text-xl font-extrabold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase whitespace-nowrap block">
                         AUDITION WORLD CLASS LATAM
                     </span>
-                    <span class="text-[11px] text-wine-400 block font-bold tracking-widest -mt-1">OFFICIAL RANKING SYSTEM</span>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-3" id="nav-actions">
+            <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0" id="nav-actions">
                 <!-- Botones inyectados dinámicamente -->
             </div>
         </div>
