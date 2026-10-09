@@ -191,8 +191,16 @@ async function handleRegister(e) {
         });
 
         if (response.ok) {
+            const newUser = await response.json();
             alert("¡Usuario registrado exitosamente!");
-            state.currentUser = { nickname, nombres: nickname, modo: ['NORMAL'], familia: state.clans[0] || 'Sin Familia / Ninguno' };
+            state.currentUser = {
+                id: newUser.id,
+                nickname,
+                nombres: nickname,
+                modo: ['NORMAL'],
+                familia: state.clans[0] || 'Sin Familia / Ninguno',
+                avatar: 'https://i.imgur.com/6VBx3io.png'
+            };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -217,7 +225,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ' };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -251,7 +259,8 @@ async function handleLogin(e) {
             nickname: foundUser.nickname || foundUser.name || nickname,
             nombres: foundUser.nombres || foundUser.name || nickname,
             modo: parseModo,
-            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno'
+            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
+            avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -266,6 +275,50 @@ function handleLogout() {
     saveState();
     alert("Has cerrado sesión.");
     navigateTo('view-home');
+}
+
+async function deleteMyAccount() {
+    if (!state.currentUser || !state.currentUser.id) return;
+
+    const confirmacion = confirm("⚠️ ¿Estás seguro de que deseas eliminar tu cuenta? Esta acción borra permanentemente todos tus datos y puntos.");
+    if (!confirmacion) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert("Tu cuenta ha sido eliminada correctamente.");
+            handleLogout();
+        } else {
+            alert("No se pudo eliminar la cuenta.");
+        }
+    } catch (error) {
+        console.error("Error al eliminar cuenta:", error);
+        alert("Ocurrió un error al conectar con el servidor.");
+    }
+}
+
+async function deleteUserByAdmin(userId, username) {
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${username}"?`)) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert(`Usuario ${username} eliminado con éxito.`);
+            await fetchUsers();
+            renderAdminUserTable();
+            renderPublicTiers();
+        } else {
+            alert("No se pudo eliminar el usuario.");
+        }
+    } catch (err) {
+        console.error("Error al eliminar usuario por Admin:", err);
+    }
 }
 
 function toggleModeDropdown() {
@@ -316,10 +369,12 @@ async function handleSaveProfile(e) {
     const nombres = document.getElementById('prof-nombres').value;
     const modo = getSelectedModes();
     const familia = document.getElementById('prof-familia').value;
+    const avatar = document.getElementById('prof-avatar').value.trim() || 'https://i.imgur.com/6VBx3io.png';
 
     state.currentUser.nombres = nombres;
     state.currentUser.modo = modo;
     state.currentUser.familia = familia;
+    state.currentUser.avatar = avatar;
 
     saveState();
 
@@ -328,7 +383,7 @@ async function handleSaveProfile(e) {
             const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombres, modo, familia })
+                body: JSON.stringify({ nombres, modo, familia, avatar })
             });
 
             if (response.ok) {
@@ -348,6 +403,10 @@ function fillProfileEditForm() {
     if (!state.currentUser) return;
     document.getElementById('prof-nickname').value = state.currentUser.nickname || '';
     document.getElementById('prof-nombres').value = state.currentUser.nombres || '';
+    
+    const avatarVal = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    document.getElementById('prof-avatar').value = avatarVal;
+    document.getElementById('avatar-preview').src = avatarVal;
 
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
@@ -382,13 +441,14 @@ function renderProfileCard() {
     const userTagIds = assign.tagIds || [];
     const userTags = state.tags.filter(t => userTagIds.includes(t.id));
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
+    const avatarUrl = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
 
     container.innerHTML = `
         <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
             <div class="flex items-start justify-between">
                 <div class="flex items-center space-x-4">
-                    <div class="w-16 h-16 rounded-2xl bg-wine-900/50 text-wine-400 flex items-center justify-center text-3xl font-bold border border-wine-700/50">
-                        ${escapeHtml(state.currentUser.nickname.charAt(0).toUpperCase())}
+                    <div class="w-16 h-16 rounded-2xl overflow-hidden bg-wine-900/50 border border-wine-700/50 shadow-lg flex-shrink-0">
+                        <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="Avatar" class="w-full h-full object-cover">
                     </div>
                     <div>
                         <h2 class="text-2xl font-bold text-white">${escapeHtml(state.currentUser.nickname)}</h2>
@@ -773,7 +833,7 @@ function renderAdminUserTable() {
     const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
 
     if (allUsers.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
         return;
     }
 
@@ -787,7 +847,10 @@ function renderAdminUserTable() {
 
         return `
             <tr class="hover:bg-wine-900/20 transition-colors border-b border-wine-900/60">
-                <td class="py-3 px-4 font-semibold text-wine-400 align-top">${escapeHtml(username)}</td>
+                <td class="py-3 px-4 font-semibold text-wine-400 align-top flex items-center gap-2">
+                    <img src="${escapeHtml(user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover border border-wine-800 flex-shrink-0">
+                    <span>${escapeHtml(username)}</span>
+                </td>
                 <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@audition.latam`)}</td>
                 
                 <td class="py-3 px-4 space-y-2 align-top">
@@ -833,6 +896,14 @@ function renderAdminUserTable() {
                             `;
                         }).join('')}
                     </div>
+                </td>
+
+                <td class="py-3 px-4 align-top text-center">
+                    <button onclick="deleteUserByAdmin(${user.id}, '${escapeHtml(username)}')" 
+                            class="p-2 bg-red-950/50 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-lg text-xs font-bold transition-all" 
+                            title="Eliminar usuario">
+                        <i class="ph-bold ph-trash text-sm"></i>
+                    </button>
                 </td>
             </tr>
         `;
@@ -963,6 +1034,7 @@ function renderPublicTiers() {
                                     const uname = u.nickname || u.name;
                                     const familiaText = u.familia || 'Sin Familia / Ninguno';
                                     const puntos = item.puntos;
+                                    const userAvatar = u.avatar || 'https://i.imgur.com/6VBx3io.png';
                                     
                                     let rankBadge = `<span class="font-bold text-slate-400">#${index + 1}</span>`;
                                     if (index === 0) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-black border border-amber-500/40 text-xs">🥇</span>`;
@@ -985,7 +1057,9 @@ function renderPublicTiers() {
                                                 ${rankBadge}
                                             </td>
                                             <td class="py-3 px-4 font-bold text-slate-100 flex items-center gap-2">
-                                                <i class="ph-bold ph-user-circle text-wine-400 text-lg"></i>
+                                                <div class="w-7 h-7 rounded-full overflow-hidden bg-wine-900 border border-wine-700/60 flex-shrink-0">
+                                                    <img src="${escapeHtml(userAvatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
+                                                </div>
                                                 <span>${escapeHtml(uname)}</span>
                                             </td>
                                             <td class="py-3 px-4 text-center font-extrabold text-amber-400">
