@@ -177,6 +177,7 @@ async function handleRegister(e) {
     e.preventDefault();
     const nickname = document.getElementById('reg-nickname')?.value.trim();
     const password = document.getElementById('reg-password')?.value;
+    const genero = document.getElementById('reg-genero')?.value || 'Otros';
 
     if (!nickname || !password) {
         alert("Por favor completa todos los campos.");
@@ -187,20 +188,20 @@ async function handleRegister(e) {
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nickname, password })
+            body: JSON.stringify({ nickname, password, genero })
         });
 
         if (response.ok) {
             const newUser = await response.json();
             alert("¡Usuario registrado exitosamente!");
-            // Asigna inmediatamente el ID real devuelto por la base de datos
             state.currentUser = {
                 id: newUser.id,
                 nickname: newUser.nickname || nickname,
                 nombres: newUser.nombres || nickname,
                 modo: ['NORMAL'],
                 familia: state.clans[0] || 'Sin Familia / Ninguno',
-                avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png'
+                avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png',
+                genero: newUser.genero || genero
             };
             saveState();
             await fetchUsers();
@@ -226,7 +227,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png' };
+        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png', genero: 'Otros' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -261,7 +262,8 @@ async function handleLogin(e) {
             nombres: foundUser.nombres || foundUser.name || nickname,
             modo: parseModo,
             familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
-            avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png'
+            avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png',
+            genero: foundUser.genero || 'Otros'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -371,11 +373,13 @@ async function handleSaveProfile(e) {
     const modo = getSelectedModes();
     const familia = document.getElementById('prof-familia').value;
     const avatar = document.getElementById('prof-avatar').value.trim() || 'https://i.imgur.com/6VBx3io.png';
+    const genero = document.getElementById('prof-genero').value;
 
     state.currentUser.nombres = nombres;
     state.currentUser.modo = modo;
     state.currentUser.familia = familia;
     state.currentUser.avatar = avatar;
+    state.currentUser.genero = genero;
 
     saveState();
 
@@ -384,7 +388,7 @@ async function handleSaveProfile(e) {
             const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nombres, modo, familia, avatar })
+                body: JSON.stringify({ nombres, modo, familia, avatar, genero })
             });
 
             if (response.ok) {
@@ -408,6 +412,9 @@ function fillProfileEditForm() {
     const avatarVal = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
     document.getElementById('prof-avatar').value = avatarVal;
     document.getElementById('avatar-preview').src = avatarVal;
+
+    const generoSelect = document.getElementById('prof-genero');
+    if (generoSelect) generoSelect.value = state.currentUser.genero || 'Otros';
 
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
@@ -443,6 +450,7 @@ function renderProfileCard() {
     const userTags = state.tags.filter(t => userTagIds.includes(t.id));
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
     const avatarUrl = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const generoVal = state.currentUser.genero || 'Otros';
 
     container.innerHTML = `
         <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
@@ -452,7 +460,10 @@ function renderProfileCard() {
                         <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="Avatar" class="w-full h-full object-cover">
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold text-white">${escapeHtml(state.currentUser.nickname)}</h2>
+                        <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                            <span>${escapeHtml(state.currentUser.nickname)}</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-wine-900 text-wine-300 font-mono border border-wine-800">${escapeHtml(generoVal)}</span>
+                        </h2>
                         <p class="text-slate-400 text-sm">${escapeHtml(state.currentUser.nombres || 'Sin nombre asignado')}</p>
                     </div>
                 </div>
@@ -850,7 +861,10 @@ function renderAdminUserTable() {
             <tr class="hover:bg-wine-900/20 transition-colors border-b border-wine-900/60">
                 <td class="py-3 px-4 font-semibold text-wine-400 align-top flex items-center gap-2">
                     <img src="${escapeHtml(user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover border border-wine-800 flex-shrink-0">
-                    <span>${escapeHtml(username)}</span>
+                    <div>
+                        <span>${escapeHtml(username)}</span>
+                        <span class="block text-[10px] text-slate-500 font-normal">${escapeHtml(user.genero || 'Otros')}</span>
+                    </div>
                 </td>
                 <td class="py-3 px-4 text-slate-300 align-top">${escapeHtml(user.email || `${username.toLowerCase()}@audition.latam`)}</td>
                 
