@@ -81,20 +81,50 @@
 
         <!-- VIEW 1: HOME / VISITOR LANDING -->
         <section id="view-home" class="view-section transition-opacity duration-300">
-            <div class="text-center max-w-3xl mx-auto py-12">
-                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-wine-900/50 border border-wine-700/50 text-wine-300 text-xs font-semibold mb-6">
+            <div class="text-center max-w-4xl mx-auto py-12 space-y-8">
+                <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-wine-900/50 border border-wine-700/50 text-wine-300 text-xs font-semibold">
                     <i class="ph-bold ph-trophy text-wine-400"></i>
                     <span>Comunidad Competitiva LATAM</span>
                 </div>
-                <h1 class="text-4xl sm:text-5xl font-black tracking-tight mb-6 bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase">
+                <h1 class="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase">
                     Audition World Class Ranking
                 </h1>
-                <p class="text-slate-400 text-base sm:text-lg mb-8 leading-relaxed">
+                <p class="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
                     Compite en tus modos preferidos, acumula puntos y posiciona a tu familia en lo más alto del ranking regional.
                 </p>
                 <div id="home-cta-buttons" class="flex flex-wrap items-center justify-center gap-4">
                     <!-- Botones dinámicos -->
                 </div>
+
+                <!-- CARRUSEL DE ANUNCIOS -->
+                <div class="pt-6">
+                    <div class="relative w-full max-w-3xl mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/60 group">
+                        <!-- Galería de imágenes -->
+                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full">
+                            <div class="w-full flex-shrink-0">
+                                <img src="anuncio1.png" alt="Anuncio 1" class="w-full h-auto max-h-[380px] object-cover rounded-2xl" onerror="this.src='https://placehold.co/800x350/1c0a11/e6738c?text=Anuncio+1'">
+                            </div>
+                            <div class="w-full flex-shrink-0">
+                                <img src="anuncio2.png" alt="Anuncio 2" class="w-full h-auto max-h-[380px] object-cover rounded-2xl" onerror="this.src='https://placehold.co/800x350/1c0a11/e6738c?text=Anuncio+2'">
+                            </div>
+                        </div>
+
+                        <!-- Flechas de navegación -->
+                        <button onclick="prevSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/70 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg">
+                            <i class="ph-bold ph-caret-left text-lg"></i>
+                        </button>
+                        <button onclick="nextSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/70 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg">
+                            <i class="ph-bold ph-caret-right text-lg"></i>
+                        </button>
+
+                        <!-- Indicadores (Puntos abajito) -->
+                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/80 px-3 py-1.5 rounded-full border border-wine-800/80">
+                            <button onclick="goToSlide(0)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
+                            <button onclick="goToSlide(1)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </section>
 
