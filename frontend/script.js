@@ -1113,6 +1113,59 @@ function escapeHtml(str) {
     });
 }
 
+// --- LÓGICA DEL CARRUSEL DE ANUNCIOS ---
+let currentSlide = 0;
+const totalSlides = 2;
+let carouselInterval = null;
+
+function updateCarousel() {
+    const slidesContainer = document.getElementById('carousel-slides');
+    const dots = document.querySelectorAll('.carousel-dot');
+    
+    if (slidesContainer) {
+        slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+
+    dots.forEach((dot, index) => {
+        if (index === currentSlide) {
+            dot.classList.remove('bg-wine-900');
+            dot.classList.add('bg-wine-500', 'w-6');
+        } else {
+            dot.classList.remove('bg-wine-500', 'w-6');
+            dot.classList.add('bg-wine-900', 'w-2.5');
+        }
+    });
+}
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % totalSlides;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function prevSlide() {
+    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function startCarouselTimer() {
+    if (carouselInterval) clearInterval(carouselInterval);
+    carouselInterval = setInterval(() => {
+        nextSlide();
+    }, 4000);
+}
+
+function resetCarouselTimer() {
+    startCarouselTimer();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const formReg = document.getElementById('form-register');
     if (formReg) formReg.addEventListener('submit', handleRegister);
@@ -1134,4 +1187,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchUsers().then(() => renderPublicTiers());
     navigateTo('view-home');
+    startCarouselTimer();
 });
