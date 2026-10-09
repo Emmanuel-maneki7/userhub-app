@@ -293,10 +293,10 @@ app.delete('/api/users/:userId/tiers/:tierId', async (req, res) => {
   }
 });
 
-// PUT: Actualizar Perfil (nombres, modo, familia, avatar, genero)
+// PUT: Actualizar Perfil (nombres, modo, familia, avatar, genero, password)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombres, modo, familia, avatar, genero } = req.body;
+  const { nombres, modo, familia, avatar, genero, password } = req.body;
 
   try {
     const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
@@ -308,7 +308,8 @@ app.put('/api/users/:id', async (req, res) => {
         ...(formattedModo !== undefined && { modo: formattedModo }),
         ...(familia !== undefined && { familia }),
         ...(avatar !== undefined && { avatar }),
-        ...(genero !== undefined && { genero })
+        ...(genero !== undefined && { genero }),
+        ...(password && password.trim() !== '' && { password })
       },
       include: { tierRanks: { include: { tier: true } }, tags: true }
     });
