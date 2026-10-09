@@ -82,7 +82,7 @@ function navigateTo(viewId) {
 
     renderNavActions();
     if (viewId === 'view-home' || viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
-    if (viewId === 'view-admin') renderAdminPanel();
+    if (viewId === 'view-admin') fetchUsers().then(() => renderAdminPanel());
     if (viewId === 'view-profile-card') renderProfileCard();
     if (viewId === 'view-profile-edit') fillProfileEditForm();
 }
