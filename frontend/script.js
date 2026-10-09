@@ -193,13 +193,14 @@ async function handleRegister(e) {
         if (response.ok) {
             const newUser = await response.json();
             alert("¡Usuario registrado exitosamente!");
+            // Asigna inmediatamente el ID real devuelto por la base de datos
             state.currentUser = {
                 id: newUser.id,
-                nickname,
-                nombres: nickname,
+                nickname: newUser.nickname || nickname,
+                nombres: newUser.nombres || nickname,
                 modo: ['NORMAL'],
                 familia: state.clans[0] || 'Sin Familia / Ninguno',
-                avatar: 'https://i.imgur.com/6VBx3io.png'
+                avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png'
             };
             saveState();
             await fetchUsers();
