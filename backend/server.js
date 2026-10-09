@@ -135,12 +135,12 @@ app.post('/api/tiers', async (req, res) => {
     const newTier = await prisma.tier.upsert({
       where: { name },
       update: {
-        color: color || '#6366f1',
+        color: color || '#800020',
         ...(tabId && { tabId: Number(tabId) })
       },
       create: {
         name,
-        color: color || '#6366f1',
+        color: color || '#800020',
         order: nextOrder,
         tabId: tabId ? Number(tabId) : null
       }
@@ -291,10 +291,10 @@ app.delete('/api/users/:userId/tiers/:tierId', async (req, res) => {
   }
 });
 
-// PUT: Actualizar Perfil (nombres, modo, familia)
+// PUT: Actualizar Perfil (nombres, modo, familia, avatar)
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
-  const { nombres, modo, familia } = req.body;
+  const { nombres, modo, familia, avatar } = req.body;
 
   try {
     const formattedModo = modo !== undefined ? (typeof modo === 'object' ? JSON.stringify(modo) : modo) : undefined;
@@ -304,7 +304,8 @@ app.put('/api/users/:id', async (req, res) => {
       data: {
         ...(nombres !== undefined && { nombres }),
         ...(formattedModo !== undefined && { modo: formattedModo }),
-        ...(familia !== undefined && { familia })
+        ...(familia !== undefined && { familia }),
+        ...(avatar !== undefined && { avatar })
       },
       include: { tierRanks: { include: { tier: true } }, tags: true }
     });
@@ -312,6 +313,21 @@ app.put('/api/users/:id', async (req, res) => {
   } catch (error) {
     console.error("Error al actualizar perfil por ID:", error);
     res.status(400).json({ error: "No se pudo actualizar el perfil" });
+  }
+});
+
+// DELETE: Eliminar Usuario por ID (Administrador o cuenta propia)
+app.delete('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await prisma.user.delete({
+      where: { id: Number(id) }
+    });
+    res.json({ message: "Usuario eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    res.status(400).json({ error: "No se pudo eliminar el usuario" });
   }
 });
 
