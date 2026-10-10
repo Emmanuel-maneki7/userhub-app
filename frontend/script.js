@@ -60,8 +60,10 @@ function saveState() {
         localStorage.removeItem('uh_current_user');
     }
 
-    // Persistir en servidor para multijugador
-    saveActiveEventToDB();
+    // Persistir en servidor para multijugador solo si hay un evento activo
+    if (state.activeEvent) {
+        saveActiveEventToDB();
+    }
 }
 
 async function fetchGlobalConfig() {
@@ -380,7 +382,7 @@ function undoTournamentStep() {
     alert("Se ha retrocedido al paso anterior.");
 }
 
-// 1. ELIMINAR EL TORNEO ACTIVO EN VIVO
+// 1. ELIMINAR EL TORNEO ACTIVO EN VIVO (CON DELETE AL BACKEND)
 async function deleteActiveEvent() {
     if (!state.activeEvent) return;
 
@@ -388,21 +390,19 @@ async function deleteActiveEvent() {
     if (!confirmacion) return;
 
     state.activeEvent = null;
+    localStorage.removeItem('uh_active_event');
 
     try {
         await fetch(`${API_BASE}/events/active`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(null)
+            method: 'DELETE'
         });
     } catch (err) {
         console.error("Error al borrar evento activo en servidor:", err);
     }
 
-    saveState();
     renderTournamentAdmin();
     renderUserEventsView();
-    alert("El torneo activo ha sido eliminado.");
+    alert("El torneo activo ha sido eliminado correctamente.");
 }
 
 // 2. ELIMINAR UN TORNEO DEL HISTORIAL
@@ -664,6 +664,10 @@ function finishAndSaveEvent() {
 
     state.activeEvent.status = 'FINISHED';
     state.eventHistory.unshift(JSON.parse(JSON.stringify(state.activeEvent)));
+    
+    // Limpiar evento activo del backend
+    fetch(`${API_BASE}/events/active`, { method: 'DELETE' });
+
     state.activeEvent = null;
 
     saveState();
