@@ -186,7 +186,7 @@ app.delete('/api/tiers/:id', async (req, res) => {
   }
 });
 
-// POST: Registrar Usuario (Con soporte para Genero)
+// POST: Registrar Usuario
 app.post('/api/users', async (req, res) => {
   const { nickname, password, genero } = req.body;
   if (!nickname || !password) {
@@ -202,7 +202,8 @@ app.post('/api/users', async (req, res) => {
         modo: 'NORMAL',
         familia: 'Sin Familia / Ninguno',
         genero: genero || 'Otros',
-        avatar: 'https://i.imgur.com/6VBx3io.png'
+        avatar: 'https://i.imgur.com/6VBx3io.png',
+        role: 'USER'
       },
       include: { tierRanks: { include: { tier: true } }, tags: true }
     });
@@ -221,7 +222,7 @@ app.post('/api/users/login', async (req, res) => {
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
       return res.json({
         message: "Login admin exitoso",
-        user: { id: 0, nickname: 'Admin', nombres: 'Administrador Principal', genero: 'Otros', avatar: 'https://i.imgur.com/6VBx3io.png' }
+        user: { id: 0, nickname: 'Admin', nombres: 'Administrador Principal', genero: 'Otros', avatar: 'https://i.imgur.com/6VBx3io.png', role: 'ADMIN' }
       });
     }
 
@@ -320,7 +321,29 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-// DELETE: Eliminar Usuario por ID (Administrador o cuenta propia)
+// PUT: Actualizar el Rol de un Usuario (Admin)
+app.put('/api/users/:id/role', async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (!['USER', 'MODERATOR'].includes(role)) {
+    return res.status(400).json({ error: "Rol inválido" });
+  }
+
+  try {
+    const updatedUser = await prisma.user.update({
+      where: { id: Number(id) },
+      data: { role },
+      include: { tierRanks: { include: { tier: true } }, tags: true }
+    });
+    res.json(updatedUser);
+  } catch (error) {
+    console.error("Error al actualizar rol:", error);
+    res.status(400).json({ error: "No se pudo actualizar el rol del usuario" });
+  }
+});
+
+// DELETE: Eliminar Usuario por ID
 app.delete('/api/users/:id', async (req, res) => {
   const { id } = req.params;
 
