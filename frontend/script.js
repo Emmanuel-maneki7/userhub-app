@@ -9,7 +9,8 @@ let state = {
     tiers: [],
     tags: [
         { id: 'tag-vip', name: 'VIP', color: '#c92a52' },
-        { id: 'tag-pro', name: 'PRO', color: '#800020' }
+        { id: 'tag-pro', name: 'PRO', color: '#800020' },
+        { id: 'tag-mod', name: 'MODERADOR', color: '#2563eb' }
     ],
     clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Familia / Ninguno', 'TalentYouth', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
@@ -67,7 +68,12 @@ async function fetchGlobalConfig() {
 }
 
 function navigateTo(viewId) {
-    if (viewId === 'view-admin' && (!state.currentUser || state.currentUser.nickname.toLowerCase() !== 'admin')) {
+    const isPrivileged = state.currentUser && (
+        state.currentUser.nickname.toLowerCase() === 'admin' || 
+        state.currentUser.role === 'MODERATOR'
+    );
+
+    if (viewId === 'view-admin' && !isPrivileged) {
         viewId = 'view-home';
     }
 
@@ -93,10 +99,10 @@ function renderNavActions() {
     if (!navContainer) return;
 
     if (state.currentUser) {
-        const isAdmin = state.currentUser.nickname.toLowerCase() === 'admin';
+        const isPrivileged = state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR';
         navContainer.innerHTML = `
             <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b></span>
-            ${isAdmin ? `
+            ${isPrivileged ? `
                 <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1 shadow-md shadow-wine-900/40">
                     <i class="ph-bold ph-shield-check"></i> <span>Panel Admin</span>
                 </button>
@@ -165,6 +171,12 @@ async function fetchUsers() {
             if (username && !state.assignments[username]) {
                 state.assignments[username] = { tagIds: [] };
             }
+            // Sincronizar automáticamente la etiqueta MODERADOR si el usuario es moderador
+            if (u.role === 'MODERATOR') {
+                if (!state.assignments[username].tagIds.includes('tag-mod')) {
+                    state.assignments[username].tagIds.push('tag-mod');
+                }
+            }
         });
 
         return users;
@@ -201,7 +213,8 @@ async function handleRegister(e) {
                 modo: ['NORMAL'],
                 familia: state.clans[0] || 'Sin Familia / Ninguno',
                 avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png',
-                genero: newUser.genero || genero
+                genero: newUser.genero || genero,
+                role: newUser.role || 'USER'
             };
             saveState();
             await fetchUsers();
@@ -227,7 +240,7 @@ async function handleLogin(e) {
     }
 
     if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
-        state.currentUser = { nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png', genero: 'Otros' };
+        state.currentUser = { id: 0, nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png', genero: 'Otros', role: 'ADMIN' };
         saveState();
         alert("Sesión iniciada como Administrador.");
         navigateTo('view-admin');
@@ -263,7 +276,8 @@ async function handleLogin(e) {
             modo: parseModo,
             familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
             avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png',
-            genero: foundUser.genero || 'Otros'
+            genero: foundUser.genero || 'Otros',
+            role: foundUser.role || 'USER'
         };
         saveState();
         alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
@@ -321,6 +335,42 @@ async function deleteUserByAdmin(userId, username) {
         }
     } catch (err) {
         console.error("Error al eliminar usuario por Admin:", err);
+    }
+}
+
+async function updateUserRole(userId, newRole) {
+    try {
+        const response = await fetch(`${API_BASE}/users/${userId}/role`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole })
+        });
+
+        if (response.ok) {
+            const updated = await response.json();
+            const username = updated.nickname || updated.name;
+
+            if (!state.assignments[username]) {
+                state.assignments[username] = { tagIds: [] };
+            }
+            let tagIds = state.assignments[username].tagIds;
+
+            if (newRole === 'MODERATOR' && !tagIds.includes('tag-mod')) {
+                tagIds.push('tag-mod');
+            } else if (newRole === 'USER') {
+                state.assignments[username].tagIds = tagIds.filter(id => id !== 'tag-mod');
+            }
+
+            saveState();
+            await fetchUsers();
+            renderAdminUserTable();
+            renderPublicTiers();
+            alert(`Rol actualizado a ${newRole} para ${username}`);
+        } else {
+            alert("No se pudo actualizar el rol.");
+        }
+    } catch (err) {
+        console.error("Error al actualizar rol:", err);
     }
 }
 
@@ -873,6 +923,7 @@ function renderAdminUserTable() {
         const username = user.nickname || user.name || 'Usuario';
         const userAssign = state.assignments[username] || { tagIds: [] };
         const userRanks = user.tierRanks || [];
+        const currentRole = user.role || 'USER';
 
         const assignedTierIds = userRanks.map(tr => tr.tierId);
         const availableTiers = state.tiers.filter(t => !assignedTierIds.includes(t.dbId));
@@ -886,7 +937,15 @@ function renderAdminUserTable() {
                         <span class="block text-[10px] text-slate-500 font-normal">${escapeHtml(user.genero || 'Otros')}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-slate-300 align-top font-medium">${escapeHtml(user.nombres || 'Sin nombre asignado')}</td>
+                <td class="py-3 px-4 text-slate-300 align-top font-medium">
+                    ${escapeHtml(user.nombres || 'Sin nombre asignado')}
+                    <div class="mt-2">
+                        <select onchange="updateUserRole(${user.id}, this.value)" class="bg-wine-950 border border-wine-800 rounded-lg py-1 px-2 text-xs text-wine-300 focus:outline-none focus:border-wine-500">
+                            <option value="USER" ${currentRole === 'USER' ? 'selected' : ''}>Usuario</option>
+                            <option value="MODERATOR" ${currentRole === 'MODERATOR' ? 'selected' : ''}>Moderador</option>
+                        </select>
+                    </div>
+                </td>
                 
                 <td class="py-3 px-4 space-y-2 align-top">
                     <div class="space-y-1.5">
@@ -1125,8 +1184,6 @@ function renderPublicTiers() {
     }).join('');
 }
 
-// --- FUNCIONES DE PREVISUALIZACIÓN AL PASAR EL MOUSE (HOVER) ---
-
 function showUserCard(event, username) {
     const card = document.getElementById('user-hover-card');
     if (!card) return;
@@ -1213,7 +1270,6 @@ function escapeHtml(str) {
     });
 }
 
-// --- LÓGICA DEL CARRUSEL DE ANUNCIOS ---
 let currentSlide = 0;
 const totalSlides = 2;
 let carouselInterval = null;
