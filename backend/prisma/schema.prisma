@@ -65,3 +65,10 @@ model Clan {
   name      String   @unique
   createdAt DateTime @default(now())
 }
+
+model Event {
+  id        Int      @id @default(autoincrement())
+  data      String   @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
