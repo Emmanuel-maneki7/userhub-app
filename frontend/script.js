@@ -171,7 +171,6 @@ async function fetchUsers() {
             if (username && !state.assignments[username]) {
                 state.assignments[username] = { tagIds: [] };
             }
-            // Sincronizar automáticamente la etiqueta MODERADOR si el usuario es moderador
             if (u.role === 'MODERATOR') {
                 if (!state.assignments[username].tagIds.includes('tag-mod')) {
                     state.assignments[username].tagIds.push('tag-mod');
@@ -1156,7 +1155,6 @@ function renderPublicTiers() {
                                                 </div>
                                                 <span class="cursor-pointer hover:text-wine-400 transition-colors" 
                                                       onmouseenter="showUserCard(event, '${escapeHtml(uname)}')" 
-                                                      onmousemove="moveUserCard(event)" 
                                                       onmouseleave="hideUserCard()">
                                                     ${escapeHtml(uname)}
                                                 </span>
@@ -1183,6 +1181,8 @@ function renderPublicTiers() {
         `;
     }).join('');
 }
+
+// --- FUNCIONES DE PREVISUALIZACIÓN AL PASAR EL MOUSE (HOVER) ---
 
 function showUserCard(event, username) {
     const card = document.getElementById('user-hover-card');
@@ -1240,16 +1240,7 @@ function showUserCard(event, username) {
         </div>
     `;
 
-    card.style.left = `${event.pageX + 15}px`;
-    card.style.top = `${event.pageY + 15}px`;
     card.classList.remove('hidden');
-}
-
-function moveUserCard(event) {
-    const card = document.getElementById('user-hover-card');
-    if (!card || card.classList.contains('hidden')) return;
-    card.style.left = `${event.pageX + 15}px`;
-    card.style.top = `${event.pageY + 15}px`;
 }
 
 function hideUserCard() {
