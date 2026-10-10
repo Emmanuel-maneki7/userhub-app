@@ -358,6 +358,48 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
+// --- ENDPOINTS PARA EVENTOS Y TORNEOS EN VIVO ---
+
+// GET: Obtener el torneo activo
+app.get('/api/events/active', async (req, res) => {
+  try {
+    const activeEvent = await prisma.event.findFirst({
+      orderBy: { updatedAt: 'desc' }
+    });
+    if (!activeEvent) return res.json(null);
+    res.json(JSON.parse(activeEvent.data));
+  } catch (error) {
+    console.error("Error al obtener evento activo:", error);
+    res.status(500).json({ error: "Error al obtener evento activo" });
+  }
+});
+
+// POST: Guardar/Actualizar el torneo activo
+app.post('/api/events/active', async (req, res) => {
+  const eventData = req.body;
+  try {
+    const existing = await prisma.event.findFirst({
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    let saved;
+    if (existing) {
+      saved = await prisma.event.update({
+        where: { id: existing.id },
+        data: { data: JSON.stringify(eventData) }
+      });
+    } else {
+      saved = await prisma.event.create({
+        data: { data: JSON.stringify(eventData) }
+      });
+    }
+    res.json(JSON.parse(saved.data));
+  } catch (error) {
+    console.error("Error al guardar evento:", error);
+    res.status(400).json({ error: "No se pudo guardar el evento" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
