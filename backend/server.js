@@ -377,6 +377,17 @@ app.get('/api/events/active', async (req, res) => {
 // POST: Guardar/Actualizar el torneo activo
 app.post('/api/events/active', async (req, res) => {
   const eventData = req.body;
+  
+  if (!eventData) {
+    try {
+      await prisma.event.deleteMany({});
+      return res.json(null);
+    } catch (error) {
+      console.error("Error al limpiar eventos:", error);
+      return res.status(500).json({ error: "Error al limpiar evento" });
+    }
+  }
+
   try {
     const existing = await prisma.event.findFirst({
       orderBy: { updatedAt: 'desc' }
@@ -397,6 +408,17 @@ app.post('/api/events/active', async (req, res) => {
   } catch (error) {
     console.error("Error al guardar evento:", error);
     res.status(400).json({ error: "No se pudo guardar el evento" });
+  }
+});
+
+// DELETE: Eliminar permanentemente el torneo activo de la base de datos
+app.delete('/api/events/active', async (req, res) => {
+  try {
+    await prisma.event.deleteMany({});
+    res.json({ message: "Evento activo eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar evento activo:", error);
+    res.status(500).json({ error: "No se pudo eliminar el evento activo" });
   }
 });
 
