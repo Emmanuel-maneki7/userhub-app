@@ -52,7 +52,7 @@ app.delete('/api/tabs/:id', async (req, res) => {
   }
 });
 
-// GET: Obtener usuarios con sus Múltiples Tiers y Puntos
+// GET: Obtener usuarios
 app.get('/api/users', async (req, res) => {
   try {
     const users = await prisma.user.findMany({
@@ -294,7 +294,7 @@ app.delete('/api/users/:userId/tiers/:tierId', async (req, res) => {
   }
 });
 
-// PUT: Actualizar Perfil (nombres, modo, familia, avatar, genero, password)
+// PUT: Actualizar Perfil
 app.put('/api/users/:id', async (req, res) => {
   const { id } = req.params;
   const { nombres, modo, familia, avatar, genero, password } = req.body;
@@ -321,7 +321,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 });
 
-// PUT: Actualizar el Rol de un Usuario (Admin)
+// PUT: Actualizar el Rol de un Usuario
 app.put('/api/users/:id/role', async (req, res) => {
   const { id } = req.params;
   const { role } = req.body;
