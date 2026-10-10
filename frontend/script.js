@@ -15,12 +15,41 @@ let state = {
     clans: JSON.parse(localStorage.getItem('uh_clans')) || ['Sin Familia / Ninguno', 'TalentYouth', 'Audition Kings'],
     assignments: JSON.parse(localStorage.getItem('uh_assignments')) || {},
     users: [],
-    // EVENTOS Y TORNEOS EN MEMORIA / LOCALSTORAGE
+    // EVENTOS Y TORNEOS EN MEMORIA / BASE DE DATOS
     activeEvent: JSON.parse(localStorage.getItem('uh_active_event')) || null,
     eventHistory: JSON.parse(localStorage.getItem('uh_event_history')) || []
 };
 
 let activeTabId = null;
+
+// Sincronización remota del torneo activo con el servidor Express/Prisma
+async function saveActiveEventToDB() {
+    if (!state.activeEvent) return;
+    try {
+        await fetch(`${API_BASE}/events/active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(state.activeEvent)
+        });
+    } catch (err) {
+        console.error("Error guardando evento en DB:", err);
+    }
+}
+
+// Cargar torneo en vivo desde la base de datos
+async function fetchActiveEventFromDB() {
+    try {
+        const res = await fetch(`${API_BASE}/events/active`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data) {
+                state.activeEvent = data;
+            }
+        }
+    } catch (err) {
+        console.error("Error obteniendo evento activo de DB:", err);
+    }
+}
 
 function saveState() {
     localStorage.setItem('uh_clans', JSON.stringify(state.clans));
@@ -33,6 +62,9 @@ function saveState() {
     } else {
         localStorage.removeItem('uh_current_user');
     }
+
+    // Persistir en servidor para multijugador
+    saveActiveEventToDB();
 }
 
 async function fetchGlobalConfig() {
@@ -739,11 +771,12 @@ function renderTournamentAdmin() {
     }
 }
 
-function renderUserEventsView() {
+async function renderUserEventsView() {
+    await fetchActiveEventFromDB(); // Carga torneo actualizado en tiempo real
     const container = document.getElementById('user-events-view-container');
     if (!container) return;
 
-    if (!state.activeEvent) {
+    if (!state.activeEvent || state.activeEvent.status === 'SETUP') {
         container.innerHTML = `
             <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-12 text-center space-y-4">
                 <div class="w-16 h-16 rounded-2xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto">
@@ -939,7 +972,7 @@ function renderEventHistory() {
     `).join('');
 }
 
-// RESTO DE FUNCIONALIDADES ORIGINALES DEL PROYECTO
+// FUNCIONES DE USUARIOS Y PERFILES
 async function handleRegister(e) {
     e.preventDefault();
     const nickname = document.getElementById('reg-nickname')?.value.trim();
@@ -2086,6 +2119,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fetchUsers().then(() => renderPublicTiers());
+    fetchActiveEventFromDB();
     navigateTo('view-home');
     startCarouselTimer();
 });
