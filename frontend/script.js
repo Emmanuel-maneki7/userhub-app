@@ -532,7 +532,6 @@ function renderAdminPanel() {
     renderAdminUserTable();
 }
 
-// GESTIÓN DE PESTAÑAS (TABS)
 async function handleCreateTab(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tab-name');
@@ -596,7 +595,6 @@ function renderAdminTabsList() {
     }
 }
 
-// GESTIÓN DE TIERS
 async function handleCreateTier(e) {
     e.preventDefault();
     const nameInput = document.getElementById('tier-name');
@@ -813,7 +811,6 @@ function renderAdminClansList() {
     `).join('');
 }
 
-// ASIGNACIÓN MÚLTIPLE DE TIERS Y PUNTOS EN PANEL ADMIN
 async function addUserToTier(userId, tierId, puntos = 0) {
     if (!tierId) return;
 
@@ -1098,7 +1095,12 @@ function renderPublicTiers() {
                                                 <div class="w-7 h-7 rounded-full overflow-hidden bg-wine-900 border border-wine-700/60 flex-shrink-0">
                                                     <img src="${escapeHtml(userAvatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
                                                 </div>
-                                                <span>${escapeHtml(uname)}</span>
+                                                <span class="cursor-pointer hover:text-wine-400 transition-colors" 
+                                                      onmouseenter="showUserCard(event, '${escapeHtml(uname)}')" 
+                                                      onmousemove="moveUserCard(event)" 
+                                                      onmouseleave="hideUserCard()">
+                                                    ${escapeHtml(uname)}
+                                                </span>
                                             </td>
                                             <td class="py-3 px-4 text-center font-extrabold text-amber-400">
                                                 ${puntos} pts
@@ -1121,6 +1123,81 @@ function renderPublicTiers() {
             </div>
         `;
     }).join('');
+}
+
+// --- FUNCIONES DE PREVISUALIZACIÓN AL PASAR EL MOUSE (HOVER) ---
+
+function showUserCard(event, username) {
+    const card = document.getElementById('user-hover-card');
+    if (!card) return;
+
+    const user = state.users.find(u => (u.nickname || u.name) === username);
+    if (!user) return;
+
+    const assign = state.assignments[username] || { tagIds: [] };
+    const userTags = state.tags.filter(t => assign.tagIds.includes(t.id));
+    const avatarUrl = user.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const generoVal = user.genero || 'Otros';
+    const familiaText = user.familia || 'Sin Familia / Ninguno';
+    
+    let modoArr = ['NORMAL'];
+    try {
+        if (user.modo) {
+            modoArr = user.modo.startsWith('[') ? JSON.parse(user.modo) : [user.modo];
+        }
+    } catch (e) {
+        modoArr = [user.modo || 'NORMAL'];
+    }
+    const modoText = Array.isArray(modoArr) ? modoArr.join(', ') : modoArr;
+
+    card.innerHTML = `
+        <div class="flex items-center space-x-3 mb-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-wine-900 border border-wine-700/60 flex-shrink-0">
+                <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
+            </div>
+            <div class="overflow-hidden">
+                <h4 class="text-white font-bold text-sm truncate">${escapeHtml(username)}</h4>
+                <p class="text-slate-400 text-xs truncate">${escapeHtml(user.nombres || 'Sin nombre')}</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-wine-900 text-wine-300 font-mono inline-block mt-0.5">${escapeHtml(generoVal)}</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs py-2 border-y border-wine-900/80 mb-2">
+            <div>
+                <span class="block text-[10px] text-wine-400 uppercase font-semibold">Familia</span>
+                <span class="text-slate-200 truncate block">${escapeHtml(familiaText)}</span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-wine-400 uppercase font-semibold">Modo</span>
+                <span class="text-slate-200 truncate block">${escapeHtml(modoText)}</span>
+            </div>
+        </div>
+        <div>
+            <span class="block text-[10px] text-wine-400 uppercase font-semibold mb-1">Etiquetas</span>
+            <div class="flex flex-wrap gap-1">
+                ${userTags.length > 0 ? userTags.map(tag => `
+                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold text-white" style="background-color: ${tag.color}">
+                        ${escapeHtml(tag.name)}
+                    </span>
+                `).join('') : '<span class="text-[10px] text-slate-500 italic">Sin etiquetas</span>'}
+            </div>
+        </div>
+    `;
+
+    card.style.left = `${event.pageX + 15}px`;
+    card.style.top = `${event.pageY + 15}px`;
+    card.classList.remove('hidden');
+}
+
+function moveUserCard(event) {
+    const card = document.getElementById('user-hover-card');
+    if (!card || card.classList.contains('hidden')) return;
+    card.style.left = `${event.pageX + 15}px`;
+    card.style.top = `${event.pageY + 15}px`;
+}
+
+function hideUserCard() {
+    const card = document.getElementById('user-hover-card');
+    if (card) card.classList.add('hidden');
 }
 
 function escapeHtml(str) {
@@ -1194,7 +1271,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (formReg) formReg.addEventListener('submit', handleRegister);
 
     const formLog = document.getElementById('form-login');
-    if (formLog) formLog.ondblclick = null;
     if (formLog) formLog.addEventListener('submit', handleLogin);
 
     const formProfile = document.getElementById('form-profile-edit');
