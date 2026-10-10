@@ -24,7 +24,6 @@ let activeTabId = null;
 
 // Sincronización remota del torneo activo con el servidor Express/Prisma
 async function saveActiveEventToDB() {
-    if (!state.activeEvent) return;
     try {
         await fetch(`${API_BASE}/events/active`, {
             method: 'POST',
@@ -42,9 +41,7 @@ async function fetchActiveEventFromDB() {
         const res = await fetch(`${API_BASE}/events/active`);
         if (res.ok) {
             const data = await res.json();
-            if (data) {
-                state.activeEvent = data;
-            }
+            state.activeEvent = data;
         }
     } catch (err) {
         console.error("Error obteniendo evento activo de DB:", err);
@@ -383,6 +380,45 @@ function undoTournamentStep() {
     alert("Se ha retrocedido al paso anterior.");
 }
 
+// 1. ELIMINAR EL TORNEO ACTIVO EN VIVO
+async function deleteActiveEvent() {
+    if (!state.activeEvent) return;
+
+    const confirmacion = confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el torneo activo "${state.activeEvent.title}"? Esta acción no se puede deshacer.`);
+    if (!confirmacion) return;
+
+    state.activeEvent = null;
+
+    try {
+        await fetch(`${API_BASE}/events/active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(null)
+        });
+    } catch (err) {
+        console.error("Error al borrar evento activo en servidor:", err);
+    }
+
+    saveState();
+    renderTournamentAdmin();
+    renderUserEventsView();
+    alert("El torneo activo ha sido eliminado.");
+}
+
+// 2. ELIMINAR UN TORNEO DEL HISTORIAL
+function deleteHistoryEvent(index) {
+    if (index < 0 || index >= state.eventHistory.length) return;
+
+    const evt = state.eventHistory[index];
+    const confirmacion = confirm(`⚠️ ¿Estás seguro de eliminar el torneo "${evt.title}" del historial?`);
+    if (!confirmacion) return;
+
+    state.eventHistory.splice(index, 1);
+    saveState();
+    renderEventHistory();
+    alert("Torneo eliminado del historial.");
+}
+
 function generateFirstSwissRound() {
     if (tempParticipants.length < 2) {
         alert("Se necesitan al menos 2 participantes para iniciar.");
@@ -638,7 +674,6 @@ function finishAndSaveEvent() {
 function renderTournamentAdmin() {
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
-    const playoffsBox = document.getElementById('playoffs-admin-container');
 
     if (!state.activeEvent || state.activeEvent.status === 'SETUP') {
         if (activeBox) activeBox.classList.add('hidden');
@@ -666,6 +701,9 @@ function renderTournamentAdmin() {
                     </button>
                     <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
                         Siguiente Ronda ➔
+                    </button>
+                    <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                        <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
                     </button>
                 </div>
             </div>
@@ -761,6 +799,9 @@ function renderTournamentAdmin() {
                     </button>
                     <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
                         💾 Finalizar y Guardar en Historial
+                    </button>
+                    <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                        <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
                     </button>
                 </div>
             </div>
@@ -944,20 +985,26 @@ function renderEventHistory() {
         return;
     }
 
-    container.innerHTML = state.eventHistory.map(evt => `
+    container.innerHTML = state.eventHistory.map((evt, idx) => `
         <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4">
             <div class="flex items-center justify-between border-b border-wine-900 pb-3">
-                <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
-                <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
+                <div class="flex items-center space-x-3">
+                    <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
+                    <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
+                </div>
+                <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1">
+                    <i class="ph-bold ph-trash"></i>
+                    <span>Eliminar Registro</span>
+                </button>
             </div>
 
             <div>
                 <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Tabla de Posiciones Final</h4>
                 <div class="bg-[#090507] p-3 rounded-xl border border-wine-900">
                     <div class="flex flex-wrap gap-4 text-xs">
-                        ${evt.leaderboard.map((item, idx) => `
+                        ${evt.leaderboard.map((item, pIdx) => `
                             <span class="text-slate-300">
-                                <b class="text-amber-400">#${idx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)
+                                <b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)
                             </span>
                         `).join(' • ')}
                     </div>
