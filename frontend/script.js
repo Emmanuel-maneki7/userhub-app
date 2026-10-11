@@ -51,7 +51,6 @@ async function fetchActiveEventFromDB() {
 function saveState() {
     localStorage.setItem('uh_clans', JSON.stringify(state.clans));
     localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
-    localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
     localStorage.setItem('uh_event_history', JSON.stringify(state.eventHistory));
     
     if (state.currentUser) {
@@ -60,9 +59,12 @@ function saveState() {
         localStorage.removeItem('uh_current_user');
     }
 
-    // Persistir en servidor para multijugador solo si hay un evento activo
+    // Sincronizar con la base de datos solo si existe un torneo activo en curso
     if (state.activeEvent) {
+        localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
         saveActiveEventToDB();
+    } else {
+        localStorage.removeItem('uh_active_event');
     }
 }
 
@@ -382,17 +384,19 @@ function undoTournamentStep() {
     alert("Se ha retrocedido al paso anterior.");
 }
 
-// 1. ELIMINAR EL TORNEO ACTIVO EN VIVO (CON DELETE AL BACKEND)
+// ELIMINAR EL TORNEO ACTIVO EN VIVO
 async function deleteActiveEvent() {
     if (!state.activeEvent) return;
 
     const confirmacion = confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el torneo activo "${state.activeEvent.title}"? Esta acción no se puede deshacer.`);
     if (!confirmacion) return;
 
+    // Limpiar variables de memoria local
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 
     try {
+        // Enviar petición DELETE explícita al servidor para limpiar PostgreSQL
         await fetch(`${API_BASE}/events/active`, {
             method: 'DELETE'
         });
@@ -400,12 +404,13 @@ async function deleteActiveEvent() {
         console.error("Error al borrar evento activo en servidor:", err);
     }
 
+    // Re-renderizar las vistas inmediatamente
     renderTournamentAdmin();
     renderUserEventsView();
     alert("El torneo activo ha sido eliminado correctamente.");
 }
 
-// 2. ELIMINAR UN TORNEO DEL HISTORIAL
+// ELIMINAR UN TORNEO DEL HISTORIAL
 function deleteHistoryEvent(index) {
     if (index < 0 || index >= state.eventHistory.length) return;
 
