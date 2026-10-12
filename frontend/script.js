@@ -21,7 +21,6 @@ let state = {
 
 let activeTabId = null;
 
-// Sincronización remota del torneo activo con el servidor Express/Prisma
 async function saveActiveEventToDB() {
     try {
         await fetch(`${API_BASE}/events/active`, {
@@ -34,7 +33,6 @@ async function saveActiveEventToDB() {
     }
 }
 
-// Cargar torneo en vivo desde la base de datos
 async function fetchActiveEventFromDB() {
     try {
         const res = await fetch(`${API_BASE}/events/active`);
@@ -255,7 +253,6 @@ function startNewEvent() {
         return;
     }
 
-    // Extraer lista de canciones limpiando saltos de línea y comas
     const songPool = songInput
         .split(/[\n,]+/)
         .map(s => s.trim())
@@ -281,6 +278,22 @@ function startNewEvent() {
     document.getElementById('event-registration-area').classList.remove('hidden');
     renderParticipantsBadges();
     alert(`Evento "${title}" creado. Ahora inscribe a los participantes.`);
+}
+
+function updateTournamentSongsFromAdmin() {
+    if (!state.activeEvent) {
+        alert("No hay ningún torneo activo.");
+        return;
+    }
+    const songInput = document.getElementById('event-song-list-input')?.value || '';
+    const songPool = songInput
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+    state.activeEvent.songPool = songPool;
+    saveState();
+    alert("¡Lista de canciones actualizada con éxito!");
 }
 
 function addRegisteredPlayerToEvent() {
@@ -427,7 +440,7 @@ function deleteHistoryEvent(index) {
 
 function getRandomSong() {
     if (!state.activeEvent || !state.activeEvent.songPool || state.activeEvent.songPool.length === 0) {
-        return null;
+        return "Canción Libre (Sin lista configurada)";
     }
     const pool = state.activeEvent.songPool;
     return pool[Math.floor(Math.random() * pool.length)];
@@ -519,8 +532,8 @@ function generatePairingsForRound(roundNum) {
 
 function reRollRoundSong(roundIndex) {
     saveHistoryState();
-    const round = state.activeEvent.swissRounds[roundIndex];
-    round.currentSong = getRandomSong();
+    if (!state.activeEvent || !state.activeEvent.swissRounds[roundIndex]) return;
+    state.activeEvent.swissRounds[roundIndex].currentSong = getRandomSong();
     saveState();
     renderTournamentAdmin();
     renderUserEventsView();
@@ -529,6 +542,7 @@ function reRollRoundSong(roundIndex) {
 function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
     saveHistoryState();
     const round = state.activeEvent.swissRounds[roundIndex];
+    if (!round || !round.matches[matchIndex]) return;
     const match = round.matches[matchIndex];
     
     match.winnerId = winnerId;
@@ -650,6 +664,8 @@ function createPlayoffs() {
 function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
     saveHistoryState();
     const po = state.activeEvent.playoffs;
+    if (!po || !po.rounds[roundIdx] || !po.rounds[roundIdx].matches[matchIdx]) return;
+
     const match = po.rounds[roundIdx].matches[matchIdx];
     match.winnerId = winnerId;
 
@@ -658,8 +674,9 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
 
     if (allDone) {
         const winners = currentRound.matches.map(m => {
+            if (!m.winnerId) return null;
             return (m.playerA && m.playerA.id === m.winnerId) ? m.playerA : m.playerB;
-        });
+        }).filter(Boolean);
 
         if (winners.length === 1) {
             po.champion = winners[0];
@@ -672,7 +689,7 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
                     matchId: `po-${roundIdx + 2}-${i}`,
                     playerA: winners[i],
                     playerB: winners[i + 1] || null,
-                    winnerId: winners[i + 1] ? null : winners[i].id
+                    winnerId: (winners[i + 1] ? null : winners[i].id)
                 });
             }
             po.rounds.push({ 
@@ -715,7 +732,6 @@ function renderTournamentAdmin() {
 
     activeBox.classList.remove('hidden');
 
-    // CONTROL SUIZO ADMIN
     if (state.activeEvent.status === 'SWISS') {
         const roundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
 
@@ -742,7 +758,7 @@ function renderTournamentAdmin() {
             </div>
 
             <!-- CARTELES DE CANCIÓN SORTEADA DE LA RONDA -->
-            ${roundObj.currentSong ? `
+            ${roundObj && roundObj.currentSong ? `
                 <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between">
                     <div class="flex items-center space-x-3">
                         <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">
@@ -774,9 +790,9 @@ function renderTournamentAdmin() {
                         return `
                             <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900">
                                 <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
-                                    ${m.playerA.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${m.playerA.avatar}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                    ${m.playerA.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
                                     <span class="text-xs truncate">${escapeHtml(m.playerA.name)}</span>
-                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs">
+                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${escapeHtml(m.playerA.id)}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs font-semibold">
                                         ✔️ Ganador
                                     </button>
                                 </div>
@@ -784,11 +800,13 @@ function renderTournamentAdmin() {
                                 <div class="text-xs font-black text-wine-400 px-2">VS</div>
 
                                 <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
-                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs">
-                                        ✔️ Ganador
-                                    </button>
-                                    <span class="text-xs truncate">${escapeHtml(m.playerB ? m.playerB.name : 'LIBRE')}</span>
-                                    ${m.playerB && m.playerB.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${m.playerB ? m.playerB.avatar : ''}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                    ${m.playerB ? `
+                                        <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${escapeHtml(m.playerB.id)}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs font-semibold">
+                                            ✔️ Ganador
+                                        </button>
+                                        <span class="text-xs truncate">${escapeHtml(m.playerB.name)}</span>
+                                        ${m.playerB.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                    ` : '<span class="text-xs text-slate-500 italic">LIBRE</span>'}
                                 </div>
                             </div>
                         `;
@@ -819,7 +837,7 @@ function renderTournamentAdmin() {
                             <tr>
                                 <td class="py-2 font-bold text-wine-400">#${idx + 1}</td>
                                 <td class="py-2 flex items-center space-x-2">
-                                    ${item.participant.isBot ? '🤖' : `<img src="${item.participant.avatar}" class="w-5 h-5 rounded-full object-cover">`}
+                                    ${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
                                     <span class="font-bold text-white">${escapeHtml(item.participant.name)}</span>
                                 </td>
                                 <td class="py-2 text-center font-extrabold text-amber-400">${item.points} pts</td>
@@ -832,7 +850,6 @@ function renderTournamentAdmin() {
         `;
     }
 
-    // CONTROL PLAYOFFS ADMIN
     if (state.activeEvent.status === 'PLAYOFFS' || state.activeEvent.status === 'FINISHED') {
         const po = state.activeEvent.playoffs;
 
@@ -919,7 +936,7 @@ async function renderUserEventsView() {
                                 return `
                                     <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
                                         <div class="flex items-center space-x-3 ${isWinA ? 'text-green-400 font-black' : (m.winnerId ? 'text-red-500/70' : 'text-slate-200')}">
-                                            ${m.playerA.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${m.playerA.avatar}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                            ${m.playerA.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
                                             <span class="text-sm font-bold">${escapeHtml(m.playerA.name)}</span>
                                         </div>
 
@@ -927,7 +944,7 @@ async function renderUserEventsView() {
 
                                         <div class="flex items-center space-x-3 ${isWinB ? 'text-green-400 font-black' : (m.winnerId ? 'text-red-500/70' : 'text-slate-200')}">
                                             <span class="text-sm font-bold">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>
-                                            ${m.playerB && m.playerB.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${m.playerB ? m.playerB.avatar : ''}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                            ${m.playerB && m.playerB.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${escapeHtml(m.playerB ? m.playerB.avatar : '')}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
                                         </div>
                                     </div>
                                 `;
@@ -951,7 +968,7 @@ async function renderUserEventsView() {
                                         <tr>
                                             <td class="py-2 font-bold text-wine-400">#${idx + 1}</td>
                                             <td class="py-2 flex items-center space-x-2">
-                                                ${item.participant.isBot ? '🤖' : `<img src="${item.participant.avatar}" class="w-5 h-5 rounded-full object-cover">`}
+                                                ${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
                                                 <span class="font-bold text-slate-200">${escapeHtml(item.participant.name)}</span>
                                             </td>
                                             <td class="py-2 text-right font-black text-amber-400">${item.points}</td>
@@ -983,7 +1000,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                 <div class="text-center py-6 mb-8 rounded-2xl bg-amber-500/10 border-2 border-amber-500 neon-gold max-w-md mx-auto">
                     <h2 class="text-3xl font-black text-amber-400 tracking-wider">🏆 GANADOR 🏆</h2>
                     <div class="flex items-center justify-center space-x-3 mt-3">
-                        ${playoffs.champion.isBot ? '<span class="text-3xl">🤖</span>' : `<img src="${playoffs.champion.avatar}" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
+                        ${playoffs.champion.isBot ? '<span class="text-3xl">🤖</span>' : `<img src="${escapeHtml(playoffs.champion.avatar)}" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
                         <span class="text-2xl font-bold text-white">${escapeHtml(playoffs.champion.name)}</span>
                     </div>
                 </div>
@@ -1000,19 +1017,19 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                             ` : ''}
                         </div>
                         ${round.matches.map((m, mIdx) => {
-                            const isWinA = m.winnerId === (m.playerA ? m.playerA.id : null);
-                            const isWinB = m.winnerId === (m.playerB ? m.playerB.id : null);
+                            const isWinA = m.winnerId && m.playerA && m.winnerId === m.playerA.id;
+                            const isWinB = m.winnerId && m.playerB && m.winnerId === m.playerB.id;
 
                             return `
                                 <div class="w-56 bg-wine-950/90 border border-wine-800 rounded-xl p-3 shadow-xl relative group">
                                     <div class="flex items-center justify-between p-1.5 rounded-lg ${isWinA ? 'bg-green-950/80 text-green-300 font-bold border border-green-700' : 'text-slate-300'} mb-2">
                                         <div class="flex items-center space-x-2 truncate">
-                                            ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${m.playerA.avatar}" class="w-6 h-6 rounded-full object-cover">`) : ''}
+                                            ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                             <span class="text-xs truncate">${m.playerA ? escapeHtml(m.playerA.name) : 'TBD'}</span>
                                         </div>
                                         ${isAdminControl && m.playerA && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerA.id}')" class="text-[10px] px-1.5 py-0.5 bg-green-700 text-white rounded">
-                                                ✔️
+                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${escapeHtml(m.playerA.id)}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
+                                                ✔️ Ganador
                                             </button>
                                         ` : ''}
                                     </div>
@@ -1021,12 +1038,12 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
 
                                     <div class="flex items-center justify-between p-1.5 rounded-lg ${isWinB ? 'bg-green-950/80 text-green-300 font-bold border border-green-700' : 'text-slate-300'} mt-2">
                                         <div class="flex items-center space-x-2 truncate">
-                                            ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${m.playerB.avatar}" class="w-6 h-6 rounded-full object-cover">`) : ''}
+                                            ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                             <span class="text-xs truncate">${m.playerB ? escapeHtml(m.playerB.name) : 'TBD'}</span>
                                         </div>
                                         ${isAdminControl && m.playerB && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerB.id}')" class="text-[10px] px-1.5 py-0.5 bg-green-700 text-white rounded">
-                                                ✔️
+                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${escapeHtml(m.playerB.id)}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
+                                                ✔️ Ganador
                                             </button>
                                         ` : ''}
                                     </div>
@@ -2230,7 +2247,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fetchUsers().then(() => renderPublicTiers());
-    fetchActiveEventFromDB();
+    fetchActiveEventFromDB().then(() => {
+        if (state.activeEvent && document.getElementById('event-song-list-input')) {
+            document.getElementById('event-song-list-input').value = (state.activeEvent.songPool || []).join('\n');
+        }
+    });
     navigateTo('view-home');
     startCarouselTimer();
 });
