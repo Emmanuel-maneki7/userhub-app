@@ -452,10 +452,15 @@
 
                     <!-- LISTA DE CANCIONES DEL TORNEO -->
                     <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
-                        <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
-                            <i class="ph-bold ph-music-notes text-wine-400"></i>
-                            <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
-                        </label>
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                <i class="ph-bold ph-music-notes text-wine-400"></i>
+                                <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
+                            </label>
+                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all">
+                                Actualizar Canciones
+                            </button>
+                        </div>
                         <textarea id="event-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Hands Up 140 BPM&#10;Audition - Euro 2005 150 BPM&#10;Audition - Canon 200 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
                     </div>
 
