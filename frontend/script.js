@@ -38,7 +38,7 @@ async function fetchActiveEventFromDB() {
         const res = await fetch(`${API_BASE}/events/active`);
         if (res.ok) {
             const data = await res.json();
-            state.activeEvent = data;
+            if (data) state.activeEvent = data;
         }
     } catch (err) {
         console.error("Error obteniendo evento activo de DB:", err);
@@ -332,7 +332,7 @@ function addBotToEvent() {
     }
 
     tempParticipants.push({
-        id: `bot-${Date.now()}-${Math.random()}`,
+        id: `bot-${Date.now()}-${Math.floor(Math.random()*10000)}`,
         name: name,
         avatar: '🤖',
         isBot: true,
@@ -543,10 +543,9 @@ function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
     saveHistoryState();
     const round = state.activeEvent.swissRounds[roundIndex];
     if (!round || !round.matches[matchIndex]) return;
-    const match = round.matches[matchIndex];
     
-    match.winnerId = winnerId;
-    match.pointsAwarded = parseInt(customPoints, 10) || 3;
+    round.matches[matchIndex].winnerId = String(winnerId);
+    round.matches[matchIndex].pointsAwarded = parseInt(customPoints, 10) || 3;
 
     updateLeaderboard();
     saveState();
@@ -667,7 +666,7 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
     if (!po || !po.rounds[roundIdx] || !po.rounds[roundIdx].matches[matchIdx]) return;
 
     const match = po.rounds[roundIdx].matches[matchIdx];
-    match.winnerId = winnerId;
+    match.winnerId = String(winnerId);
 
     const currentRound = po.rounds[roundIdx];
     const allDone = currentRound.matches.every(m => m.winnerId !== null);
@@ -675,7 +674,7 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
     if (allDone) {
         const winners = currentRound.matches.map(m => {
             if (!m.winnerId) return null;
-            return (m.playerA && m.playerA.id === m.winnerId) ? m.playerA : m.playerB;
+            return (m.playerA && String(m.playerA.id) === String(m.winnerId)) ? m.playerA : m.playerB;
         }).filter(Boolean);
 
         if (winners.length === 1) {
@@ -784,16 +783,16 @@ function renderTournamentAdmin() {
 
                 <div class="space-y-3">
                     ${roundObj.matches.map((m, idx) => {
-                        const isWinA = m.winnerId === m.playerA.id;
-                        const isWinB = m.playerB && m.winnerId === m.playerB.id;
+                        const isWinA = String(m.winnerId) === String(m.playerA.id);
+                        const isWinB = m.playerB && String(m.winnerId) === String(m.playerB.id);
 
                         return `
                             <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900">
                                 <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
                                     ${m.playerA.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
                                     <span class="text-xs truncate">${escapeHtml(m.playerA.name)}</span>
-                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${escapeHtml(m.playerA.id)}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs font-semibold">
-                                        ✔️ Ganador
+                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
+                                        ✔️ ${isWinA ? 'Ganador' : 'Ganador'}
                                     </button>
                                 </div>
 
@@ -801,8 +800,8 @@ function renderTournamentAdmin() {
 
                                 <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
                                     ${m.playerB ? `
-                                        <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${escapeHtml(m.playerB.id)}')" class="px-2 py-1 rounded bg-green-950 border border-green-800 text-green-400 hover:bg-green-900 text-xs font-semibold">
-                                            ✔️ Ganador
+                                        <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
+                                            ✔️ ${isWinB ? 'Ganador' : 'Ganador'}
                                         </button>
                                         <span class="text-xs truncate">${escapeHtml(m.playerB.name)}</span>
                                         ${m.playerB.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
@@ -930,8 +929,8 @@ async function renderUserEventsView() {
                         <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider">Enfrentamientos - Ronda ${evt.currentRound}</h4>
                         <div class="space-y-3">
                             ${currentSwissRound.matches.map(m => {
-                                const isWinA = m.winnerId === m.playerA.id;
-                                const isWinB = m.playerB && m.winnerId === m.playerB.id;
+                                const isWinA = String(m.winnerId) === String(m.playerA.id);
+                                const isWinB = m.playerB && String(m.winnerId) === String(m.playerB.id);
 
                                 return `
                                     <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
@@ -1017,8 +1016,8 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                             ` : ''}
                         </div>
                         ${round.matches.map((m, mIdx) => {
-                            const isWinA = m.winnerId && m.playerA && m.winnerId === m.playerA.id;
-                            const isWinB = m.winnerId && m.playerB && m.winnerId === m.playerB.id;
+                            const isWinA = m.winnerId && m.playerA && String(m.winnerId) === String(m.playerA.id);
+                            const isWinB = m.winnerId && m.playerB && String(m.winnerId) === String(m.playerB.id);
 
                             return `
                                 <div class="w-56 bg-wine-950/90 border border-wine-800 rounded-xl p-3 shadow-xl relative group">
@@ -1028,7 +1027,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                             <span class="text-xs truncate">${m.playerA ? escapeHtml(m.playerA.name) : 'TBD'}</span>
                                         </div>
                                         ${isAdminControl && m.playerA && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${escapeHtml(m.playerA.id)}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
+                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerA.id}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
                                                 ✔️ Ganador
                                             </button>
                                         ` : ''}
@@ -1042,7 +1041,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                             <span class="text-xs truncate">${m.playerB ? escapeHtml(m.playerB.name) : 'TBD'}</span>
                                         </div>
                                         ${isAdminControl && m.playerB && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${escapeHtml(m.playerB.id)}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
+                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerB.id}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold">
                                                 ✔️ Ganador
                                             </button>
                                         ` : ''}
