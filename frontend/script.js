@@ -44,25 +44,72 @@ function refreshTournamentViews() {
 }
 
 // ===== GUARDADO / CARGA DEL EVENTO ACTIVO =====
+// El SERVIDOR es la fuente de verdad. Cada navegador (admin, moderador o usuario) solo
+// manda cambios cuando el evento realmente cambió localmente, y en cualquier otro caso
+// se sincroniza con lo que diga el servidor (incluido "ya no existe").
 let saveEventTimer = null;
+let eventRev = 0;          // sube con cada cambio/borrado local (descarta respuestas GET atrasadas)
+let eventDirty = false;    // hay cambios locales aún no confirmados por el servidor
+
+function eventPayloadJson(evt) {
+    // El historial de "Retroceder" NO se sincroniza (es local y pesado)
+    const { historyStates, ...payload } = evt;
+    return JSON.stringify(payload);
+}
+
+// Lo que se cargó de localStorage se considera ya sincronizado (no se vuelve a subir tal cual)
+let lastSyncedJson = state.activeEvent ? eventPayloadJson(state.activeEvent) : null;
+
+function persistActiveEventLocal() {
+    try {
+        if (state.activeEvent && isPrivilegedUser()) {
+            localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
+        } else {
+            localStorage.removeItem('uh_active_event');
+        }
+    } catch (e) {
+        console.error("localStorage lleno o fallando:", e);
+    }
+}
 
 function saveActiveEventToDB() {
+    if (!state.activeEvent) return;
+
+    const json = eventPayloadJson(state.activeEvent);
+    if (json === lastSyncedJson) return; // nada cambió: no se sube (evita resucitar eventos viejos)
+
+    eventRev++;
+    eventDirty = true;
+
     clearTimeout(saveEventTimer);
     saveEventTimer = setTimeout(async () => {
         if (!state.activeEvent) return;
+        const jsonToSend = eventPayloadJson(state.activeEvent);
         try {
-            // El historial de "Retroceder" NO se manda al servidor (es pesado)
             const { historyStates, ...payload } = state.activeEvent;
             const res = await fetch(`${API_BASE}/events/active`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if (!res.ok) console.error("El servidor rechazó el evento:", res.status);
+            if (res.ok) {
+                lastSyncedJson = jsonToSend;
+                eventDirty = !!state.activeEvent && eventPayloadJson(state.activeEvent) !== jsonToSend;
+            } else {
+                console.error("El servidor rechazó el evento:", res.status);
+            }
         } catch (err) {
             console.error("Error guardando evento en DB:", err);
         }
     }, 300);
+}
+
+// Se llama cuando el evento se elimina o se archiva en este navegador
+function markEventRemovedLocally() {
+    clearTimeout(saveEventTimer);
+    eventRev++;
+    eventDirty = false;
+    lastSyncedJson = null;
 }
 
 // Un evento válido siempre trae título y estado
@@ -71,35 +118,47 @@ function isValidEvent(data) {
 }
 
 async function fetchActiveEventFromDB() {
-    // Admin/mod: su estado local manda, no se pisa con el servidor
-    if (isPrivilegedUser() && state.activeEvent) return;
+    // Si hay cambios locales sin confirmar, no se pisan con datos del servidor
+    if (eventDirty) return;
+    const revAtStart = eventRev;
 
     try {
         // cache:'no-store' + parámetro único: evita que el navegador devuelva una respuesta vieja
         const res = await fetch(`${API_BASE}/events/active?_=${Date.now()}`, { cache: 'no-store' });
 
-        // 404 / 204 = "no hay evento activo": el usuario normal debe dejar de verlo
+        // Si mientras esperábamos hubo un cambio local, esta respuesta ya está vieja
+        if (eventDirty || revAtStart !== eventRev) return;
+
+        // 404 / 204 = "no hay evento activo"
         if (res.status === 404 || res.status === 204) {
-            if (!isPrivilegedUser()) state.activeEvent = null;
+            state.activeEvent = null;
+            lastSyncedJson = null;
+            persistActiveEventLocal();
             return;
         }
         if (!res.ok) return; // error del servidor: se conserva lo que había
 
         let data = null;
         const text = await res.text();
+        if (eventDirty || revAtStart !== eventRev) return;
+
         if (text) {
             try { data = JSON.parse(text); } catch (e) { data = null; }
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { data = null; } }
         }
 
         if (isValidEvent(data)) {
-            if (state.activeEvent && state.activeEvent.historyStates) {
+            if (state.activeEvent && state.activeEvent.historyStates && state.activeEvent.id === data.id) {
                 data.historyStates = state.activeEvent.historyStates;
             }
             state.activeEvent = data;
-        } else if (!isPrivilegedUser()) {
-            state.activeEvent = null; // null, {}, o respuesta sin evento = eliminado
+            lastSyncedJson = eventPayloadJson(data);
+        } else {
+            // null, {} o respuesta sin evento = fue eliminado: todos (también admin/mod) lo dejan de ver
+            state.activeEvent = null;
+            lastSyncedJson = null;
         }
+        persistActiveEventLocal();
     } catch (err) {
         console.error("Error obteniendo evento activo de DB:", err);
     }
@@ -116,16 +175,12 @@ function saveState() {
         } else {
             localStorage.removeItem('uh_current_user');
         }
-
-        if (state.activeEvent && isPrivilegedUser()) {
-            localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
-        } else {
-            localStorage.removeItem('uh_active_event');
-        }
     } catch (e) {
         console.error("localStorage lleno o fallando:", e);
     }
-    // Solo admin/mod publican el evento al servidor (un usuario normal nunca debe re-subirlo)
+    persistActiveEventLocal();
+
+    // Solo admin/mod publican, y únicamente si el evento cambió respecto a lo sincronizado
     if (state.activeEvent && isPrivilegedUser()) saveActiveEventToDB();
 }
 
@@ -185,7 +240,7 @@ function navigateTo(viewId) {
 
     renderNavActions();
     if (viewId === 'view-home' || viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
-    if (viewId === 'view-admin') fetchUsers().then(() => { renderAdminPanel(); renderTournamentAdmin(); });
+    if (viewId === 'view-admin') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderAdminPanel(); renderTournamentAdmin(); });
     if (viewId === 'view-events') renderUserEventsView();
     if (viewId === 'view-event-history') renderEventHistory();
     if (viewId === 'view-profile-card') renderProfileCard();
@@ -468,7 +523,7 @@ async function deleteActiveEvent() {
     const confirmacion = confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el torneo activo "${state.activeEvent.title}"? Esta acción no se puede deshacer.`);
     if (!confirmacion) return;
 
-    clearTimeout(saveEventTimer);
+    markEventRemovedLocally();
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 
@@ -795,7 +850,7 @@ function finishAndSaveEvent() {
     if (!state.activeEvent) return;
     if (!confirm("¿Deseas finalizar y guardar este torneo en el Historial de Eventos?")) return;
 
-    clearTimeout(saveEventTimer);
+    markEventRemovedLocally();
     state.activeEvent.status = 'FINISHED';
 
     // Se guarda sin el historial de "Retroceder" para no llenar el localStorage
@@ -2346,11 +2401,20 @@ document.addEventListener('DOMContentLoaded', () => {
     navigateTo('view-home');
     startCarouselTimer();
 
-    // Los usuarios normales ven el evento en vivo: se refresca solo cada 5 s
-    setInterval(() => {
+    // Sincroniza con el servidor cada 5 s: si el admin elimina o cambia el torneo,
+    // todos (usuarios, moderadores) lo ven actualizado sin recargar
+    setInterval(async () => {
         const evView = document.getElementById('view-events');
-        if (evView && !evView.classList.contains('hidden') && !isPrivilegedUser()) {
-            renderUserEventsView();
-        }
+        const adminView = document.getElementById('view-admin');
+        const onEvents = evView && !evView.classList.contains('hidden');
+        const onAdmin = adminView && !adminView.classList.contains('hidden');
+        if (!onEvents && !onAdmin) return;
+
+        const before = JSON.stringify(state.activeEvent);
+        await fetchActiveEventFromDB();
+        if (JSON.stringify(state.activeEvent) === before) return; // sin cambios: no se redibuja
+
+        if (onEvents) renderUserEventsView(true);
+        if (onAdmin) renderTournamentAdmin();
     }, 5000);
 });
