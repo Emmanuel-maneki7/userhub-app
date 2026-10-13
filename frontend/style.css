@@ -1,0 +1,132 @@
+/* ==========================================
+   ESTILOS GENERALES Y TEMA FUTURISTA
+   ================================---------- */
+:root {
+    --bg-main: #060305;
+    --bg-card: rgba(18, 8, 13, 0.75);
+    --border-wine: rgba(128, 0, 32, 0.4);
+    --border-wine-glow: rgba(220, 20, 60, 0.7);
+    --accent-gold: #f59e0b;
+    --accent-gold-glow: rgba(245, 158, 11, 0.5);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Fondo futurista sutil con destellos estelares */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at 50% 20%, rgba(80, 0, 25, 0.25) 0%, transparent 70%),
+                radial-gradient(circle at 10% 90%, rgba(128, 0, 32, 0.15) 0%, transparent 50%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* ==========================================
+   EFECTOS DE NEÓN Y BRILLOS FUTURISTAS
+   ================================---------- */
+.neon-gold {
+    box-shadow: 0 0 20px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.2);
+    border-color: var(--accent-gold) !important;
+}
+
+.neon-wine {
+    box-shadow: 0 0 15px rgba(128, 0, 32, 0.4);
+    border-color: rgba(128, 0, 32, 0.8) !important;
+}
+
+/* ==========================================
+   ANIMACIONES FLUIDAS
+   ================================---------- */
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(220, 20, 60, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(220, 20, 60, 0.7);
+    }
+}
+
+@keyframes floatAnim {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 3s infinite ease-in-out;
+}
+
+.animate-bounce-short {
+    animation: floatAnim 4s infinite ease-in-out;
+}
+
+/* ==========================================
+   TARJETAS Y CONTENEDORES GLASSMORPHISM
+   ================================---------- */
+.view-section {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tarjetas de bracket y paneles con efecto futurista al pasar el mouse */
+.group:hover {
+    border-color: rgba(220, 20, 60, 0.6);
+    box-shadow: 0 8px 30px rgba(128, 0, 32, 0.25);
+}
+
+/* ==========================================
+   BOTONES FUTURISTAS CON EFECTO HOVER
+   ================================---------- */
+button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+/* Efecto brillo deslizante en botones principales */
+button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+}
+
+/* ==========================================
+   ESTILOS DE SCROLLBAR PERSONALIZADO
+   ================================---------- */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #060305;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #500019;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #800020;
+}
