@@ -21,6 +21,12 @@ let state = {
 
 let activeTabId = null;
 
+// Solo admin/mod conservan el evento activo en localStorage; el resto siempre lo pide al servidor
+if (!(state.currentUser && (state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR'))) {
+    state.activeEvent = null;
+    localStorage.removeItem('uh_active_event');
+}
+
 // ===== HELPERS NUEVOS =====
 function isPrivilegedUser() {
     return !!state.currentUser && (
@@ -59,23 +65,40 @@ function saveActiveEventToDB() {
     }, 300);
 }
 
+// Un evento válido siempre trae título y estado
+function isValidEvent(data) {
+    return !!data && typeof data === 'object' && !!data.title && !!data.status;
+}
+
 async function fetchActiveEventFromDB() {
+    // Admin/mod: su estado local manda, no se pisa con el servidor
+    if (isPrivilegedUser() && state.activeEvent) return;
+
     try {
-        const res = await fetch(`${API_BASE}/events/active`);
-        if (!res.ok) return;
-        let data = await res.json();
-        if (typeof data === 'string') data = JSON.parse(data);
+        // cache:'no-store' + parámetro único: evita que el navegador devuelva una respuesta vieja
+        const res = await fetch(`${API_BASE}/events/active?_=${Date.now()}`, { cache: 'no-store' });
 
-        // Admin/mod: su estado local manda, no se pisa con el servidor
-        if (isPrivilegedUser() && state.activeEvent) return;
+        // 404 / 204 = "no hay evento activo": el usuario normal debe dejar de verlo
+        if (res.status === 404 || res.status === 204) {
+            if (!isPrivilegedUser()) state.activeEvent = null;
+            return;
+        }
+        if (!res.ok) return; // error del servidor: se conserva lo que había
 
-        if (data && Object.keys(data).length) {
+        let data = null;
+        const text = await res.text();
+        if (text) {
+            try { data = JSON.parse(text); } catch (e) { data = null; }
+            if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { data = null; } }
+        }
+
+        if (isValidEvent(data)) {
             if (state.activeEvent && state.activeEvent.historyStates) {
                 data.historyStates = state.activeEvent.historyStates;
             }
             state.activeEvent = data;
         } else if (!isPrivilegedUser()) {
-            state.activeEvent = null; // el evento fue eliminado
+            state.activeEvent = null; // null, {}, o respuesta sin evento = eliminado
         }
     } catch (err) {
         console.error("Error obteniendo evento activo de DB:", err);
@@ -94,7 +117,7 @@ function saveState() {
             localStorage.removeItem('uh_current_user');
         }
 
-        if (state.activeEvent) {
+        if (state.activeEvent && isPrivilegedUser()) {
             localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
         } else {
             localStorage.removeItem('uh_active_event');
@@ -102,8 +125,8 @@ function saveState() {
     } catch (e) {
         console.error("localStorage lleno o fallando:", e);
     }
-    // El envío al servidor va aparte para que un error de storage no frene la UI
-    if (state.activeEvent) saveActiveEventToDB();
+    // Solo admin/mod publican el evento al servidor (un usuario normal nunca debe re-subirlo)
+    if (state.activeEvent && isPrivilegedUser()) saveActiveEventToDB();
 }
 
 async function fetchGlobalConfig() {
@@ -449,16 +472,26 @@ async function deleteActiveEvent() {
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 
+    let serverOk = true;
     try {
-        await fetch(`${API_BASE}/events/active`, {
+        const res = await fetch(`${API_BASE}/events/active`, {
             method: 'DELETE'
         });
+        if (!res.ok) {
+            serverOk = false;
+            console.error("El servidor no pudo borrar el evento. Estado HTTP:", res.status);
+        }
     } catch (err) {
+        serverOk = false;
         console.error("Error al borrar evento activo en servidor:", err);
     }
 
     refreshTournamentViews();
-    alert("El torneo activo ha sido eliminado correctamente.");
+    if (serverOk) {
+        alert("El torneo activo ha sido eliminado correctamente.");
+    } else {
+        alert("⚠️ Se eliminó en tu panel, pero el servidor NO confirmó el borrado: los demás usuarios podrían seguir viéndolo. Revisa la ruta DELETE /api/events/active en el backend.");
+    }
 }
 
 function deleteHistoryEvent(index) {
@@ -770,7 +803,9 @@ function finishAndSaveEvent() {
     delete copy.historyStates;
     state.eventHistory.unshift(copy);
 
-    fetch(`${API_BASE}/events/active`, { method: 'DELETE' }).catch(err => console.error(err));
+    fetch(`${API_BASE}/events/active`, { method: 'DELETE' })
+        .then(res => { if (!res.ok) console.error("El servidor no pudo borrar el evento. Estado HTTP:", res.status); })
+        .catch(err => console.error(err));
 
     state.activeEvent = null;
 
