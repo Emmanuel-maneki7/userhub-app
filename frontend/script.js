@@ -21,24 +21,61 @@ let state = {
 
 let activeTabId = null;
 
-async function saveActiveEventToDB() {
-    try {
-        await fetch(`${API_BASE}/events/active`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(state.activeEvent)
-        });
-    } catch (err) {
-        console.error("Error guardando evento en DB:", err);
-    }
+// ===== HELPERS NUEVOS =====
+function isPrivilegedUser() {
+    return !!state.currentUser && (
+        state.currentUser.nickname.toLowerCase() === 'admin' ||
+        state.currentUser.role === 'MODERATOR'
+    );
+}
+
+const MAX_HISTORY = 15;
+
+// Re-render sin tocar el servidor (se usa en TODAS las acciones del admin)
+function refreshTournamentViews() {
+    renderTournamentAdmin();
+    renderUserEventsView(true);
+}
+
+// ===== GUARDADO / CARGA DEL EVENTO ACTIVO =====
+let saveEventTimer = null;
+
+function saveActiveEventToDB() {
+    clearTimeout(saveEventTimer);
+    saveEventTimer = setTimeout(async () => {
+        if (!state.activeEvent) return;
+        try {
+            // El historial de "Retroceder" NO se manda al servidor (es pesado)
+            const { historyStates, ...payload } = state.activeEvent;
+            const res = await fetch(`${API_BASE}/events/active`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) console.error("El servidor rechazó el evento:", res.status);
+        } catch (err) {
+            console.error("Error guardando evento en DB:", err);
+        }
+    }, 300);
 }
 
 async function fetchActiveEventFromDB() {
     try {
         const res = await fetch(`${API_BASE}/events/active`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data) state.activeEvent = data;
+        if (!res.ok) return;
+        let data = await res.json();
+        if (typeof data === 'string') data = JSON.parse(data);
+
+        // Admin/mod: su estado local manda, no se pisa con el servidor
+        if (isPrivilegedUser() && state.activeEvent) return;
+
+        if (data && Object.keys(data).length) {
+            if (state.activeEvent && state.activeEvent.historyStates) {
+                data.historyStates = state.activeEvent.historyStates;
+            }
+            state.activeEvent = data;
+        } else if (!isPrivilegedUser()) {
+            state.activeEvent = null; // el evento fue eliminado
         }
     } catch (err) {
         console.error("Error obteniendo evento activo de DB:", err);
@@ -46,22 +83,27 @@ async function fetchActiveEventFromDB() {
 }
 
 function saveState() {
-    localStorage.setItem('uh_clans', JSON.stringify(state.clans));
-    localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
-    localStorage.setItem('uh_event_history', JSON.stringify(state.eventHistory));
-    
-    if (state.currentUser) {
-        localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
-    } else {
-        localStorage.removeItem('uh_current_user');
-    }
+    try {
+        localStorage.setItem('uh_clans', JSON.stringify(state.clans));
+        localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
+        localStorage.setItem('uh_event_history', JSON.stringify(state.eventHistory));
 
-    if (state.activeEvent) {
-        localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
-        saveActiveEventToDB();
-    } else {
-        localStorage.removeItem('uh_active_event');
+        if (state.currentUser) {
+            localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
+        } else {
+            localStorage.removeItem('uh_current_user');
+        }
+
+        if (state.activeEvent) {
+            localStorage.setItem('uh_active_event', JSON.stringify(state.activeEvent));
+        } else {
+            localStorage.removeItem('uh_active_event');
+        }
+    } catch (e) {
+        console.error("localStorage lleno o fallando:", e);
     }
+    // El envío al servidor va aparte para que un error de storage no frene la UI
+    if (state.activeEvent) saveActiveEventToDB();
 }
 
 async function fetchGlobalConfig() {
@@ -103,10 +145,7 @@ async function fetchGlobalConfig() {
 }
 
 function navigateTo(viewId) {
-    const isPrivileged = state.currentUser && (
-        state.currentUser.nickname.toLowerCase() === 'admin' || 
-        state.currentUser.role === 'MODERATOR'
-    );
+    const isPrivileged = isPrivilegedUser();
 
     if ((viewId === 'view-admin' || viewId === 'view-event-history') && !isPrivileged) {
         viewId = 'view-home';
@@ -136,7 +175,7 @@ function renderNavActions() {
     if (!navContainer) return;
 
     if (state.currentUser) {
-        const isPrivileged = state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR';
+        const isPrivileged = isPrivilegedUser();
         navContainer.innerHTML = `
             <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b></span>
             <button onclick="navigateTo('view-events')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
@@ -372,35 +411,32 @@ function renderParticipantsBadges() {
 function saveHistoryState() {
     if (!state.activeEvent) return;
     if (!state.activeEvent.historyStates) state.activeEvent.historyStates = [];
-    const currentStateCopy = JSON.parse(JSON.stringify({
+    state.activeEvent.historyStates.push(JSON.parse(JSON.stringify({
         currentRound: state.activeEvent.currentRound,
+        maxSwissRounds: state.activeEvent.maxSwissRounds,
         status: state.activeEvent.status,
         participants: state.activeEvent.participants,
         swissRounds: state.activeEvent.swissRounds,
         leaderboard: state.activeEvent.leaderboard,
         playoffs: state.activeEvent.playoffs
-    }));
-    state.activeEvent.historyStates.push(currentStateCopy);
+    })));
+    if (state.activeEvent.historyStates.length > MAX_HISTORY) {
+        state.activeEvent.historyStates.shift();
+    }
 }
 
 function undoTournamentStep() {
-    if (!state.activeEvent || !state.activeEvent.historyStates || state.activeEvent.historyStates.length === 0) {
+    const evt = state.activeEvent;
+    if (!evt || !evt.historyStates || evt.historyStates.length === 0) {
         alert("No hay pasos anteriores para retroceder.");
         return;
     }
 
-    const previousState = state.activeEvent.historyStates.pop();
-    state.activeEvent.currentRound = previousState.currentRound;
-    state.activeEvent.status = previousState.status;
-    state.activeEvent.participants = previousState.participants;
-    state.activeEvent.swissRounds = previousState.swissRounds;
-    state.activeEvent.leaderboard = previousState.leaderboard;
-    state.activeEvent.playoffs = previousState.playoffs;
+    const prev = evt.historyStates.pop();
+    Object.assign(evt, prev);
 
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
-    alert("Se ha retrocedido al paso anterior.");
+    refreshTournamentViews();
 }
 
 async function deleteActiveEvent() {
@@ -409,6 +445,7 @@ async function deleteActiveEvent() {
     const confirmacion = confirm(`⚠️ ¿Estás seguro de que deseas eliminar permanentemente el torneo activo "${state.activeEvent.title}"? Esta acción no se puede deshacer.`);
     if (!confirmacion) return;
 
+    clearTimeout(saveEventTimer);
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 
@@ -420,8 +457,7 @@ async function deleteActiveEvent() {
         console.error("Error al borrar evento activo en servidor:", err);
     }
 
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
     alert("El torneo activo ha sido eliminado correctamente.");
 }
 
@@ -456,74 +492,66 @@ function generateFirstSwissRound() {
     state.activeEvent.participants = JSON.parse(JSON.stringify(tempParticipants));
     state.activeEvent.status = 'SWISS';
     state.activeEvent.currentRound = 1;
+    state.activeEvent.swissRounds = [];
 
     generatePairingsForRound(1);
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function generatePairingsForRound(roundNum) {
-    let pool = [...state.activeEvent.participants];
+    const evt = state.activeEvent;
+    updateLeaderboard();
 
+    // Orden real por puntos (del leaderboard), no por p.points
+    const pointsOf = {};
+    evt.leaderboard.forEach(item => { pointsOf[item.participant.id] = item.points; });
+
+    let pool = evt.participants.filter(p => p.id !== 'bot-bye');
+    pool.sort((a, b) => (pointsOf[b.id] || 0) - (pointsOf[a.id] || 0));
+
+    // Un solo BOT_LIBRE reutilizable cuando hay cantidad impar
     if (pool.length % 2 !== 0) {
-        const dummyBot = {
-            id: `bot-bye-${Date.now()}`,
-            name: 'BOT_LIBRE',
-            avatar: '🤖',
-            isBot: true,
-            points: 0,
-            playedAgainst: []
-        };
-        pool.push(dummyBot);
-        state.activeEvent.participants.push(dummyBot);
+        let bye = evt.participants.find(p => p.id === 'bot-bye');
+        if (!bye) {
+            bye = { id: 'bot-bye', name: 'BOT_LIBRE', avatar: '🤖', isBot: true, points: 0, playedAgainst: [] };
+            evt.participants.push(bye);
+        }
+        pool.push(bye);
     }
 
-    pool.sort((a, b) => b.points - a.points);
-
-    let matches = [];
-    let paired = new Set();
+    const matches = [];
+    const paired = new Set();
 
     for (let i = 0; i < pool.length; i++) {
-        if (paired.has(pool[i].id)) continue;
-        let p1 = pool[i];
+        const p1 = pool[i];
+        if (paired.has(p1.id)) continue;
 
-        let p2 = null;
-        for (let j = i + 1; j < pool.length; j++) {
-            if (!paired.has(pool[j].id) && !p1.playedAgainst.includes(pool[j].id)) {
-                p2 = pool[j];
-                break;
-            }
-        }
+        let p2 = pool.find((p, j) => j > i && !paired.has(p.id) && !p1.playedAgainst.includes(p.id));
+        if (!p2) p2 = pool.find((p, j) => j > i && !paired.has(p.id));
+        if (!p2) continue;
 
-        if (!p2) {
-            for (let j = i + 1; j < pool.length; j++) {
-                if (!paired.has(pool[j].id)) {
-                    p2 = pool[j];
-                    break;
-                }
-            }
-        }
+        paired.add(p1.id);
+        paired.add(p2.id);
 
-        if (p2) {
-            paired.add(p1.id);
-            paired.add(p2.id);
-            matches.push({
-                matchId: `m-${roundNum}-${i}`,
-                playerA: p1,
-                playerB: p2,
-                winnerId: null,
-                pointsAwarded: 3
-            });
-        }
+        // Si le toca el bye, el jugador real gana automáticamente
+        let winnerId = null;
+        if (p1.id === 'bot-bye') winnerId = String(p2.id);
+        if (p2.id === 'bot-bye') winnerId = String(p1.id);
+
+        matches.push({
+            matchId: `m-${roundNum}-${matches.length}`,
+            playerA: p1,
+            playerB: p2,
+            winnerId,
+            pointsAwarded: 3
+        });
     }
 
-    const selectedSong = getRandomSong();
-
-    state.activeEvent.swissRounds.push({
+    evt.swissRounds.push({
         roundNumber: roundNum,
         matches,
-        currentSong: selectedSong,
+        currentSong: getRandomSong(),
         isCompleted: false
     });
 
@@ -531,168 +559,195 @@ function generatePairingsForRound(roundNum) {
 }
 
 function reRollRoundSong(roundIndex) {
+    const evt = state.activeEvent;
+    if (!evt || !evt.swissRounds[roundIndex]) return;
+
     saveHistoryState();
-    if (!state.activeEvent || !state.activeEvent.swissRounds[roundIndex]) return;
-    state.activeEvent.swissRounds[roundIndex].currentSong = getRandomSong();
+    evt.swissRounds[roundIndex].currentSong = getRandomSong();
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
-    saveHistoryState();
-    const round = state.activeEvent.swissRounds[roundIndex];
+    const evt = state.activeEvent;
+    const round = evt && evt.swissRounds[roundIndex];
     if (!round || !round.matches[matchIndex]) return;
-    
-    round.matches[matchIndex].winnerId = String(winnerId);
-    round.matches[matchIndex].pointsAwarded = parseInt(customPoints, 10) || 3;
+
+    saveHistoryState();
+    const match = round.matches[matchIndex];
+
+    // Segundo clic sobre el mismo ganador = desmarcar
+    if (String(match.winnerId) === String(winnerId)) {
+        match.winnerId = null;
+    } else {
+        match.winnerId = String(winnerId);
+        match.pointsAwarded = parseInt(customPoints, 10) || 3;
+    }
 
     updateLeaderboard();
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function updateLeaderboard() {
-    let scores = {};
+    const evt = state.activeEvent;
+    const scores = {};
 
-    state.activeEvent.participants.forEach(p => {
+    evt.participants.forEach(p => {
         scores[p.id] = { participant: p, points: 0, wins: 0, losses: 0 };
     });
 
-    state.activeEvent.swissRounds.forEach(round => {
+    evt.swissRounds.forEach(round => {
         round.matches.forEach(m => {
-            if (m.winnerId) {
-                if (scores[m.winnerId]) {
-                    scores[m.winnerId].points += m.pointsAwarded;
-                    scores[m.winnerId].wins += 1;
-                }
-                const loserId = (String(m.playerA.id) === String(m.winnerId)) ? m.playerB.id : m.playerA.id;
-                if (scores[loserId]) {
-                    scores[loserId].losses += 1;
-                }
+            if (!m.winnerId) return;
+            const winner = scores[m.winnerId];
+            const loserId = String(m.playerA.id) === String(m.winnerId) ? m.playerB.id : m.playerA.id;
+            if (winner) {
+                winner.points += m.pointsAwarded || 3;
+                winner.wins += 1;
             }
+            if (scores[loserId]) scores[loserId].losses += 1;
         });
     });
 
-    state.activeEvent.leaderboard = Object.values(scores).sort((a, b) => b.points - a.points);
+    evt.leaderboard = Object.values(scores)
+        .filter(s => s.participant.id !== 'bot-bye')
+        .sort((a, b) => b.points - a.points || b.wins - a.wins);
+}
+
+function registerPlayedAgainst(roundObj) {
+    const evt = state.activeEvent;
+    roundObj.matches.forEach(m => {
+        const p1 = evt.participants.find(p => String(p.id) === String(m.playerA.id));
+        const p2 = evt.participants.find(p => String(p.id) === String(m.playerB.id));
+        if (p1 && p2) {
+            if (!p1.playedAgainst.includes(p2.id)) p1.playedAgainst.push(p2.id);
+            if (!p2.playedAgainst.includes(p1.id)) p2.playedAgainst.push(p1.id);
+        }
+    });
 }
 
 function nextSwissRound() {
-    const currentRoundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
-    const allMatchesFinished = currentRoundObj.matches.every(m => m.winnerId !== null);
+    const evt = state.activeEvent;
+    const currentRoundObj = evt.swissRounds[evt.currentRound - 1];
+    if (!currentRoundObj) return;
 
-    if (!allMatchesFinished) {
+    if (!currentRoundObj.matches.every(m => m.winnerId !== null)) {
         if (!confirm("Hay partidas sin ganador marcado. ¿Deseas continuar a la siguiente ronda de todos modos?")) return;
     }
 
     saveHistoryState();
     currentRoundObj.isCompleted = true;
+    registerPlayedAgainst(currentRoundObj);
 
-    currentRoundObj.matches.forEach(m => {
-        const p1 = state.activeEvent.participants.find(p => String(p.id) === String(m.playerA.id));
-        const p2 = state.activeEvent.participants.find(p => String(p.id) === String(m.playerB.id));
-        if (p1 && p2) {
-            p1.playedAgainst.push(p2.id);
-            p2.playedAgainst.push(p1.id);
-        }
-    });
-
-    if (state.activeEvent.currentRound < state.activeEvent.maxSwissRounds) {
-        state.activeEvent.currentRound += 1;
-        generatePairingsForRound(state.activeEvent.currentRound);
+    if (evt.currentRound < evt.maxSwissRounds) {
+        evt.currentRound += 1;
+        generatePairingsForRound(evt.currentRound);
     } else {
         alert("Has alcanzado el límite de rondas suizo programadas. Puedes agregar una ronda extra o generar los PlayOffs.");
     }
 
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function addExtraSwissRound() {
+    const evt = state.activeEvent;
+    if (!evt) return;
+
     saveHistoryState();
-    state.activeEvent.maxSwissRounds += 1;
-    state.activeEvent.currentRound += 1;
-    generatePairingsForRound(state.activeEvent.currentRound);
+
+    const cur = evt.swissRounds[evt.currentRound - 1];
+    if (cur) {
+        cur.isCompleted = true;
+        registerPlayedAgainst(cur);
+    }
+
+    evt.maxSwissRounds += 1;
+    evt.currentRound += 1;
+    generatePairingsForRound(evt.currentRound);
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function createPlayoffs() {
+    const evt = state.activeEvent;
     const topCount = parseInt(prompt("¿Cuántos clasificados deseas en los PlayOffs? (Ej: 4 u 8)", "4"), 10) || 4;
-    
+
     saveHistoryState();
     updateLeaderboard();
 
-    const qualified = state.activeEvent.leaderboard.slice(0, topCount).map(item => item.participant);
-    
+    const qualified = evt.leaderboard.slice(0, topCount).map(item => item.participant);
+
     for (let i = qualified.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [qualified[i], qualified[j]] = [qualified[j], qualified[i]];
     }
 
-    let rounds = [];
-    let currentRoundPlayers = qualified;
-
-    let roundMatches = [];
-    for (let i = 0; i < currentRoundPlayers.length; i += 2) {
+    const roundMatches = [];
+    for (let i = 0; i < qualified.length; i += 2) {
         roundMatches.push({
             matchId: `po-1-${i}`,
-            playerA: currentRoundPlayers[i],
-            playerB: currentRoundPlayers[i + 1] || null,
-            winnerId: currentRoundPlayers[i + 1] ? null : String(currentRoundPlayers[i].id)
+            playerA: qualified[i],
+            playerB: qualified[i + 1] || null,
+            winnerId: qualified[i + 1] ? null : String(qualified[i].id)
         });
     }
 
-    rounds.push({ roundName: 'ELIMINATORIAS / SEMIFINAL', matches: roundMatches, currentSong: getRandomSong() });
+    const firstName = qualified.length <= 2 ? 'GRAN FINAL' : (qualified.length <= 4 ? 'SEMIFINAL' : 'ELIMINATORIAS');
 
-    state.activeEvent.playoffs = {
+    evt.playoffs = {
         topCount,
-        rounds,
+        rounds: [{ roundName: firstName, matches: roundMatches, currentSong: getRandomSong() }],
         champion: null
     };
 
-    state.activeEvent.status = 'PLAYOFFS';
+    evt.status = 'PLAYOFFS';
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
-    saveHistoryState();
-    const po = state.activeEvent.playoffs;
+    const evt = state.activeEvent;
+    const po = evt && evt.playoffs;
     if (!po || !po.rounds[roundIdx] || !po.rounds[roundIdx].matches[matchIdx]) return;
 
+    saveHistoryState();
+
     const match = po.rounds[roundIdx].matches[matchIdx];
-    match.winnerId = String(winnerId);
+    const target = String(winnerId);
+    // Clic sobre el que ya era ganador lo desmarca
+    match.winnerId = (match.winnerId === target) ? null : target;
+
+    // Cualquier cambio invalida las rondas siguientes y el campeón: se regeneran
+    po.rounds = po.rounds.slice(0, roundIdx + 1);
+    po.champion = null;
+    if (evt.status === 'FINISHED') evt.status = 'PLAYOFFS';
 
     const currentRound = po.rounds[roundIdx];
-    const allDone = currentRound.matches.every(m => m.winnerId !== null);
+    const allDone = currentRound.matches.every(m => m.winnerId);
 
     if (allDone) {
-        const winners = currentRound.matches.map(m => {
-            if (!m.winnerId) return null;
-            return (m.playerA && String(m.playerA.id) === String(m.winnerId)) ? m.playerA : m.playerB;
-        }).filter(Boolean);
+        const winners = currentRound.matches.map(m =>
+            (m.playerA && String(m.playerA.id) === String(m.winnerId)) ? m.playerA : m.playerB
+        ).filter(Boolean);
 
         if (winners.length === 1) {
             po.champion = winners[0];
-            state.activeEvent.status = 'FINISHED';
+            evt.status = 'FINISHED';
             alert(`🏆 ¡TENEMOS UN GANADOR DEL TORNEO!: ${winners[0].name}`);
-        } else if (po.rounds.length === roundIdx + 1) {
-            let nextMatches = [];
+        } else if (winners.length > 1) {
+            const nextMatches = [];
             for (let i = 0; i < winners.length; i += 2) {
                 nextMatches.push({
                     matchId: `po-${roundIdx + 2}-${i}`,
                     playerA: winners[i],
                     playerB: winners[i + 1] || null,
-                    winnerId: (winners[i + 1] ? null : String(winners[i].id))
+                    winnerId: winners[i + 1] ? null : String(winners[i].id)
                 });
             }
-            po.rounds.push({ 
-                roundName: winners.length === 2 ? 'GRAN FINAL' : `Ronda ${roundIdx + 2}`, 
+            po.rounds.push({
+                roundName: winners.length === 2 ? 'GRAN FINAL' : (winners.length === 4 ? 'SEMIFINAL' : `Ronda ${roundIdx + 2}`),
                 matches: nextMatches,
                 currentSong: getRandomSong()
             });
@@ -700,18 +755,22 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
     }
 
     saveState();
-    renderTournamentAdmin();
-    renderUserEventsView();
+    refreshTournamentViews();
 }
 
 function finishAndSaveEvent() {
     if (!state.activeEvent) return;
     if (!confirm("¿Deseas finalizar y guardar este torneo en el Historial de Eventos?")) return;
 
+    clearTimeout(saveEventTimer);
     state.activeEvent.status = 'FINISHED';
-    state.eventHistory.unshift(JSON.parse(JSON.stringify(state.activeEvent)));
-    
-    fetch(`${API_BASE}/events/active`, { method: 'DELETE' });
+
+    // Se guarda sin el historial de "Retroceder" para no llenar el localStorage
+    const copy = JSON.parse(JSON.stringify(state.activeEvent));
+    delete copy.historyStates;
+    state.eventHistory.unshift(copy);
+
+    fetch(`${API_BASE}/events/active`, { method: 'DELETE' }).catch(err => console.error(err));
 
     state.activeEvent = null;
 
@@ -729,10 +788,12 @@ function renderTournamentAdmin() {
         return;
     }
 
+    if (!activeBox || !swissBox) return;
     activeBox.classList.remove('hidden');
 
     if (state.activeEvent.status === 'SWISS') {
         const roundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
+        if (!roundObj) return;
 
         swissBox.innerHTML = `
             <div class="flex items-center justify-between bg-wine-900/40 p-4 rounded-xl border border-wine-800">
@@ -790,7 +851,7 @@ function renderTournamentAdmin() {
                                     ${m.playerA.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
                                     <span class="text-xs truncate">${escapeHtml(m.playerA.name)}</span>
                                     <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
-                                        ✔️ ${isWinA ? 'Ganador' : 'Ganador'}
+                                        ✔️ Ganador
                                     </button>
                                 </div>
 
@@ -799,7 +860,7 @@ function renderTournamentAdmin() {
                                 <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
                                     ${m.playerB ? `
                                         <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
-                                            ✔️ ${isWinB ? 'Ganador' : 'Ganador'}
+                                            ✔️ Ganador
                                         </button>
                                         <span class="text-xs truncate">${escapeHtml(m.playerB.name)}</span>
                                         ${m.playerB.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
@@ -873,8 +934,8 @@ function renderTournamentAdmin() {
     }
 }
 
-async function renderUserEventsView() {
-    await fetchActiveEventFromDB();
+async function renderUserEventsView(skipFetch = false) {
+    if (!skipFetch) await fetchActiveEventFromDB();
     const container = document.getElementById('user-events-view-container');
     if (!container) return;
 
@@ -919,7 +980,7 @@ async function renderUserEventsView() {
                 </div>
             ` : ''}
 
-            ${evt.status === 'SWISS' ? `
+            ${(evt.status === 'SWISS' && currentSwissRound) ? `
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 space-y-4">
                         <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider">Enfrentamientos - Ronda ${evt.currentRound}</h4>
@@ -1022,9 +1083,9 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                             ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                             <span class="text-xs font-bold truncate">${m.playerA ? escapeHtml(m.playerA.name) : 'TBD'}</span>
                                         </div>
-                                        ${isAdminControl && m.playerA && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerA.id}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold shadow-md">
-                                                ✔️ Ganador
+                                        ${isAdminControl && m.playerA ? `
+                                            <button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerA.id}')" class="text-[10px] px-2 py-1 ${isWinA ? 'bg-green-600 text-white' : 'bg-wine-900 hover:bg-green-700 text-slate-200'} rounded font-bold shadow-md transition-all">
+                                                ✔️ ${isWinA ? 'Ganador' : 'Elegir'}
                                             </button>
                                         ` : ''}
                                     </div>
@@ -1036,9 +1097,9 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                             ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                             <span class="text-xs font-bold truncate">${m.playerB ? escapeHtml(m.playerB.name) : 'TBD'}</span>
                                         </div>
-                                        ${isAdminControl && m.playerB && !m.winnerId ? `
-                                            <button onclick="setPlayoffWinner(${rIdx}, ${mIdx}, '${m.playerB.id}')" class="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold shadow-md">
-                                                ✔️ Ganador
+                                        ${isAdminControl && m.playerB ? `
+                                            <button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerB.id}')" class="text-[10px] px-2 py-1 ${isWinB ? 'bg-green-600 text-white' : 'bg-wine-900 hover:bg-green-700 text-slate-200'} rounded font-bold shadow-md transition-all">
+                                                ✔️ ${isWinB ? 'Ganador' : 'Elegir'}
                                             </button>
                                         ` : ''}
                                     </div>
@@ -2249,4 +2310,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     navigateTo('view-home');
     startCarouselTimer();
+
+    // Los usuarios normales ven el evento en vivo: se refresca solo cada 5 s
+    setInterval(() => {
+        const evView = document.getElementById('view-events');
+        if (evView && !evView.classList.contains('hidden') && !isPrivilegedUser()) {
+            renderUserEventsView();
+        }
+    }, 5000);
 });
