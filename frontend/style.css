@@ -1,13 +1,13 @@
 /* ==========================================
-   ESTILOS GENERALES Y TEMA FUTURISTA
+   ESTILOS GENERALES Y TEMA FUTURISTA AWC
    ================================---------- */
 :root {
     --bg-main: #060305;
     --bg-card: rgba(18, 8, 13, 0.75);
     --border-wine: rgba(128, 0, 32, 0.4);
-    --border-wine-glow: rgba(220, 20, 60, 0.7);
+    --border-wine-glow: rgba(220, 20, 60, 0.8);
     --accent-gold: #f59e0b;
-    --accent-gold-glow: rgba(245, 158, 11, 0.5);
+    --accent-gold-glow: rgba(245, 158, 11, 0.6);
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
 }
@@ -20,7 +20,7 @@ body {
     position: relative;
 }
 
-/* Fondo futurista sutil con destellos estelares */
+/* Fondo futurista ambiental con destellos estelares */
 body::before {
     content: "";
     position: fixed;
@@ -28,34 +28,49 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at 50% 20%, rgba(80, 0, 25, 0.25) 0%, transparent 70%),
-                radial-gradient(circle at 10% 90%, rgba(128, 0, 32, 0.15) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 15%, rgba(120, 0, 40, 0.2) 0%, transparent 65%),
+                radial-gradient(circle at 10% 90%, rgba(80, 0, 25, 0.15) 0%, transparent 50%);
     z-index: -1;
     pointer-events: none;
 }
 
 /* ==========================================
-   EFECTOS DE NEÓN Y BRILLOS FUTURISTAS
+   1. TARJETAS CON GLASSMORPHISM Y HOVER NEÓN
+   ================================---------- */
+.view-section, .bg-wine-950\/60, .bg-wine-950\/80, .bg-\[\#090507\] {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover avanzado para tarjetas, brackets y contenedores */
+.group:hover, .view-section .bg-wine-950\/60:hover {
+    border-color: var(--border-wine-glow);
+    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25), inset 0 0 15px rgba(201, 42, 82, 0.05);
+}
+
+/* ==========================================
+   EFECTOS DE NEÓN Y BRILLOS ESPECIALES
    ================================---------- */
 .neon-gold {
-    box-shadow: 0 0 20px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.2);
+    box-shadow: 0 0 25px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.25);
     border-color: var(--accent-gold) !important;
 }
 
 .neon-wine {
-    box-shadow: 0 0 15px rgba(128, 0, 32, 0.4);
-    border-color: rgba(128, 0, 32, 0.8) !important;
+    box-shadow: 0 0 20px rgba(201, 42, 82, 0.5);
+    border-color: rgba(201, 42, 82, 0.9) !important;
 }
 
 /* ==========================================
-   ANIMACIONES FLUIDAS
+   ANIMACIONES FLUIDAS EN VIVO
    ================================---------- */
 @keyframes pulseGlow {
     0%, 100% {
-        box-shadow: 0 0 10px rgba(220, 20, 60, 0.3);
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
     }
     50% {
-        box-shadow: 0 0 25px rgba(220, 20, 60, 0.7);
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
     }
 }
 
@@ -69,7 +84,7 @@ body::before {
 }
 
 .animate-pulse-glow {
-    animation: pulseGlow 3s infinite ease-in-out;
+    animation: pulseGlow 2.5s infinite ease-in-out;
 }
 
 .animate-bounce-short {
@@ -77,18 +92,33 @@ body::before {
 }
 
 /* ==========================================
-   TARJETAS Y CONTENEDORES GLASSMORPHISM
+   2. SEPARADOR DE MATCH "VS" CON EFECTO NEÓN
    ================================---------- */
-.view-section {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+.text-wine-500.uppercase, .text-wine-400.uppercase {
+    text-shadow: 0 0 8px rgba(230, 115, 140, 0.6);
+    letter-spacing: 0.1em;
 }
 
-/* Tarjetas de bracket y paneles con efecto futurista al pasar el mouse */
-.group:hover {
-    border-color: rgba(220, 20, 60, 0.6);
-    box-shadow: 0 8px 30px rgba(128, 0, 32, 0.25);
+/* ==========================================
+   4. PODIO ESPECIAL PARA LOS 3 PRIMEROS (TABLA DE TIERS)
+   ================================---------- */
+/* 1° Puesto: Destello y borde dorado elegante */
+tr:has(td .bg-amber-500\/20), tr.bg-amber-500\/5 {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #f59e0b !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+/* 2° Puesto: Borde y reflejo cromo/plata */
+tr:has(td .bg-slate-300\/20) {
+    background: linear-gradient(90deg, rgba(203, 213, 225, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #cbd5e1 !important;
+}
+
+/* 3° Puesto: Borde y reflejo bronce/cobre */
+tr:has(td .bg-amber-700\/20) {
+    background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #b45309 !important;
 }
 
 /* ==========================================
@@ -97,21 +127,20 @@ body::before {
 button {
     position: relative;
     overflow: hidden;
-    transition: all 0.25s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button:active {
     transform: scale(0.97);
 }
 
-/* Efecto brillo deslizante en botones principales */
 button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
-    filter: brightness(1.15);
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.15);
+    filter: brightness(1.2);
+    box-shadow: 0 0 20px rgba(201, 42, 82, 0.4);
 }
 
 /* ==========================================
-   ESTILOS DE SCROLLBAR PERSONALIZADO
+   SCROLLBAR PERSONALIZADO
    ================================---------- */
 ::-webkit-scrollbar {
     width: 6px;
@@ -123,7 +152,7 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #500019;
+    background: #5c081d;
     border-radius: 4px;
 }
 
