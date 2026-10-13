@@ -1,5 +1,5 @@
 /* ==========================================
-   ESTILOS GENERALES Y TEMA FUTURISTA AWC
+   AUDITION WORLD CLASS LATAM - ESTILOS GENERALES
    ================================---------- */
 :root {
     --bg-main: #060305;
@@ -20,7 +20,7 @@ body {
     position: relative;
 }
 
-/* Fondo futurista ambiental */
+/* Fondo futurista ambiental con destellos estelares */
 body::before {
     content: "";
     position: fixed;
@@ -49,8 +49,32 @@ body::before {
 }
 
 /* ==========================================
-   2. BRACKETS & CONECTORES DE TORNEO
+   2. EFECTOS DE NEÓN Y BRILLOS ESPECIALES
    ================================---------- */
+.neon-gold {
+    box-shadow: 0 0 25px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.25);
+    border-color: var(--accent-gold) !important;
+}
+
+.neon-wine {
+    box-shadow: 0 0 20px rgba(201, 42, 82, 0.5);
+    border-color: rgba(201, 42, 82, 0.9) !important;
+}
+
+.text-wine-500.uppercase, .text-wine-400.uppercase {
+    text-shadow: 0 0 8px rgba(230, 115, 140, 0.6);
+    letter-spacing: 0.1em;
+}
+
+/* ==========================================
+   3. BRACKETS & LÍNEAS CONECTORAS NEÓN
+   ================================---------- */
+/* Contenedor relativo de cada tarjeta de enfrentamiento */
+.bracket-card-wrapper, [class*="border-wine-900"] > div {
+    position: relative;
+}
+
+/* Tarjetas de Match */
 .bracket-match-card {
     background: rgba(28, 10, 17, 0.85);
     border: 1px solid rgba(128, 0, 32, 0.6);
@@ -63,20 +87,46 @@ body::before {
     box-shadow: 0 0 18px rgba(201, 42, 82, 0.35);
 }
 
-.text-wine-500.uppercase, .text-wine-400.uppercase {
-    text-shadow: 0 0 8px rgba(230, 115, 140, 0.6);
-    letter-spacing: 0.1em;
+/* Línea horizontal que sale a la derecha de los enfrentamientos */
+.bracket-card-wrapper::after {
+    content: "";
+    position: absolute;
+    right: -1.75rem;
+    top: 50%;
+    width: 1.75rem;
+    height: 2px;
+    background: #c92a52;
+    box-shadow: 0 0 8px #c92a52, 0 0 12px #e6738c;
+    z-index: 10;
+}
+
+/* Ocultar conector en la última ronda (Gran Final) */
+.bracket-column:last-child .bracket-card-wrapper::after {
+    display: none;
+}
+
+/* Línea vertical para unir los dos ganadores hacia la siguiente fase */
+.bracket-column:first-child .bracket-card-wrapper:first-child::before {
+    content: "";
+    position: absolute;
+    right: -1.75rem;
+    top: 50%;
+    height: calc(100% + 1.5rem);
+    width: 2px;
+    background: #c92a52;
+    box-shadow: 0 0 8px #c92a52, 0 0 12px #e6738c;
+    z-index: 10;
 }
 
 /* ==========================================
-   3. TABLAS LIMPIAS Y PODIO
+   4. TABLAS LIMPIAS Y PODIO
    ================================---------- */
-/* Contraste suave alternado */
+/* Contraste suave alternado en filas */
 tbody tr:nth-child(even) {
     background-color: rgba(128, 0, 32, 0.08);
 }
 
-/* Podio especial */
+/* Podio especial para los 3 primeros */
 tr:has(td .bg-amber-500\/20), tr.bg-amber-500\/5 {
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
     border-left: 4px solid #f59e0b !important;
@@ -94,7 +144,7 @@ tr:has(td .bg-amber-700\/20) {
 }
 
 /* ==========================================
-   4. NOTIFICACIONES TOAST (MANDOS DEL SISTEMA)
+   5. NOTIFICACIONES TOAST
    ================================---------- */
 #toast-container {
     position: fixed;
@@ -102,7 +152,7 @@ tr:has(td .bg-amber-700\/20) {
     right: 1.5rem;
     z-index: 9999;
     display: flex;
-    flex-col-reverse: column;
+    flex-direction: column-reverse;
     gap: 0.75rem;
     pointer-events: none;
 }
@@ -130,6 +180,35 @@ tr:has(td .bg-amber-700\/20) {
 }
 
 /* ==========================================
+   6. ANIMACIONES FLUIDAS EN VIVO
+   ================================---------- */
+@keyframes pulseGlow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
+    }
+}
+
+@keyframes floatAnim {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.animate-bounce-short {
+    animation: floatAnim 4s infinite ease-in-out;
+}
+
+/* ==========================================
    BOTONES Y SCROLLBAR
    ================================---------- */
 button {
@@ -151,6 +230,16 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
     width: 6px;
     height: 6px;
 }
-::-webkit-scrollbar-track { background: #060305; }
-::-webkit-scrollbar-thumb { background: #5c081d; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #800020; }
+
+::-webkit-scrollbar-track {
+    background: #060305;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5c081d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #800020;
+}
