@@ -59,18 +59,22 @@ window.alert = function (msg) { showToast(msg, inferToastType(String(msg))); };
 
 // ===== MODALES PROPIOS =====
 function showCustomModal(title, message, isConfirm = false, callback = null) {
-    const container = document.getElementById('custom-modal-container');
-    if (!container) return;
+    let container = document.getElementById('custom-modal-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'custom-modal-container';
+        document.body.appendChild(container);
+    }
 
     container.innerHTML = `
-        <div class="custom-modal-backdrop">
-            <div class="custom-modal-box space-y-4">
+        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+            <div class="bg-gradient-to-b from-[#2a0d18] to-[#090507] border-2 border-wine-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
                 <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                    <i class="ph-bold ph-warning-circle text-wine-400"></i> ${escapeHtml(title)}
+                    <i class="ph-bold ph-warning-circle text-amber-400"></i> ${escapeHtml(title)}
                 </h3>
                 <p class="text-slate-300 text-sm leading-relaxed">${escapeHtml(message)}</p>
                 <div class="flex justify-end space-x-3 pt-2">
-                    ${isConfirm ? `<button id="modal-btn-cancel" class="px-4 py-2 bg-wine-950 border border-wine-800 text-slate-300 rounded-xl text-xs font-bold">Cancelar</button>` : ''}
+                    ${isConfirm ? `<button id="modal-btn-cancel" class="px-4 py-2 bg-wine-950 border border-wine-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-wine-900">Cancelar</button>` : ''}
                     <button id="modal-btn-ok" class="px-5 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-xs font-bold shadow-lg">Aceptar</button>
                 </div>
             </div>
@@ -486,6 +490,7 @@ function startNewEvent() {
     const regArea = document.getElementById('event-registration-area');
     if (regArea) regArea.classList.remove('hidden');
     renderParticipantsBadges();
+    refreshTournamentViews();
     alert(`Torneo "${title}" creado. Inscribe a los participantes.`);
 }
 
@@ -577,19 +582,35 @@ function undoTournamentStep() {
 }
 
 async function deleteActiveEvent() {
-    showCustomModal("Eliminar Torneo", "¿Estás seguro de eliminar el torneo activo?", true, async (ok) => {
+    showCustomModal("Eliminar Torneo", "¿Estás seguro de eliminar completamente el torneo activo? Esta acción borrará todo el progreso y no lo guardará en el historial.", true, async (ok) => {
         if (!ok) return;
         markEventRemovedLocally();
         state.activeEvent = null;
         localStorage.removeItem('uh_active_event');
         try { await fetch(`${API_BASE}/events/active`, { method: 'DELETE' }); } catch (err) { console.error(err); }
         refreshTournamentViews();
-        alert("Torneo eliminado.");
+        alert("Torneo eliminado correctamente.");
+    });
+}
+
+function archiveActiveEvent() {
+    if (!state.activeEvent) return;
+    showCustomModal("Archivar Torneo", "¿Deseas archivar el torneo activo en el Historial tal como está?", true, (ok) => {
+        if (!ok) return;
+        markEventRemovedLocally();
+        const copy = JSON.parse(JSON.stringify(state.activeEvent));
+        delete copy.historyStates;
+        state.eventHistory.unshift(copy);
+        fetch(`${API_BASE}/events/active`, { method: 'DELETE' }).catch(() => {});
+        state.activeEvent = null;
+        saveState();
+        alert("Torneo archivado en el Historial.");
+        navigateTo('view-event-history');
     });
 }
 
 function deleteHistoryEvent(index) {
-    showCustomModal("Eliminar Historial", "¿Estás seguro de eliminar este torneo del historial?", true, (ok) => {
+    showCustomModal("Eliminar Historial", "¿Estás seguro de eliminar este torneo del historial permanentemente?", true, (ok) => {
         if (!ok) return;
         state.eventHistory.splice(index, 1);
         saveState();
@@ -844,30 +865,60 @@ function finishAndSaveEvent() {
 function renderTournamentAdmin() {
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
-    if (!state.activeEvent || state.activeEvent.status === 'SETUP') {
-        if (activeBox) activeBox.classList.add('hidden');
+    
+    if (!activeBox || !swissBox) return;
+
+    if (!state.activeEvent) {
+        activeBox.classList.add('hidden');
         return;
     }
-    if (!activeBox || !swissBox) return;
+
     activeBox.classList.remove('hidden');
 
-    if (state.activeEvent.status === 'SWISS') {
+    const adminHeaderBar = `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-950/80 p-4 rounded-xl border border-wine-800 mb-4 shadow-lg">
+            <div>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-extrabold uppercase border border-amber-500/30">${state.activeEvent.status}</span>
+                <h4 class="text-lg font-bold text-white mt-1">${escapeHtml(state.activeEvent.title)}</h4>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1" title="Deshacer último cambio">
+                    <i class="ph-bold ph-arrow-u-up-left"></i> <span>Deshacer</span>
+                </button>
+                <button onclick="archiveActiveEvent()" class="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-blue-300 rounded-lg text-xs font-bold border border-blue-800/60 flex items-center space-x-1" title="Archivar en Historial">
+                    <i class="ph-bold ph-archive"></i> <span>Archivar</span>
+                </button>
+                <button onclick="finishAndSaveEvent()" class="px-3 py-1.5 bg-green-800 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1" title="Finalizar torneo">
+                    <i class="ph-bold ph-check"></i> <span>Finalizar</span>
+                </button>
+                <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 flex items-center space-x-1" title="Eliminar torneo permanentemente">
+                    <i class="ph-bold ph-trash"></i> <span>Eliminar</span>
+                </button>
+            </div>
+        </div>
+    `;
+
+    if (state.activeEvent.status === 'SETUP') {
+        swissBox.innerHTML = `
+            ${adminHeaderBar}
+            <div class="p-4 bg-wine-950/40 rounded-xl border border-wine-900 text-center space-y-3">
+                <p class="text-sm text-slate-300">El torneo está en fase de <b>Inscripción</b>. Inscribe a los jugadores arriba y presiona Iniciar Torneo.</p>
+                <button onclick="generateFirstSwissRound()" class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-xl shadow-lg">🚀 Comenzar Fase Suiza</button>
+            </div>
+        `;
+    } else if (state.activeEvent.status === 'SWISS') {
         const roundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
         if (!roundObj) return;
         swissBox.innerHTML = `
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800 mb-4">
-                <div>
-                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Ronda ${state.activeEvent.currentRound} / ${state.activeEvent.maxSwissRounds}</h4>
-                    <p class="text-xs text-slate-400">Selecciona al ganador de cada enfrentamiento.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1"><i class="ph-bold ph-arrow-u-up-left"></i> <span>Deshacer</span></button>
-                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold">+ Añadir Ronda</button>
-                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-md">Siguiente Ronda ➔</button>
-                    <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950 text-red-400 rounded-lg text-xs font-bold border border-red-800/60"><i class="ph-bold ph-trash"></i></button>
+            ${adminHeaderBar}
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-3 rounded-xl border border-wine-800 mb-4">
+                <span class="text-sm font-bold text-white">Ronda ${state.activeEvent.currentRound} de ${state.activeEvent.maxSwissRounds}</span>
+                <div class="flex gap-2">
+                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold">+ Ronda Extra</button>
+                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow">Siguiente Ronda ➔</button>
                 </div>
             </div>
-            ${roundObj && roundObj.currentSong ? `
+            ${roundObj.currentSong ? `
                 <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-3">
                         <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">🎵</div>
@@ -913,16 +964,7 @@ function renderTournamentAdmin() {
     } else if (state.activeEvent.status === 'PLAYOFFS' || state.activeEvent.status === 'FINISHED') {
         const po = state.activeEvent.playoffs;
         swissBox.innerHTML = `
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800 mb-4">
-                <div>
-                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Fase de PlayOffs</h4>
-                    <p class="text-xs text-slate-400">Determina los ganadores en las llaves del torneo.</p>
-                </div>
-                <div class="flex space-x-2">
-                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60"><i class="ph-bold ph-arrow-u-up-left"></i> Deshacer</button>
-                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-md">💾 Finalizar y Guardar Torneo</button>
-                </div>
-            </div>
+            ${adminHeaderBar}
             ${renderPlayoffsBracketHTML(po, true)}
         `;
     }
@@ -1014,12 +1056,12 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                     </div>
                 </div>
             ` : ''}
-            <div class="bracket-container">
+            <div class="bracket-container flex gap-8 justify-center min-w-max">
                 ${playoffs.rounds.map((round, rIdx) => `
-                    <div class="bracket-round">
+                    <div class="bracket-round flex flex-col justify-around">
                         <div class="text-center mb-3">
                             <h5 class="text-xs font-extrabold text-wine-400 uppercase">${escapeHtml(round.roundName)}</h5>${round.currentSong ? `<span class="text-[10px] text-amber-400 font-bold block mt-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">🎵 ${escapeHtml(round.currentSong)}</span>` : ''}
-                            ${isAdminControl ? `<button onclick="spinSongRoulette(${rIdx})" class="mt-2 text-[10px] bg-amber-600 px-2 py-1 rounded text-white font-bold">🎲 Sorteo</button>` : ''}
+                            ${isAdminControl ? `<button onclick="spinSongRoulette(${rIdx})" class="mt-2 text-[10px] bg-amber-600 px-2 py-1 rounded text-white font-bold hover:bg-amber-500">🎲 Sorteo</button>` : ''}
                         </div>
                         <div class="space-y-4">
                             ${round.matches.map((m, mIdx) => {
@@ -1058,17 +1100,24 @@ function renderEventHistory() {
     if (!container) return;
     if (state.eventHistory.length === 0) { container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No hay torneos registrados.</p>`; return; }
     container.innerHTML = state.eventHistory.map((evt, idx) => `
-        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4">
+        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4 shadow-xl">
             <div class="flex items-center justify-between border-b border-wine-900 pb-3">
-                <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
-                <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950 text-red-400 rounded-xl text-xs font-semibold"><i class="ph-bold ph-trash"></i> Eliminar</button>
-            </div>
-            <div>
-                <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Podio Final</h4>
-                <div class="flex flex-wrap gap-4 text-xs bg-[#090507] p-3 rounded-xl border">
-                    ${evt.leaderboard.map((item, pIdx) => `<span class="text-slate-300"><b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)</span>`).join(' • ')}
+                <div>
+                    <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
+                    <span class="text-[10px] text-slate-400">Torneo Archivado / Finalizado</span>
                 </div>
+                <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-400 rounded-xl text-xs font-semibold border border-red-800/50 flex items-center space-x-1">
+                    <i class="ph-bold ph-trash"></i> <span>Eliminar del Historial</span>
+                </button>
             </div>
+            ${evt.leaderboard && evt.leaderboard.length > 0 ? `
+                <div>
+                    <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Podio Final</h4>
+                    <div class="flex flex-wrap gap-4 text-xs bg-[#090507] p-3 rounded-xl border border-wine-900">
+                        ${evt.leaderboard.map((item, pIdx) => `<span class="text-slate-300"><b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)</span>`).join(' • ')}
+                    </div>
+                </div>
+            ` : ''}
             ${renderPlayoffsBracketHTML(evt.playoffs, false)}
         </div>
     `).join('');
