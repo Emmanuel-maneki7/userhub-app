@@ -1,5 +1,5 @@
 /* ==========================================
-   AUDITION WORLD CLASS LATAM - ESTILOS GENERALES (ESPORTS PRO)
+   AUDITION WORLD CLASS LATAM - ESTILOS GENERALES
    ================================---------- */
 :root {
     --bg-main: #060305;
@@ -13,7 +13,7 @@
 }
 
 /* ==========================================
-   0. TIPOGRAFÍA Y RUIDO DE FONDO
+   0. TIPOGRAFÍA
    ================================---------- */
 body,
 body.font-sans {
@@ -30,18 +30,20 @@ h1, h2, h3, h4, h5, th, .font-display {
     letter-spacing: 0.04em;
 }
 
+/* Números de puntos alineados */
 td.text-amber-400,
 td.font-extrabold,
 td.font-black {
     font-variant-numeric: tabular-nums;
 }
 
+/* Contraste: slate-500 era muy oscuro sobre fondo negro */
 body .text-slate-500 {
     color: #8b9bb0;
 }
 
 /* ==========================================
-   0.1 FONDO CON PROFUNDIDAD Y LUCES AMBIENTALES
+   0.1 FONDO CON PROFUNDIDAD
    ================================---------- */
 body::before {
     content: "";
@@ -50,60 +52,50 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at 30% 20%, rgba(120, 0, 40, 0.25) 0%, transparent 60%),
-                radial-gradient(circle at 80% 80%, rgba(180, 83, 9, 0.12) 0%, transparent 55%),
-                radial-gradient(circle at 50% 90%, rgba(80, 0, 25, 0.2) 0%, transparent 50%);
-    z-index: -2;
+    background: radial-gradient(circle at 50% 15%, rgba(120, 0, 40, 0.2) 0%, transparent 65%),
+                radial-gradient(circle at 10% 90%, rgba(80, 0, 25, 0.15) 0%, transparent 50%);
+    z-index: -1;
     pointer-events: none;
-    animation: ambientPulse 12s ease-in-out infinite alternate;
 }
 
-@keyframes ambientPulse {
-    0% { transform: scale(1); opacity: 0.9; }
-    100% { transform: scale(1.05); opacity: 1; }
-}
-
-/* Textura de ruido tenue */
+/* Cuadrícula sutil que se desvanece hacia abajo */
 body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    opacity: 0.035;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-image:
+        linear-gradient(rgba(201, 42, 82, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201, 42, 82, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
+    mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
 }
 
+/* Brillo detrás del título principal (drop-shadow porque el texto es transparente) */
 #view-home h1 {
     filter: drop-shadow(0 0 22px rgba(201, 42, 82, 0.35));
 }
 
 /* ==========================================
-   1. TARJETAS INTERACTIVAS Y EFECTO 3D (GLASSMORPHISM)
+   1. TARJETAS INTERACTIVAS (glassmorphism solo donde importa)
    ================================---------- */
-.glass-panel {
-    background: rgba(26, 10, 16, 0.75);
+.bg-wine-950\/60,
+.bg-wine-950\/80 {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(201, 42, 82, 0.25);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                transform 0.3s ease;
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-panel-glow {
-    background: rgba(26, 10, 16, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(251, 191, 36, 0.35);
-    box-shadow: 0 0 25px rgba(251, 191, 36, 0.15), 0 10px 40px rgba(0, 0, 0, 0.7);
+.group:hover,
+.view-section .bg-wine-950\/60:hover {
+    border-color: var(--border-wine-glow);
+    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25), inset 0 0 15px rgba(201, 42, 82, 0.05);
 }
 
-.hover-card-3d:hover {
-    transform: perspective(800px) rotateX(1.5deg) rotateY(-1.5deg) translateY(-3px);
-}
-
+/* Transición suave entre vistas */
 .view-section {
     animation: viewIn 0.35s ease both;
 }
@@ -114,240 +106,142 @@ body::after {
 }
 
 /* ==========================================
-   EFECTOS DE NEÓN & GLOW
+   2. EFECTOS DE NEÓN Y BRILLOS ESPECIALES
    ================================---------- */
 .neon-gold {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), inset 0 0 15px rgba(245, 158, 11, 0.1);
+    box-shadow: 0 0 25px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.25);
+    border-color: var(--accent-gold) !important;
 }
 
 .neon-wine {
-    box-shadow: 0 0 20px rgba(201, 42, 82, 0.35), inset 0 0 15px rgba(201, 42, 82, 0.1);
-}
-
-.hover-glow:hover {
-    transform: translateY(-2px);
     box-shadow: 0 0 20px rgba(201, 42, 82, 0.5);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border-color: rgba(201, 42, 82, 0.9) !important;
+}
+
+.text-wine-500.uppercase, .text-wine-400.uppercase {
+    text-shadow: 0 0 8px rgba(230, 115, 140, 0.6);
+    letter-spacing: 0.1em;
 }
 
 /* ==========================================
-   PODIO VISUAL DEL TOP 3
+   3. BRACKETS (SCROLL HORIZONTAL TÁCTIL)
    ================================---------- */
-.podium {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-    padding-top: 1.5rem;
-}
-
-.podium-card {
-    flex: 1;
-    max-width: 190px;
-    text-align: center;
-    padding: 1.25rem 1rem;
-    border-radius: 18px;
-    background: linear-gradient(180deg, rgba(201, 42, 82, 0.18), rgba(28, 10, 17, 0.85));
-    border: 1px solid var(--tier-color, #c92a52);
-    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25);
-    position: relative;
-    transition: transform 0.3s ease;
-}
-
-.podium-card:hover {
-    transform: translateY(-5px);
-}
-
-.podium-card.first {
-    transform: translateY(-18px);
-    background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(28, 10, 17, 0.9));
-    border: 2px solid #fbbf24;
-    box-shadow: 0 0 25px rgba(251, 191, 36, 0.3);
-}
-
-.podium-card.first:hover {
-    transform: translateY(-22px);
+.overflow-x-auto {
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================
-   2. ESTILO TIER LIST REAL (CORREGIDO)
+   4. TABLAS LIMPIAS Y PODIO
    ================================---------- */
-.tier-row {
-    display: flex;
-    align-items: center;
-    background: rgba(28, 10, 17, 0.7);
-    border: 1px solid rgba(128, 0, 32, 0.4);
-    border-radius: 16px;
-    margin-top: 1rem;
-    overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+tbody tr:nth-child(even) {
+    background-color: rgba(128, 0, 32, 0.08);
 }
 
-.tier-badge-box {
-    width: 130px;
-    min-width: 130px;
-    max-width: 130px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem 0.5rem;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 900;
-    color: #fff;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-    text-align: center;
-    line-height: 1.2;
-    word-break: break-word;
-    flex-shrink: 0;
-    text-transform: uppercase;
+tr:has(td .bg-amber-500\/20), tr.bg-amber-500\/5 {
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #f59e0b !important;
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
 }
 
-.tier-members-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    padding: 1rem;
-    align-items: center;
-    flex-grow: 1;
-    overflow-x: auto;
+tr:has(td .bg-slate-300\/20) {
+    background: linear-gradient(90deg, rgba(203, 213, 225, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #cbd5e1 !important;
 }
 
-.tier-avatar-chip {
-    display: flex;
-    align-items: center;
-    background: rgba(9, 5, 7, 0.85);
-    border: 1px solid rgba(201, 42, 82, 0.3);
-    padding: 0.35rem 0.75rem 0.35rem 0.35rem;
-    border-radius: 9999px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.tier-avatar-chip:hover {
-    border-color: var(--tier-color, #c92a52);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(201, 42, 82, 0.3);
+tr:has(td .bg-amber-700\/20) {
+    background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
+    border-left: 4px solid #b45309 !important;
 }
 
 /* ==========================================
-   3. RACHAS Y CAMBIOS DE POSICIÓN
+   5. NOTIFICACIONES TOAST
    ================================---------- */
-.badge-trend-up { color: #34d399; font-size: 0.7rem; font-weight: 800; }
-.badge-trend-down { color: #f43f5e; font-size: 0.7rem; font-weight: 800; }
-.badge-streak { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 99px; font-weight: 900; }
-
-/* ==========================================
-   8. BRACKET CON LÍNEAS CONECTORAS ESPORTS PRO
-   ================================---------- */
-.bracket-container {
-    display: flex;
-    gap: 3rem;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    padding: 1rem 0;
-    min-width: 750px;
-}
-
-.bracket-round {
+#toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 9999;
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
-    gap: 2rem;
-    position: relative;
-}
-
-.bracket-match {
-    position: relative;
-    z-index: 2;
-    transition: all 0.3s ease;
-}
-
-.bracket-match:hover {
-    transform: scale(1.02);
-}
-
-/* Líneas de conexión horizontales entre rondas del bracket */
-.bracket-round:not(:last-child) .bracket-match::after {
-    content: '';
-    position: absolute;
-    right: -1.5rem;
-    top: 50%;
-    width: 1.5rem;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(201, 42, 82, 0.8), rgba(251, 191, 36, 0.8));
-    z-index: 1;
-}
-
-.bracket-round:not(:first-child) .bracket-match::before {
-    content: '';
-    position: absolute;
-    left: -1.5rem;
-    top: 50%;
-    width: 1.5rem;
-    height: 2px;
-    background: rgba(201, 42, 82, 0.5);
-    z-index: 1;
-}
-
-/* ==========================================
-   HOVER TRADING CARD FLOTANTE
-   ================================---------- */
-#user-hover-card {
-    position: fixed;
+    gap: 0.75rem;
     pointer-events: none;
-    z-index: 99999;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    max-width: calc(100vw - 2rem);
 }
 
-/* ==========================================
-   ANIMACIÓN SLOT RULETA DE CANCIONES
-   ================================---------- */
-.slot-spin-anim {
-    animation: slotSpin 0.1s linear infinite;
-}
-
-@keyframes slotSpin {
-    0% { transform: translateY(-5px); opacity: 0.7; }
-    50% { transform: translateY(5px); opacity: 1; }
-    100% { transform: translateY(-5px); opacity: 0.7; }
-}
-
-/* ==========================================
-   10. MODAL PROPIO ESTILIZADO
-   ================================---------- */
-.custom-modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background: rgba(6, 3, 5, 0.85);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 99999;
+.toast-item {
+    pointer-events: auto;
+    background: rgba(28, 10, 17, 0.95);
+    border: 1px solid rgba(201, 42, 82, 0.6);
+    border-left: 5px solid #c92a52;
+    color: #fff;
+    padding: 0.85rem 1.25rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(201, 42, 82, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    animation: fadeIn 0.2s ease;
+    gap: 0.75rem;
+    min-width: 240px;
+    max-width: 380px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    word-break: break-word;
+    animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
-.custom-modal-box {
-    background: linear-gradient(135deg, #1c0a11 0%, #2e0d18 100%);
-    border: 1px solid rgba(201, 42, 82, 0.7);
-    border-radius: 20px;
-    padding: 1.75rem;
-    width: 100%;
-    max-width: 440px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(201, 42, 82, 0.3);
-    animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
+.toast-item.toast-success { border-left-color: #34d399; }
+.toast-item.toast-error   { border-left-color: #f43f5e; }
+.toast-item.toast-warning { border-left-color: #fbbf24; }
+.toast-item.toast-info    { border-left-color: #c92a52; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(50px) scale(0.9); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
 
 /* ==========================================
-   EFECTO RIPPLE PARA BOTONES
+   6. ANIMACIONES FLUIDAS EN VIVO
+   ================================---------- */
+@keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+    50%      { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+}
+
+@keyframes floatAnim {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
+}
+
+.animate-pulse-glow {
+    animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+.animate-bounce-short {
+    animation: floatAnim 4s infinite ease-in-out;
+}
+
+/* ==========================================
+   7. SKELETON DE CARGA (servidor de Render despertando)
+   ================================---------- */
+.skeleton {
+    background: linear-gradient(90deg,
+        rgba(92, 8, 29, 0.30) 25%,
+        rgba(128, 0, 32, 0.35) 50%,
+        rgba(92, 8, 29, 0.30) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 16px;
+    border: 1px solid rgba(128, 0, 32, 0.3);
+}
+
+@keyframes shimmer {
+    to { background-position: -200% 0; }
+}
+
+/* ==========================================
+   BOTONES Y SCROLLBAR
    ================================---------- */
 button {
     position: relative;
@@ -359,8 +253,876 @@ button:active {
     transform: scale(0.97);
 }
 
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #060305; }
-::-webkit-scrollbar-thumb { background: #5c081d; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #800020; }
+button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
+    filter: brightness(1.2);
+    box-shadow: 0 0 20px rgba(201, 42, 82, 0.4);
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #060305;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #5c081d;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #800020;
+}
+
+/* ==========================================
+   8. RESPONSIVE: TABLET Y MÓVIL
+   ================================---------- */
+
+/* --- Navegación solo con íconos hasta pantallas grandes --- */
+@media (max-width: 1023px) {
+    #nav-actions button span {
+        display: none;
+    }
+    #nav-actions button i {
+        font-size: 1.25rem;
+    }
+    #nav-actions button {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+/* --- Móvil: barra de navegación inferior tipo app --- */
+@media (max-width: 639px) {
+    /* backdrop-filter en el header haría que el nav "fixed" se posicione dentro del header */
+    header {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        background-color: rgba(28, 10, 17, 0.97) !important;
+    }
+
+    #nav-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        justify-content: space-around;
+        padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
+        background: rgba(28, 10, 17, 0.97);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(128, 0, 32, 0.5);
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    #nav-actions > * {
+        margin-left: 0 !important;
+    }
+
+    main {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    }
+
+    /* Toasts arriba, ocupando el ancho */
+    #toast-container {
+        top: 0.75rem;
+        right: 0.75rem;
+        left: 0.75rem;
+        max-width: none;
+    }
+    .toast-item {
+        max-width: none;
+        min-width: 0;
+    }
+
+    /* Panel de torneo (admin): cabecera y botones apilados */
+    #swiss-admin-container > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    #swiss-admin-container .flex.space-x-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    #swiss-admin-container .flex.space-x-2 > * {
+        margin-left: 0 !important;
+    }
+
+    /* Enfrentamientos apilados */
+    #swiss-admin-container div:has(> .w-5\/12) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    #swiss-admin-container .w-5\/12 {
+        width: 100%;
+    }
+    #swiss-admin-container div:has(> .w-5\/12) > .text-center,
+    #swiss-admin-container div:has(> .w-5\/12) > .px-2 {
+        text-align: center;
+    }
+    #swiss-admin-container .justify-end {
+        justify-content: flex-start;
+    }
+
+    /* Banner de canción del admin */
+    #swiss-admin-container .border-amber-500\/80 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+/* --- Tablas de Tiers: ocultar columnas secundarias (Familia y Modo) --- */
+@media (max-width: 767px) {
+    #public-tiers-container th:nth-child(n+4),
+    #public-tiers-container td:nth-child(n+4) {
+        display: none;
+    }
+    #public-tiers-container th,
+    #public-tiers-container td {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    /* Tabla del admin convertida en tarjetas */
+    #admin-table thead {
+        display: none;
+    }
+    #admin-table,
+    #admin-table tbody {
+        display: block;
+        width: 100%;
+    }
+    #admin-table-body tr {
+        display: block;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(28, 10, 17, 0.6);
+        border: 1px solid rgba(128, 0, 32, 0.4) !important;
+        border-radius: 14px;
+    }
+    #admin-table-body td {
+        display: block;
+        padding: 0.5rem 0 !important;
+        text-align: left !important;
+    }
+    #admin-table-body td:first-child {
+        display: flex;
+    }
+    #admin-table-body td:nth-child(n+2)::before {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #e6738c;
+    }
+    #admin-table-body td:nth-child(2)::before { content: "Nombre / Rol"; }
+    #admin-table-body td:nth-child(3)::before { content: "Tiers y puntos"; }
+    #admin-table-body td:nth-child(4)::before { content: "Etiquetas"; }
+    #admin-table-body td:nth-child(5)::before { content: "Acción"; }
+}
+
+/* --- Dispositivos táctiles: tarjeta de perfil como bottom sheet --- */
+@media (hover: none) {
+    #user-hover-card {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        pointer-events: auto !important;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+}
+
+@media (hover: none) and (max-width: 639px) {
+    /* Por encima de la barra inferior */
+    #user-hover-card {
+        bottom: 4.5rem;
+    }
+}
+
+/* --- Zonas táctiles mínimas (pantallas táctiles) --- */
+@media (pointer: coarse) {
+    button:not(.carousel-dot):not([onclick^="removeParticipant"]):not([onclick^="deleteTag"]),
+    select {
+        min-height: 40px;
+    }
+}
+
+/* --- Accesibilidad: respetar "reducir movimiento" --- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ==========================================================================
+   9. LUCES AMBIENTALES + TEXTURA
+   ========================================================================== */
+.ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.35;
+    animation: orbFloat 22s ease-in-out infinite;
+}
+.orb-1 { width: 42vw; height: 42vw; left: -10vw; top: -8vw; background: #800020; }
+.orb-2 { width: 36vw; height: 36vw; right: -8vw; top: 30vh; background: #5c081d; animation-delay: -8s; }
+.orb-3 { width: 30vw; height: 30vw; left: 30vw; bottom: -12vw; background: #c92a52; opacity: 0.18; animation-delay: -14s; }
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%      { transform: translate(4vw, -3vw) scale(1.12); }
+}
+
+/* Ruido muy tenue para evitar el negro "plano" */
+.ambient::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.07;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ==========================================================================
+   10. EFECTOS: TILT 3D Y RIPPLE
+   ========================================================================== */
+.tilt {
+    transition: transform 0.18s ease-out;
+    will-change: transform;
+}
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: rippleAnim 0.6s ease-out forwards;
+    pointer-events: none;
+}
+@keyframes rippleAnim {
+    to { transform: scale(2.6); opacity: 0; }
+}
+
+/* ==========================================================================
+   11. PORTADA: CONTADORES, EN VIVO, TÍTULOS, CÓMO FUNCIONA, SALÓN DE LA FAMA
+   ========================================================================== */
+.hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+}
+.stat {
+    min-width: 110px;
+    padding: 0.9rem 1.4rem;
+    border-radius: 16px;
+    background: rgba(28, 10, 17, 0.7);
+    border: 1px solid rgba(128, 0, 32, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.stat-num {
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(201, 42, 82, 0.6);
+}
+.stat-label {
+    margin-top: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #e6738c;
+}
+
+.live-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 999px;
+    background: rgba(127, 29, 29, 0.35);
+    border: 1px solid rgba(239, 68, 68, 0.6);
+    color: #fecaca;
+    font-size: 0.85rem;
+    animation: pulseGlow 2.5s infinite ease-in-out;
+}
+.live-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 10px #ef4444;
+    animation: floatAnim 1.2s infinite ease-in-out;
+}
+.live-tag {
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #fff;
+}
+
+.section-title {
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.how-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+.how-card {
+    position: relative;
+    padding: 1.5rem 1.25rem;
+    border-radius: 18px;
+    background: rgba(28, 10, 17, 0.7);
+    border: 1px solid rgba(128, 0, 32, 0.45);
+    transition: border-color 0.25s, transform 0.25s;
+}
+.how-card:hover {
+    border-color: rgba(201, 42, 82, 0.8);
+    transform: translateY(-3px);
+}
+.how-num {
+    position: absolute;
+    top: 0.75rem;
+    right: 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: rgba(201, 42, 82, 0.25);
+}
+.how-icon { font-size: 1.8rem; color: #e6738c; }
+.how-card h3 { margin-top: 0.6rem; font-size: 1.15rem; font-weight: 700; color: #fff; }
+.how-card p { margin-top: 0.35rem; font-size: 0.82rem; line-height: 1.5; color: #94a3b8; }
+
+.hof-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+.hof-card {
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(28, 10, 17, 0.85));
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 22px rgba(245, 158, 11, 0.15);
+}
+.hof-crown { font-size: 1.5rem; }
+.hof-avatar {
+    width: 64px;
+    height: 64px;
+    margin: 0.5rem auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #f59e0b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #090507;
+}
+.hof-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hof-name { font-family: 'Rajdhani', sans-serif; font-size: 1.2rem; font-weight: 700; color: #fff; }
+.hof-event { margin-top: 0.15rem; font-size: 0.72rem; color: #fbbf24; }
+
+/* ==========================================================================
+   12. ESTADOS VACÍOS
+   ========================================================================== */
+.empty-state {
+    text-align: center;
+    padding: 2.5rem 1.5rem;
+    border-radius: 20px;
+    border: 1px dashed rgba(128, 0, 32, 0.6);
+    background: rgba(28, 10, 17, 0.45);
+}
+.empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.9rem;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.9rem;
+    color: #e6738c;
+    background: rgba(59, 17, 32, 0.6);
+    border: 1px solid rgba(128, 0, 32, 0.6);
+}
+.empty-state h3 { font-size: 1.2rem; font-weight: 700; color: #fff; }
+.empty-state p { margin-top: 0.3rem; font-size: 0.85rem; color: #94a3b8; max-width: 28rem; margin-left: auto; margin-right: auto; }
+
+/* ==========================================================================
+   13. TIERS: BUSCADOR, PODIO, TIER LIST, CAMBIOS DE POSICIÓN
+   ========================================================================== */
+.tiers-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.view-toggle {
+    display: inline-flex;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(128, 0, 32, 0.6);
+}
+.view-toggle button {
+    padding: 0.6rem 0.9rem;
+    background: #090507;
+    color: #94a3b8;
+    font-size: 1.05rem;
+    border-radius: 0;
+}
+.view-toggle button.active {
+    background: #800020;
+    color: #fff;
+}
+
+.rank-delta {
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+}
+.rank-delta.up { color: #34d399; }
+.rank-delta.down { color: #f43f5e; }
+
+/* --- Podio --- */
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.75rem;
+}
+.podium-card {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+    max-width: 210px;
+    min-width: 0;
+    text-align: center;
+    padding: 1rem 0.75rem;
+    border-radius: 18px;
+    background: rgba(28, 10, 17, 0.9);
+    border: 1px solid var(--tier-color, #c92a52);
+}
+.podium-card::before {
+    content: "";
+    position: absolute;
+    inset: -40% -20% auto -20%;
+    height: 90%;
+    background: radial-gradient(circle, var(--tier-color, #c92a52) 0%, transparent 65%);
+    opacity: 0.22;
+    pointer-events: none;
+}
+.podium-card > * { position: relative; }
+.podium-card.first {
+    padding-top: 1.6rem;
+    padding-bottom: 1.6rem;
+    border-color: #f59e0b;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+}
+.podium-card.second { border-color: #cbd5e1; }
+.podium-card.third  { border-color: #b45309; }
+
+.podium-medal { font-size: 1.6rem; line-height: 1; }
+.podium-card.first .podium-medal { font-size: 2rem; }
+
+.podium-avatar {
+    width: 56px;
+    height: 56px;
+    margin: 0.5rem auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--tier-color, #c92a52);
+    background: #090507;
+}
+.podium-card.first .podium-avatar { width: 76px; height: 76px; border-color: #f59e0b; }
+.podium-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.podium-name {
+    display: block;
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.podium-points {
+    margin-top: 0.2rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fbbf24;
+    line-height: 1.1;
+}
+.podium-points small { margin-left: 0.25rem; font-size: 0.65rem; color: #94a3b8; letter-spacing: 0.1em; }
+.podium-family {
+    margin-top: 0.25rem;
+    font-size: 0.68rem;
+    color: #94a3b8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* --- Vista "tier list" --- */
+.tierlist-row {
+    display: flex;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(128, 0, 32, 0.45);
+    background: rgba(28, 10, 17, 0.6);
+}
+.tierlist-label {
+    flex: 0 0 112px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 1rem 0.5rem;
+    background: var(--tier-color, #800020);
+    color: #fff;
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    text-align: center;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+    word-break: break-word;
+}
+.tierlist-label small { font-size: 0.65rem; opacity: 0.85; font-weight: 600; letter-spacing: 0.05em; }
+.tierlist-members {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+}
+.tier-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.65rem 0.4rem 0.45rem;
+    border-radius: 12px;
+    background: rgba(9, 5, 7, 0.85);
+    border: 1px solid rgba(128, 0, 32, 0.5);
+}
+.tier-chip img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.chip-name {
+    display: block;
+    max-width: 120px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.chip-pts { display: block; font-size: 0.65rem; color: #fbbf24; }
+
+/* ==========================================================================
+   14. BRACKET: LÍNEAS CONECTORAS
+   ========================================================================== */
+.bracket-lines {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: visible;
+    filter: drop-shadow(0 0 4px rgba(201, 42, 82, 0.9));
+}
+
+/* ==========================================================================
+   15. SORTEO DE CANCIÓN (RULETA)
+   ========================================================================== */
+.song-spinning {
+    color: #fbbf24 !important;
+    filter: blur(0.5px);
+}
+.song-landed {
+    animation: songLand 0.7s ease;
+}
+@keyframes songLand {
+    0%   { transform: scale(0.92); text-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+    50%  { transform: scale(1.06); text-shadow: 0 0 24px rgba(245, 158, 11, 0.9); }
+    100% { transform: scale(1); text-shadow: 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+/* ==========================================================================
+   16. MODALES PROPIOS
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(6, 3, 5, 0.75);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.18s ease both;
+}
+.modal-overlay.closing { animation: fadeOut 0.18s ease both; }
+
+.modal-box {
+    width: 100%;
+    max-width: 420px;
+    padding: 1.75rem 1.5rem 1.4rem;
+    text-align: center;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #2a0d18 0%, #1c0a11 100%);
+    border: 1px solid rgba(201, 42, 82, 0.55);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(201, 42, 82, 0.25);
+    animation: popIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+.modal-box.modal-danger {
+    border-color: rgba(239, 68, 68, 0.6);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 30px rgba(239, 68, 68, 0.25);
+}
+.modal-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 0.8rem;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.7rem;
+    color: #e6738c;
+    background: rgba(128, 0, 32, 0.35);
+    border: 1px solid rgba(201, 42, 82, 0.5);
+}
+.modal-danger .modal-icon {
+    color: #f87171;
+    background: rgba(127, 29, 29, 0.35);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+.modal-box h3 { font-size: 1.3rem; font-weight: 700; color: #fff; }
+.modal-box p { margin-top: 0.4rem; font-size: 0.88rem; line-height: 1.5; color: #cbd5e1; white-space: pre-line; }
+.modal-input {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.65rem 0.9rem;
+    text-align: center;
+    border-radius: 12px;
+    background: #090507;
+    border: 1px solid rgba(128, 0, 32, 0.7);
+    color: #fff;
+    font-size: 1rem;
+}
+.modal-input:focus { outline: none; border-color: #c92a52; }
+.modal-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.4rem;
+}
+.modal-btn {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+.modal-cancel { background: #1c0a11; color: #cbd5e1; border: 1px solid rgba(128, 0, 32, 0.7); }
+.modal-cancel:hover { background: #3b1120; }
+.modal-ok { background: #800020; color: #fff; }
+.modal-ok:hover { background: #a31d3f; }
+.modal-ok-danger { background: #b91c1c; color: #fff; }
+.modal-ok-danger:hover { background: #dc2626; }
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes popIn   { from { opacity: 0; transform: scale(0.9) translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* ==========================================================================
+   17. CARTA DE PERFIL COLECCIONABLE
+   ========================================================================== */
+.collectible {
+    position: relative;
+    overflow: hidden;
+    padding: 1.5rem 1.25rem 1.4rem;
+    text-align: center;
+    border-radius: 24px;
+    background: #1c0a11;
+    border: 2px solid var(--tier-color, #c92a52);
+    box-shadow: 0 0 36px rgba(0, 0, 0, 0.6);
+}
+.collectible::before {
+    content: "";
+    position: absolute;
+    inset: -30% -20% auto -20%;
+    height: 80%;
+    background: radial-gradient(circle, var(--tier-color, #c92a52) 0%, transparent 65%);
+    opacity: 0.3;
+    pointer-events: none;
+}
+.collectible > * { position: relative; }
+
+.collectible-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+.collectible-brand {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: #e6738c;
+}
+.collectible-tier {
+    padding: 0.2rem 0.7rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-transform: uppercase;
+}
+.collectible-avatar {
+    width: 128px;
+    height: 128px;
+    margin: 0 auto;
+    border-radius: 26px;
+    overflow: hidden;
+    background: #090507;
+    border: 3px solid var(--tier-color, #c92a52);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+}
+.collectible-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+.collectible-name {
+    margin-top: 0.9rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: #fff;
+    word-break: break-word;
+}
+.collectible-sub { font-size: 0.8rem; color: #94a3b8; }
+
+.collectible-points {
+    margin: 0.9rem 0;
+    font-family: 'Rajdhani', sans-serif;
+    color: #fbbf24;
+    line-height: 1;
+}
+.collectible-points span { font-size: 3rem; font-weight: 700; text-shadow: 0 0 20px rgba(245, 158, 11, 0.6); }
+.collectible-points small { margin-left: 0.3rem; font-size: 0.8rem; color: #94a3b8; letter-spacing: 0.15em; }
+
+.collectible-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    padding: 0.8rem 0;
+    margin-bottom: 0.8rem;
+    border-top: 1px solid rgba(128, 0, 32, 0.6);
+    border-bottom: 1px solid rgba(128, 0, 32, 0.6);
+}
+.collectible-label { display: block; font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #e6738c; }
+.collectible-value { display: block; margin-top: 0.15rem; font-size: 0.82rem; font-weight: 600; color: #f1f5f9; word-break: break-word; }
+
+.collectible-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+.collectible-chips span {
+    padding: 0.2rem 0.6rem;
+    border-radius: 8px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* ==========================================================================
+   18. FOOTER
+   ========================================================================== */
+.site-footer {
+    margin-top: 2rem;
+    border-top: 1px solid rgba(128, 0, 32, 0.45);
+    background: rgba(28, 10, 17, 0.7);
+}
+.social-btn {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.25rem;
+    color: #e6738c;
+    background: #090507;
+    border: 1px solid rgba(128, 0, 32, 0.6);
+    transition: all 0.25s;
+}
+.social-btn:hover {
+    color: #fff;
+    background: #800020;
+    transform: translateY(-2px);
+    box-shadow: 0 0 18px rgba(201, 42, 82, 0.5);
+}
+
+/* ==========================================================================
+   19. RESPONSIVE DE LAS NOVEDADES
+   ========================================================================== */
+@media (max-width: 767px) {
+    .how-grid { grid-template-columns: 1fr; }
+    .tierlist-label { flex-basis: 78px; font-size: 1.05rem; }
+    .chip-name { max-width: 90px; }
+    .orb-3 { display: none; }
+    .orb { filter: blur(60px); }
+}
+
+@media (max-width: 639px) {
+    .podium { gap: 0.4rem; padding-left: 0.5rem; padding-right: 0.5rem; }
+    .podium-card { padding: 0.75rem 0.4rem; }
+    .podium-avatar { width: 44px; height: 44px; }
+    .podium-card.first .podium-avatar { width: 58px; height: 58px; }
+    .podium-name { font-size: 0.9rem; }
+    .podium-points { font-size: 1.25rem; }
+    .stat { min-width: 92px; padding: 0.75rem 1rem; }
+    .stat-num { font-size: 1.8rem; }
+    .section-title { font-size: 1.4rem; }
+    .modal-box { padding: 1.5rem 1.1rem 1.2rem; }
+}
