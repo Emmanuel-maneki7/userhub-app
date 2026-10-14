@@ -13,7 +13,7 @@
 }
 
 /* ==========================================
-   0. TIPOGRAFÍA
+   0. TIPOGRAFÍA Y RUIDO DE FONDO
    ================================---------- */
 body,
 body.font-sans {
@@ -30,20 +30,18 @@ h1, h2, h3, h4, h5, th, .font-display {
     letter-spacing: 0.04em;
 }
 
-/* Números de puntos alineados */
 td.text-amber-400,
 td.font-extrabold,
 td.font-black {
     font-variant-numeric: tabular-nums;
 }
 
-/* Contraste: slate-500 era muy oscuro sobre fondo negro */
 body .text-slate-500 {
     color: #8b9bb0;
 }
 
 /* ==========================================
-   0.1 FONDO CON PROFUNDIDAD
+   0.1 FONDO CON PROFUNDIDAD Y LUCES AMBIENTALES
    ================================---------- */
 body::before {
     content: "";
@@ -52,50 +50,50 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: radial-gradient(circle at 50% 15%, rgba(120, 0, 40, 0.2) 0%, transparent 65%),
-                radial-gradient(circle at 10% 90%, rgba(80, 0, 25, 0.15) 0%, transparent 50%);
-    z-index: -1;
+    background: radial-gradient(circle at 30% 20%, rgba(120, 0, 40, 0.25) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(180, 83, 9, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 50% 90%, rgba(80, 0, 25, 0.2) 0%, transparent 50%);
+    z-index: -2;
     pointer-events: none;
+    animation: ambientPulse 12s ease-in-out infinite alternate;
 }
 
-/* Cuadrícula sutil que se desvanece hacia abajo */
+@keyframes ambientPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(1.05); opacity: 1; }
+}
+
+/* Textura de ruido tenue */
 body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-image:
-        linear-gradient(rgba(201, 42, 82, 0.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(201, 42, 82, 0.045) 1px, transparent 1px);
-    background-size: 48px 48px;
-    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
-    mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
-/* Brillo detrás del título principal (drop-shadow porque el texto es transparente) */
 #view-home h1 {
     filter: drop-shadow(0 0 22px rgba(201, 42, 82, 0.35));
 }
 
 /* ==========================================
-   1. TARJETAS INTERACTIVAS (glassmorphism solo donde importa)
+   1. TARJETAS INTERACTIVAS Y EFECTO 3D
    ================================---------- */
 .bg-wine-950\/60,
 .bg-wine-950\/80 {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
     transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s ease;
 }
 
-.group:hover,
-.view-section .bg-wine-950\/60:hover {
-    border-color: var(--border-wine-glow);
-    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25), inset 0 0 15px rgba(201, 42, 82, 0.05);
+.hover-card-3d:hover {
+    transform: perspective(800px) rotateX(1.5deg) rotateY(-1.5deg) translateY(-3px);
 }
 
-/* Transición suave entre vistas */
 .view-section {
     animation: viewIn 0.35s ease both;
 }
@@ -106,142 +104,156 @@ body::after {
 }
 
 /* ==========================================
-   2. EFECTOS DE NEÓN Y BRILLOS ESPECIALES
+   PODIO VISUAL DEL TOP 3
    ================================---------- */
-.neon-gold {
-    box-shadow: 0 0 25px var(--accent-gold-glow), inset 0 0 15px rgba(245, 158, 11, 0.25);
-    border-color: var(--accent-gold) !important;
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-top: 1.5rem;
 }
 
-.neon-wine {
-    box-shadow: 0 0 20px rgba(201, 42, 82, 0.5);
-    border-color: rgba(201, 42, 82, 0.9) !important;
+.podium-card {
+    flex: 1;
+    max-width: 190px;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(201, 42, 82, 0.18), rgba(28, 10, 17, 0.85));
+    border: 1px solid var(--tier-color, #c92a52);
+    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25);
+    position: relative;
+    transition: transform 0.3s ease;
 }
 
-.text-wine-500.uppercase, .text-wine-400.uppercase {
-    text-shadow: 0 0 8px rgba(230, 115, 140, 0.6);
-    letter-spacing: 0.1em;
+.podium-card:hover {
+    transform: translateY(-5px);
+}
+
+.podium-card.first {
+    transform: translateY(-18px);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(28, 10, 17, 0.9));
+}
+
+.podium-card.first:hover {
+    transform: translateY(-22px);
 }
 
 /* ==========================================
-   3. BRACKETS (SCROLL HORIZONTAL TÁCTIL)
+   2. ESTILO TIER LIST REAL (AVATARES EN FILA)
    ================================---------- */
-.overflow-x-auto {
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
+.tier-row {
+    display: flex;
+    align-items: stretch;
+    background: rgba(28, 10, 17, 0.7);
+    border: 1px solid rgba(128, 0, 32, 0.4);
+    border-radius: 16px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-/* ==========================================
-   4. TABLAS LIMPIAS Y PODIO
-   ================================---------- */
-tbody tr:nth-child(even) {
-    background-color: rgba(128, 0, 32, 0.08);
-}
-
-tr:has(td .bg-amber-500\/20), tr.bg-amber-500\/5 {
-    background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
-    border-left: 4px solid #f59e0b !important;
-    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
-}
-
-tr:has(td .bg-slate-300\/20) {
-    background: linear-gradient(90deg, rgba(203, 213, 225, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
-    border-left: 4px solid #cbd5e1 !important;
-}
-
-tr:has(td .bg-amber-700\/20) {
-    background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
-    border-left: 4px solid #b45309 !important;
-}
-
-/* ==========================================
-   5. NOTIFICACIONES TOAST
-   ================================---------- */
-#toast-container {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 9999;
+.tier-badge-box {
+    width: 90px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    pointer-events: none;
-    max-width: calc(100vw - 2rem);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    flex-shrink: 0;
 }
 
-.toast-item {
-    pointer-events: auto;
-    background: rgba(28, 10, 17, 0.95);
-    border: 1px solid rgba(201, 42, 82, 0.6);
-    border-left: 5px solid #c92a52;
-    color: #fff;
-    padding: 0.85rem 1.25rem;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(201, 42, 82, 0.3);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+.tier-members-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.tier-avatar-chip {
+    display: flex;
+    align-items: center.space-x-2;
+    background: rgba(9, 5, 7, 0.85);
+    border: 1px solid rgba(201, 42, 82, 0.3);
+    padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tier-avatar-chip:hover {
+    border-color: var(--tier-color, #c92a52);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(201, 42, 82, 0.3);
+}
+
+/* ==========================================
+   3. RACHAS Y CAMBIOS DE POSICIÓN
+   ================================---------- */
+.badge-trend-up { color: #34d399; font-size: 0.7rem; font-weight: 800; }
+.badge-trend-down { color: #f43f5e; font-size: 0.7rem; font-weight: 800; }
+.badge-streak { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 99px; font-weight: 900; }
+
+/* ==========================================
+   8. BRACKET CON LÍNEAS CONECTORAS
+   ================================---------- --> */
+.bracket-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    min-width: 750px;
+    position: relative;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 1.5rem;
+    position: relative;
+}
+
+/* ==========================================
+   10. MODAL PROPIO ESTILIZADO
+   ================================---------- */
+.custom-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 3, 5, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 99999;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    min-width: 240px;
-    max-width: 380px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    word-break: break-word;
-    animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
 }
 
-.toast-item.toast-success { border-left-color: #34d399; }
-.toast-item.toast-error   { border-left-color: #f43f5e; }
-.toast-item.toast-warning { border-left-color: #fbbf24; }
-.toast-item.toast-info    { border-left-color: #c92a52; }
-
-@keyframes toastIn {
-    from { opacity: 0; transform: translateX(50px) scale(0.9); }
-    to   { opacity: 1; transform: translateX(0) scale(1); }
+.custom-modal-box {
+    background: linear-gradient(135deg, #1c0a11 0%, #2e0d18 100%);
+    border: 1px solid rgba(201, 42, 82, 0.7);
+    border-radius: 20px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(201, 42, 82, 0.3);
+    animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 /* ==========================================
-   6. ANIMACIONES FLUIDAS EN VIVO
-   ================================---------- */
-@keyframes pulseGlow {
-    0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
-    50%      { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
-}
-
-@keyframes floatAnim {
-    0%, 100% { transform: translateY(0); }
-    50%      { transform: translateY(-4px); }
-}
-
-.animate-pulse-glow {
-    animation: pulseGlow 2.5s infinite ease-in-out;
-}
-
-.animate-bounce-short {
-    animation: floatAnim 4s infinite ease-in-out;
-}
-
-/* ==========================================
-   7. SKELETON DE CARGA (servidor de Render despertando)
-   ================================---------- */
-.skeleton {
-    background: linear-gradient(90deg,
-        rgba(92, 8, 29, 0.30) 25%,
-        rgba(128, 0, 32, 0.35) 50%,
-        rgba(92, 8, 29, 0.30) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.4s infinite linear;
-    border-radius: 16px;
-    border: 1px solid rgba(128, 0, 32, 0.3);
-}
-
-@keyframes shimmer {
-    to { background-position: -200% 0; }
-}
-
-/* ==========================================
-   BOTONES Y SCROLLBAR
+   EFECTO RIPPLE PARA BOTONES
    ================================---------- */
 button {
     position: relative;
@@ -253,213 +265,8 @@ button:active {
     transform: scale(0.97);
 }
 
-button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
-    filter: brightness(1.2);
-    box-shadow: 0 0 20px rgba(201, 42, 82, 0.4);
-}
-
-::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-::-webkit-scrollbar-track {
-    background: #060305;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #5c081d;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #800020;
-}
-
-/* ==========================================
-   8. RESPONSIVE: TABLET Y MÓVIL
-   ================================---------- */
-
-/* --- Navegación solo con íconos hasta pantallas grandes --- */
-@media (max-width: 1023px) {
-    #nav-actions button span {
-        display: none;
-    }
-    #nav-actions button i {
-        font-size: 1.25rem;
-    }
-    #nav-actions button {
-        padding: 0.6rem 0.8rem;
-    }
-}
-
-/* --- Móvil: barra de navegación inferior tipo app --- */
-@media (max-width: 639px) {
-    /* backdrop-filter en el header haría que el nav "fixed" se posicione dentro del header */
-    header {
-        -webkit-backdrop-filter: none !important;
-        backdrop-filter: none !important;
-        background-color: rgba(28, 10, 17, 0.97) !important;
-    }
-
-    #nav-actions {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        z-index: 50;
-        justify-content: space-around;
-        padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
-        background: rgba(28, 10, 17, 0.97);
-        -webkit-backdrop-filter: blur(12px);
-        backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(128, 0, 32, 0.5);
-        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    #nav-actions > * {
-        margin-left: 0 !important;
-    }
-
-    main {
-        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
-    }
-
-    /* Toasts arriba, ocupando el ancho */
-    #toast-container {
-        top: 0.75rem;
-        right: 0.75rem;
-        left: 0.75rem;
-        max-width: none;
-    }
-    .toast-item {
-        max-width: none;
-        min-width: 0;
-    }
-
-    /* Panel de torneo (admin): cabecera y botones apilados */
-    #swiss-admin-container > div:first-child {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-    }
-    #swiss-admin-container .flex.space-x-2 {
-        flex-wrap: wrap;
-        gap: 0.5rem;
-    }
-    #swiss-admin-container .flex.space-x-2 > * {
-        margin-left: 0 !important;
-    }
-
-    /* Enfrentamientos apilados */
-    #swiss-admin-container div:has(> .w-5\/12) {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
-    }
-    #swiss-admin-container .w-5\/12 {
-        width: 100%;
-    }
-    #swiss-admin-container div:has(> .w-5\/12) > .text-center,
-    #swiss-admin-container div:has(> .w-5\/12) > .px-2 {
-        text-align: center;
-    }
-    #swiss-admin-container .justify-end {
-        justify-content: flex-start;
-    }
-
-    /* Banner de canción del admin */
-    #swiss-admin-container .border-amber-500\/80 {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-    }
-}
-
-/* --- Tablas de Tiers: ocultar columnas secundarias (Familia y Modo) --- */
-@media (max-width: 767px) {
-    #public-tiers-container th:nth-child(n+4),
-    #public-tiers-container td:nth-child(n+4) {
-        display: none;
-    }
-    #public-tiers-container th,
-    #public-tiers-container td {
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-
-    /* Tabla del admin convertida en tarjetas */
-    #admin-table thead {
-        display: none;
-    }
-    #admin-table,
-    #admin-table tbody {
-        display: block;
-        width: 100%;
-    }
-    #admin-table-body tr {
-        display: block;
-        margin-bottom: 1rem;
-        padding: 0.75rem;
-        background: rgba(28, 10, 17, 0.6);
-        border: 1px solid rgba(128, 0, 32, 0.4) !important;
-        border-radius: 14px;
-    }
-    #admin-table-body td {
-        display: block;
-        padding: 0.5rem 0 !important;
-        text-align: left !important;
-    }
-    #admin-table-body td:first-child {
-        display: flex;
-    }
-    #admin-table-body td:nth-child(n+2)::before {
-        display: block;
-        margin-bottom: 0.35rem;
-        font-size: 10px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #e6738c;
-    }
-    #admin-table-body td:nth-child(2)::before { content: "Nombre / Rol"; }
-    #admin-table-body td:nth-child(3)::before { content: "Tiers y puntos"; }
-    #admin-table-body td:nth-child(4)::before { content: "Etiquetas"; }
-    #admin-table-body td:nth-child(5)::before { content: "Acción"; }
-}
-
-/* --- Dispositivos táctiles: tarjeta de perfil como bottom sheet --- */
-@media (hover: none) {
-    #user-hover-card {
-        left: 0;
-        right: 0;
-        bottom: 0;
-        width: 100%;
-        border-radius: 20px 20px 0 0;
-        pointer-events: auto !important;
-        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
-    }
-}
-
-@media (hover: none) and (max-width: 639px) {
-    /* Por encima de la barra inferior */
-    #user-hover-card {
-        bottom: 4.5rem;
-    }
-}
-
-/* --- Zonas táctiles mínimas (pantallas táctiles) --- */
-@media (pointer: coarse) {
-    button:not(.carousel-dot):not([onclick^="removeParticipant"]):not([onclick^="deleteTag"]),
-    select {
-        min-height: 40px;
-    }
-}
-
-/* --- Accesibilidad: respetar "reducir movimiento" --- */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation: none !important;
-        transition: none !important;
-    }
-}
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #060305; }
+::-webkit-scrollbar-thumb { background: #5c081d; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #800020; }
