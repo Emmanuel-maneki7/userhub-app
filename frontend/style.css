@@ -142,32 +142,37 @@ body::after {
 }
 
 /* ==========================================
-   2. ESTILO TIER LIST REAL (AVATARES EN FILA)
+   2. ESTILO TIER LIST REAL (CORREGIDO)
    ================================---------- */
 .tier-row {
     display: flex;
-    align-items: stretch;
+    align-items: center;
     background: rgba(28, 10, 17, 0.7);
     border: 1px solid rgba(128, 0, 32, 0.4);
     border-radius: 16px;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
     overflow: hidden;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .tier-badge-box {
-    width: 90px;
+    width: 130px;
+    min-width: 130px;
+    max-width: 130px;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 1rem 0.5rem;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 1.75rem;
+    font-size: 0.95rem;
     font-weight: 900;
     color: #fff;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    line-height: 1.2;
+    word-break: break-word;
     flex-shrink: 0;
+    text-transform: uppercase;
 }
 
 .tier-members-grid {
@@ -177,11 +182,12 @@ body::after {
     padding: 1rem;
     align-items: center;
     flex-grow: 1;
+    overflow-x: auto;
 }
 
 .tier-avatar-chip {
     display: flex;
-    align-items: center.space-x-2;
+    align-items: center;
     background: rgba(9, 5, 7, 0.85);
     border: 1px solid rgba(201, 42, 82, 0.3);
     padding: 0.35rem 0.75rem 0.35rem 0.35rem;
@@ -205,7 +211,7 @@ body::after {
 
 /* ==========================================
    8. BRACKET CON LÍNEAS CONECTORAS
-   ================================---------- --> */
+   ================================---------- */
 .bracket-container {
     display: flex;
     justify-content: space-around;
