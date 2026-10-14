@@ -1,4 +1,4 @@
-console.log("Sistema Audition World Class LATAM listo y conectado (Versión Esports Pro Max)");
+console.log("Sistema Audition World Class LATAM listo y conectado (Versión Esports Pro Max con Gestión de Roles)");
 
 // ===== SISTEMA DE NOTIFICACIONES TOAST =====
 (function injectToastStyles() {
@@ -121,11 +121,6 @@ let state = {
 };
 
 let activeTabId = null;
-
-if (!(state.currentUser && (state.currentUser.nickname?.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR' || state.currentUser.role === 'ADMIN'))) {
-    state.activeEvent = null;
-    localStorage.removeItem('uh_active_event');
-}
 
 function isPrivilegedUser() {
     return !!state.currentUser && (
@@ -316,7 +311,7 @@ function countUp(el, to, ms = 1200) {
 }
 
 function renderHomeStats() {
-    countUp(document.getElementById('stat-users'), state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin').length);
+    countUp(document.getElementById('stat-users'), state.users.length);
     countUp(document.getElementById('stat-tournaments'), state.eventHistory.length);
     countUp(document.getElementById('stat-clans'), Math.max(0, state.clans.length - 1));
 }
@@ -462,9 +457,8 @@ let tempParticipants = [];
 function populateRegisteredUsersSelect() {
     const select = document.getElementById('registered-user-select');
     if (!select) return;
-    const regOnly = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
     select.innerHTML = `<option value="">Seleccionar Usuario Registrado...</option>` +
-        regOnly.map(u => `<option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>`).join('');
+        state.users.map(u => `<option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>`).join('');
 }
 
 function populateClanFilter() {
@@ -1396,16 +1390,40 @@ async function removeUserTier(userId, tierId) {
     renderAdminUserTable();
 }
 
+// CAMBIAR ROL DIRECTAMENTE DESDE EL PANEL ADMIN
+async function changeUserRole(userId, newRole) {
+    try {
+        const res = await fetch(`${API_URL}/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole })
+        });
+
+        if (res.ok) {
+            showToast(`¡Rol actualizado a ${newRole} con éxito!`, 'success');
+            await fetchUsers();
+            renderAdminUserTable();
+        } else {
+            showToast("No se pudo cambiar el rol en el servidor.", "error");
+        }
+    } catch (e) {
+        console.error(e);
+        showToast("Error de conexión al intentar cambiar el rol.", "error");
+    }
+}
+
 function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
-    const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
-    tbody.innerHTML = allUsers.map(u => {
+
+    tbody.innerHTML = state.users.map(u => {
         const uname = u.nickname || u.name;
         const assign = state.assignments[uname] || { tagIds: [] };
         const ranks = u.tierRanks || [];
         const avail = state.tiers.filter(t => !ranks.map(r => r.tierId).includes(t.dbId));
         const userAvatar = getUserAvatar(u);
+        const currentRole = u.role || 'USER';
+
         return `
             <tr class="border-b border-wine-900/60 text-xs">
                 <td class="py-3 px-4 font-bold text-wine-400 flex items-center space-x-2">
@@ -1413,6 +1431,13 @@ function renderAdminUserTable() {
                     <span>${escapeHtml(uname)}</span>
                 </td>
                 <td class="py-3 px-4">${escapeHtml(u.nombres || '')}</td>
+                <td class="py-3 px-4">
+                    <select onchange="changeUserRole(${u.id}, this.value)" class="bg-wine-950 border border-wine-800 rounded px-2 py-1 text-white font-bold focus:border-amber-400">
+                        <option value="USER" ${currentRole === 'USER' ? 'selected' : ''}>JUGADOR</option>
+                        <option value="MODERATOR" ${currentRole === 'MODERATOR' ? 'selected' : ''}>MODERADOR</option>
+                        <option value="ADMIN" ${currentRole === 'ADMIN' ? 'selected' : ''}>ADMINISTRADOR</option>
+                    </select>
+                </td>
                 <td class="py-3 px-4 space-y-1">
                     ${ranks.map(r => `<div class="flex items-center space-x-2"><span class="px-2 py-0.5 rounded text-white text-[10px]" style="background:${r.tier.color}">${r.tier.name}</span><input type="number" value="${r.puntos}" onchange="updateUserTierPoints(${u.id},${r.tierId}, this.value)" class="w-14 bg-wine-950 border rounded text-center text-amber-400"> pts <button onclick="removeUserTier(${u.id},${r.tierId})" class="text-red-400">×</button></div>`).join('')}
                     ${avail.length > 0 ? `<select onchange="addUserToTier(${u.id}, this.value)" class="bg-wine-950 border rounded p-1"><option value="">+ Añadir Tier...</option>${avail.map(t => `<option value="${t.dbId}">${t.name}</option>`).join('')}</select>` : ''}
@@ -1422,7 +1447,9 @@ function renderAdminUserTable() {
                         ${state.tags.map(t => `<button onclick="toggleUserTag('${uname}', '${t.id}')" class="px-2 py-0.5 rounded text-[10px] ${assign.tagIds.includes(t.id) ? 'text-white' : 'text-slate-500 bg-[#090507]'}" style="${assign.tagIds.includes(t.id) ? 'background:'+t.color : ''}">${t.name}</button>`).join('')}
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center"><button onclick="deleteUserByAdmin(${u.id}, '${uname}')" class="text-red-400"><i class="ph-bold ph-trash"></i></button></td>
+                <td class="py-3 px-4 text-center">
+                    <button onclick="deleteUserByAdmin(${u.id}, '${uname}')" class="text-red-400 hover:text-red-300"><i class="ph-bold ph-trash"></i></button>
+                </td>
             </tr>
         `;
     }).join('');
@@ -1500,7 +1527,7 @@ function renderPublicTiers() {
         let members = [];
         state.users.forEach(u => {
             const uname = u.nickname || u.name;
-            if (!uname || uname.toLowerCase() === 'admin') return;
+            if (!uname) return;
             const rank = (u.tierRanks || []).find(r => Number(r.tierId) === Number(tier.dbId));
             if (rank) members.push({ user: u, puntos: rank.puntos });
         });
