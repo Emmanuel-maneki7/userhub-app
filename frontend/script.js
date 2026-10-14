@@ -65,7 +65,7 @@ function getUserAvatar(u) {
     return raw.trim();
 }
 
-// ===== MODALES PROPIOS =====
+// ===== MODAL PROPIO =====
 function showCustomModal(title, message, isConfirm = false, callback = null) {
     let container = document.getElementById('custom-modal-container');
     if (!container) {
@@ -75,9 +75,9 @@ function showCustomModal(title, message, isConfirm = false, callback = null) {
     }
 
     container.innerHTML = `
-        <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-            <div class="bg-gradient-to-b from-[#2a0d18] to-[#090507] border-2 border-wine-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+        <div class="custom-modal-backdrop">
+            <div class="custom-modal-box space-y-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2 font-display">
                     <i class="ph-bold ph-warning-circle text-amber-400"></i> ${escapeHtml(title)}
                 </h3>
                 <p class="text-slate-300 text-sm leading-relaxed">${escapeHtml(message)}</p>
@@ -346,7 +346,7 @@ function renderHallOfFame() {
     const hof = document.getElementById('home-hall-of-fame');
     if (!hof) return;
     if (state.eventHistory.length === 0) {
-        hof.innerHTML = `<span class="text-slate-500 italic">Aún no hay campeones registrados. ¡Participa en los próximos torneos!</span>`;
+        hof.innerHTML = `<span class="text-slate-500 italic text-xs">Aún no hay campeones registrados. ¡Participa en los próximos torneos!</span>`;
         return;
     }
     hof.innerHTML = state.eventHistory.slice(0, 3).map(evt => {
@@ -372,11 +372,11 @@ function renderNavActions() {
             <button onclick="navigateTo('view-events')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800"><i class="ph-bold ph-calendar-star"></i><span>Eventos</span></button>
             <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800"><i class="ph-bold ph-ranking"></i><span>Tiers</span></button>
             ${isPriv ? `
-                <button onclick="navigateTo('view-event-history')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800"><i class="ph-bold ph-clock-counter-clockwise"></i></button>
-                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold shadow-md"><i class="ph-bold ph-shield-check"></i><span>Admin</span></button>
+                <button onclick="navigateTo('view-event-history')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800" title="Historial"><i class="ph-bold ph-clock-counter-clockwise"></i></button>
+                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold shadow-md flex items-center space-x-1"><i class="ph-bold ph-shield-check"></i><span>Admin</span></button>
             ` : ''}
-            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800"><i class="ph-bold ph-user"></i></button>
-            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 text-xs font-semibold border border-red-900/50"><i class="ph-bold ph-sign-out"></i></button>
+            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800" title="Mi Carta"><i class="ph-bold ph-user"></i></button>
+            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 text-xs font-semibold border border-red-900/50" title="Cerrar Sesión"><i class="ph-bold ph-sign-out"></i></button>
         `;
         if (ctaButtons) {
             ctaButtons.innerHTML = `
@@ -386,9 +386,9 @@ function renderNavActions() {
         }
     } else {
         navContainer.innerHTML = `
-            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800"><i class="ph-bold ph-ranking"></i><span>Tiers</span></button>
-            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold border border-wine-800"><i class="ph-bold ph-sign-in"></i><span>Ingresar</span></button>
-            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold"><i class="ph-bold ph-user-plus"></i><span>Registrarse</span></button>
+            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800 flex items-center space-x-1"><i class="ph-bold ph-ranking"></i><span>Tiers</span></button>
+            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold border border-wine-800 flex items-center space-x-1"><i class="ph-bold ph-sign-in"></i><span>Ingresar</span></button>
+            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1"><i class="ph-bold ph-user-plus"></i><span>Registrarse</span></button>
         `;
         if (ctaButtons) {
             ctaButtons.innerHTML = `
@@ -950,14 +950,14 @@ function renderTournamentAdmin() {
                         <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900 shadow-md">
                             <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : ''}">
                                 ${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
-                                <span class="text-xs truncate" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerA.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerA.name)}</span>
+                                <span class="text-xs truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerA.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerA.name)}</span>
                                 <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1},${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold ml-auto">✔️ Ganador</button>
                             </div>
                             <div class="text-xs font-black text-wine-400 px-2">VS</div>
                             <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : ''}">
                                 ${m.playerB ? `
                                     <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold mr-auto">✔️ Ganador</button>
-                                    <span class="text-xs truncate" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerB.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerB.name)}</span>
+                                    <span class="text-xs truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerB.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerB.name)}</span>
                                     ${m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
                                 ` : '<span class="text-xs text-slate-500 italic">LIBRE</span>'}
                             </div>
@@ -1133,42 +1133,6 @@ function renderEventHistory() {
     `).join('');
 }
 
-// ===== DROPDOWN DE MODOS DE PERFIL =====
-function toggleModeDropdown() {
-    const menu = document.getElementById('mode-dropdown-menu');
-    if (menu) menu.classList.toggle('hidden');
-}
-
-function handleModeCheckboxChange(cb) {
-    const allCb = document.getElementById('cb-all-modes');
-    if (allCb) allCb.checked = false;
-    updateModeBtnText();
-}
-
-function handleAllModesToggle(allCb) {
-    const checkboxes = document.querySelectorAll('.mode-cb');
-    checkboxes.forEach(cb => cb.checked = allCb.checked);
-    updateModeBtnText();
-}
-
-function updateModeBtnText() {
-    const btnText = document.getElementById('mode-btn-text');
-    const allCb = document.getElementById('cb-all-modes');
-    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
-
-    if (!btnText) return;
-    if (allCb && allCb.checked) btnText.textContent = "ALL MODES";
-    else if (selected.length === 0) btnText.textContent = "Seleccionar modos...";
-    else btnText.textContent = selected.join(', ');
-}
-
-function getSelectedModes() {
-    const allCb = document.getElementById('cb-all-modes');
-    if (allCb && allCb.checked) return ['ALL MODES'];
-    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
-    return selected.length > 0 ? selected : ['NORMAL'];
-}
-
 // AUTENTICACIÓN Y PERFIL
 async function handleRegister(e) {
     e.preventDefault();
@@ -1302,7 +1266,7 @@ async function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
     const nombres = document.getElementById('prof-nombres').value;
-    const modo = getSelectedModes();
+    const modo = ['NORMAL'];
     const familia = document.getElementById('prof-familia').value;
     const avatar = document.getElementById('prof-avatar').value.trim();
     const genero = document.getElementById('prof-genero').value;
@@ -1322,14 +1286,10 @@ async function handleSaveProfile(e) {
 
 function fillProfileEditForm() {
     if (!state.currentUser) return;
-    const nickEl = document.getElementById('prof-nickname');
-    if (nickEl) nickEl.value = state.currentUser.nickname;
     const nomEl = document.getElementById('prof-nombres');
     if (nomEl) nomEl.value = state.currentUser.nombres || '';
     const avEl = document.getElementById('prof-avatar');
     if (avEl) avEl.value = getUserAvatar(state.currentUser);
-    const prevEl = document.getElementById('avatar-preview');
-    if (prevEl) prevEl.src = getUserAvatar(state.currentUser);
     const genEl = document.getElementById('prof-genero');
     if (genEl) genEl.value = state.currentUser.genero || 'Otros';
     const clanSelect = document.getElementById('prof-familia');
@@ -1410,16 +1370,6 @@ function renderAdminTagsList() {
     const c = document.getElementById('admin-tags-list');
     if (!c) return;
     c.innerHTML = state.tags.map(t => `<span class="px-2 py-1 rounded text-xs text-white" style="background:${t.color}">${t.name} <button onclick="deleteTag('${t.id}')">×</button></span>`).join('');
-}
-
-async function handleCreateClan(e) {
-    e.preventDefault();
-    const name = document.getElementById('clan-name').value.trim();
-    if (!name) return;
-    await fetch(`${API_BASE}/clans`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-    document.getElementById('clan-name').value = '';
-    await fetchGlobalConfig();
-    renderAdminPanel();
 }
 
 function renderAdminClansList() {
@@ -1574,10 +1524,9 @@ function renderPublicTiers() {
                     <span class="text-xs px-2.5 py-1 rounded-full bg-wine-900 text-wine-300 font-mono">${members.length} jugadores</span>
                 </div>
 
-                <!-- 1. PODIO VISUAL DEL TOP 3 CON MEDALLAS METÁLICAS -->
+                <!-- 1. PODIO VISUAL DEL TOP 3 -->
                 ${top3.length > 0 ? `
                     <div class="podium">
-                        <!-- 2do Puesto -->
                         ${top3[1] ? `
                             <div class="podium-card" style="--tier-color: ${tier.color}">
                                 <div class="text-xl">🥈</div>
@@ -1586,14 +1535,12 @@ function renderPublicTiers() {
                                 <span class="text-amber-400 font-black text-xs">${top3[1].puntos} pts</span>
                             </div>
                         ` : ''}
-                        <!-- 1er Puesto -->
                         <div class="podium-card first" style="--tier-color: ${tier.color}">
                             <div class="text-2xl">🥇</div>
                             <img src="${escapeHtml(getUserAvatar(top3[0].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-16 h-16 rounded-full object-cover mx-auto border-2 border-amber-400 my-2 shadow-lg">
                             <h4 class="font-bold text-sm text-white truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(top3[0].user.nickname \vert{}\vert{} top3[0].user.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(top3[0].user.nickname || top3[0].user.name)}</h4>
                             <span class="text-amber-400 font-black text-sm">${top3[0].puntos} pts</span>
                         </div>
-                        <!-- 3er Puesto -->
                         ${top3[2] ? `
                             <div class="podium-card" style="--tier-color: ${tier.color}">
                                 <div class="text-xl">🥉</div>
@@ -1605,7 +1552,7 @@ function renderPublicTiers() {
                     </div>
                 ` : ''}
 
-                <!-- 2. TIER LIST REAL CON CHIPS INTERACTIVOS -->
+                <!-- 2. TIER LIST REAL -->
                 ${rest.length > 0 ? `
                     <div class="tier-row">
                         <div class="tier-badge-box" style="background: ${tier.color}">
@@ -1678,14 +1625,13 @@ function escapeHtml(str) {
 }
 
 let currentSlide = 0;
-const totalSlides = 2;
+const totalSlides = 1;
 function updateCarousel() {
     const c = document.getElementById('carousel-slides');
     if (c) c.style.transform = `translateX(-${currentSlide * 100}%)`;
 }
 function nextSlide() { currentSlide = (currentSlide + 1) % totalSlides; updateCarousel(); }
 function prevSlide() { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); }
-function goToSlide(i) { currentSlide = i; updateCarousel(); }
 
 document.addEventListener('DOMContentLoaded', () => {
     const reg = document.getElementById('form-register');
