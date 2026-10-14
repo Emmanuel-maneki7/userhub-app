@@ -6,41 +6,47 @@
     <meta name="theme-color" content="#1c0a11">
     <title>AUDITION WORLD CLASS LATAM - Ranking & Torneos</title>
 
-    <!-- PWA Manifest & Icons -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="logo.jpg">
-
-    <!-- Fuentes: Inter + Rajdhani -->
+    <!-- Fuentes: Inter (texto) + Rajdhani (títulos estilo esports) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS & Phosphor Icons & html2canvas & Confetti -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons CDN -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
                         display: ['Rajdhani', 'Inter', 'sans-serif']
                     },
                     colors: {
                         wine: {
-                            50: '#fdf2f4', 100: '#fbe5e9', 200: '#f7ced6', 300: '#f1a7b6',
-                            400: '#e6738c', 500: '#c92a52', 600: '#a31d3f', 700: '#800020',
-                            800: '#5c081d', 900: '#3b1120', 950: '#1c0a11'
+                            50: '#fdf2f4',
+                            100: '#fbe5e9',
+                            200: '#f7ced6',
+                            300: '#f1a7b6',
+                            400: '#e6738c',
+                            500: '#c92a52',
+                            600: '#a31d3f',
+                            700: '#800020',
+                            800: '#5c081d',
+                            900: '#3b1120',
+                            950: '#1c0a11'
                         }
                     }
                 }
             }
         }
     </script>
+
+    <!-- Evita que el JS inyecte estilos de toast duplicados: se usan los de style.css -->
     <style id="toast-styles"></style>
+
+    <!-- ARCHIVO DE ESTILOS EXTERNO -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-[#090507] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-wine-600 selection:text-white">
@@ -50,135 +56,92 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
             <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" onclick="navigateTo('view-home')">
                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-lg shadow-wine-900/50 border border-wine-700/50 flex-shrink-0">
-                    <img src="logo.jpg" alt="Logo" class="w-full h-full object-cover">
+                    <img src="logo.jpg" alt="Audition World Class LATAM Logo" class="w-full h-full object-cover">
                 </div>
                 <div class="truncate">
-                    <span class="font-display text-lg sm:text-xl font-bold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase block">
+                    <span class="font-display text-lg sm:text-lg md:text-xl font-bold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase whitespace-nowrap block">
                         <span class="sm:hidden">AWC LATAM</span>
                         <span class="hidden sm:inline">AUDITION WORLD CLASS LATAM</span>
                     </span>
                 </div>
             </div>
-            <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0" id="nav-actions"></div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0" id="nav-actions">
+                <!-- Botones inyectados dinámicamente -->
+            </div>
         </div>
     </header>
 
     <!-- MAIN CONTENT AREA -->
     <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
 
-        <!-- VIEW 1: HOME / LANDING CON HERO Y DATOS EN VIVO -->
-        <section id="view-home" class="view-section transition-opacity duration-300 space-y-12">
-            
-            <!-- Franja de Torneo en Vivo si lo hay -->
-            <div id="home-live-banner" class="hidden"></div>
-
-            <div class="text-center max-w-4xl mx-auto py-6 sm:py-10 space-y-6">
+        <!-- VIEW 1: HOME / LANDING -->
+        <section id="view-home" class="view-section transition-opacity duration-300">
+            <div class="text-center max-w-4xl mx-auto py-8 sm:py-12 space-y-8">
                 <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-wine-900/50 border border-wine-700/50 text-wine-300 text-xs font-semibold">
                     <i class="ph-bold ph-trophy text-wine-400"></i>
-                    <span>Comunidad Competitiva Oficial en LATAM</span>
+                    <span>Comunidad Competitiva LATAM</span>
                 </div>
-                <h1 class="text-4xl sm:text-6xl font-black tracking-tight bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase font-display">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase">
                     Audition World Class Ranking
                 </h1>
                 <p class="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-                    Compite en tus modos preferidos, participa en torneos con formato suizo y demuestra tu nivel en toda la región.
+                    Compite en tus modos preferidos, participa en eventos con formato suizo y demuestra tu nivel en la región.
                 </p>
-                <div id="home-cta-buttons" class="flex flex-wrap items-center justify-center gap-4 pt-2"></div>
-            </div>
+                <div id="home-cta-buttons" class="flex flex-wrap items-center justify-center gap-4">
+                    <!-- Botones dinámicos -->
+                </div>
 
-            <!-- CONTADORES ANIMADOS EN VIVO -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-                <div class="bg-wine-950/60 border border-wine-900 p-6 rounded-2xl text-center shadow-xl hover-card-3d">
-                    <i class="ph-bold ph-users text-3xl text-wine-400 mb-2"></i>
-                    <div id="stat-users" class="text-3xl font-black text-white font-display">0</div>
-                    <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Jugadores Registrados</div>
-                </div>
-                <div class="bg-wine-950/60 border border-wine-900 p-6 rounded-2xl text-center shadow-xl hover-card-3d">
-                    <i class="ph-bold ph-medal text-3xl text-amber-400 mb-2"></i>
-                    <div id="stat-tournaments" class="text-3xl font-black text-white font-display">0</div>
-                    <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Torneos Realizados</div>
-                </div>
-                <div class="bg-wine-950/60 border border-wine-900 p-6 rounded-2xl text-center shadow-xl hover-card-3d">
-                    <i class="ph-bold ph-users-three text-3xl text-wine-400 mb-2"></i>
-                    <div id="stat-clans" class="text-3xl font-black text-white font-display">0</div>
-                    <div class="text-xs text-slate-400 uppercase tracking-wider mt-1">Familias Activas</div>
-                </div>
-            </div>
-
-            <!-- CARRUSEL DE ANUNCIOS -->
-            <div class="pt-4">
-                <div class="relative w-full max-w-md sm:max-w-lg mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/90 group">
-                    <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full aspect-[210/297] max-h-[70vh]">
-                        <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
-                            <img src="anuncio1.png" alt="Anuncio 1" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+1+A4'">
+                <!-- CARRUSEL DE ANUNCIOS FORMATO A4 -->
+                <div class="pt-6">
+                    <div class="relative w-full max-w-md sm:max-w-lg mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/90 group">
+                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full aspect-[210/297] max-h-[75vh]">
+                            <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
+                                <img src="anuncio1.png" alt="Anuncio 1" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+1+A4'">
+                            </div>
+                            <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
+                                <img src="anuncio2.png" alt="Anuncio 2" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+2+A4'">
+                            </div>
                         </div>
-                        <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
-                            <img src="anuncio2.png" alt="Anuncio 2" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+2+A4'">
+
+                        <button onclick="prevSlide()" aria-label="Anuncio anterior" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                            <i class="ph-bold ph-caret-left text-lg"></i>
+                        </button>
+                        <button onclick="nextSlide()" aria-label="Anuncio siguiente" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                            <i class="ph-bold ph-caret-right text-lg"></i>
+                        </button>
+
+                        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/90 px-3 py-1.5 rounded-full border border-wine-800/80 z-10">
+                            <button onclick="goToSlide(0)" aria-label="Ir al anuncio 1" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
+                            <button onclick="goToSlide(1)" aria-label="Ir al anuncio 2" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
                         </div>
                     </div>
-                    <button onclick="prevSlide()" aria-label="Anterior" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10"><i class="ph-bold ph-caret-left"></i></button>
-                    <button onclick="nextSlide()" aria-label="Siguiente" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10"><i class="ph-bold ph-caret-right"></i></button>
-                    <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/90 px-3 py-1.5 rounded-full border border-wine-800/80 z-10">
-                        <button onclick="goToSlide(0)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
-                        <button onclick="goToSlide(1)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
-                    </div>
                 </div>
-            </div>
 
-            <!-- SECCIONES DE CREDIBILIDAD (REGLAMENTO / HALL OF FAME) -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-wine-900/80">
-                <div class="bg-wine-950/60 border border-wine-900 p-6 rounded-2xl space-y-4">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <i class="ph-bold ph-book-open text-wine-400"></i> Sistema Suizo & Reglamento
-                    </h3>
-                    <p class="text-slate-400 text-sm leading-relaxed">
-                        Los torneos utilizan el Sistema Suizo: compites contra rivales con tus mismos puntos en cada ronda sin quedar eliminado. Los mejores pasan a los PlayOffs eliminatorios.
-                    </p>
-                    <ul class="text-xs text-slate-300 space-y-2">
-                        <li class="flex items-center gap-2"><i class="ph-bold ph-check text-wine-400"></i> Sorteo aleatorio de canciones en vivo por cada ronda.</li>
-                        <li class="flex items-center gap-2"><i class="ph-bold ph-check text-wine-400"></i> Puntajes oficiales registrados en el ranking de Tiers.</li>
-                    </ul>
-                </div>
-                <div class="bg-wine-950/60 border border-wine-900 p-6 rounded-2xl space-y-4">
-                    <h3 class="text-lg font-bold text-white flex items-center gap-2">
-                        <i class="ph-bold ph-crown text-amber-400"></i> Hall of Fame (Historial Reciente)
-                    </h3>
-                    <div id="home-hall-of-fame" class="space-y-2 text-xs text-slate-300">
-                        <span class="text-slate-500 italic">Cargando campeones históricos...</span>
-                    </div>
-                </div>
             </div>
         </section>
 
-        <!-- VIEW 2: TABLA DE TIERS (CON BÚSQUEDA Y FILTRO) -->
+        <!-- VIEW 2: TABLA DE TIERS -->
         <section id="view-tiers" class="view-section hidden transition-opacity duration-300 space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-wine-900/80 pb-4 gap-4">
+            <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
                     <h2 class="text-2xl font-bold text-slate-100 uppercase tracking-wide flex items-center gap-2">
                         <i class="ph-bold ph-ranking text-wine-400"></i>
                         <span>Tablas de Clasificación TIER</span>
                     </h2>
-                    <p class="text-sm text-slate-400">Clasificación oficial en formato Tier List real.</p>
-                </div>
-                <!-- Buscador y Filtro por Clan -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <div class="relative">
-                        <i class="ph-bold ph-magnifying-glass absolute left-3 top-3 text-wine-400"></i>
-                        <input type="text" id="tier-search-input" oninput="filterTierTable()" placeholder="Buscar jugador..." class="bg-wine-950 border border-wine-900 rounded-xl py-2 pl-9 pr-4 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-wine-500 w-44 sm:w-56">
-                    </div>
-                    <select id="tier-clan-filter" onchange="filterTierTable()" class="bg-wine-950 border border-wine-900 rounded-xl py-2 px-3 text-xs text-slate-300 focus:outline-none focus:border-wine-500">
-                        <option value="">Todas las Familias</option>
-                    </select>
+                    <p class="text-sm text-slate-400">Clasificación oficial por modos de juego y categoría.</p>
                 </div>
             </div>
 
             <div id="tabs-navigation" class="flex flex-wrap gap-2 pb-2"></div>
             <div id="public-tiers-container" class="space-y-6">
+                <!-- Skeleton mientras el servidor responde (se reemplaza al cargar) -->
+                <div class="skeleton h-40"></div>
                 <div class="skeleton h-40"></div>
             </div>
         </section>
 
-        <!-- VIEW 3: EVENTOS EN VIVO -->
+        <!-- VIEW 3: EVENTOS EN VIVO PARA JUGADORES/VISITANTES -->
         <section id="view-events" class="view-section hidden transition-opacity duration-300 space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
@@ -186,15 +149,17 @@
                         <i class="ph-bold ph-calendar-star text-wine-400"></i>
                         <span>Eventos & Torneos Oficiales</span>
                     </h2>
-                    <p class="text-sm text-slate-400">Sigue los enfrentamientos y la ruleta de canciones en tiempo real.</p>
+                    <p class="text-sm text-slate-400">Sigue los enfrentamientos y la canción sorteada del torneo en tiempo real.</p>
                 </div>
             </div>
+
             <div id="user-events-view-container">
+                <!-- Skeleton mientras el servidor responde (se reemplaza al cargar) -->
                 <div class="skeleton h-56"></div>
             </div>
         </section>
 
-        <!-- VIEW 4: HISTORIAL DE EVENTOS -->
+        <!-- VIEW 4: HISTORIAL DE EVENTOS (ADMIN/MOD) -->
         <section id="view-event-history" class="view-section hidden transition-opacity duration-300 space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
@@ -202,9 +167,10 @@
                         <i class="ph-bold ph-clock-counter-clockwise text-wine-400"></i>
                         <span>Historial de Eventos Finalizados</span>
                     </h2>
-                    <p class="text-sm text-slate-400">Registro histórico de tablas y brackets.</p>
+                    <p class="text-sm text-slate-400">Registro histórico de tablas de posiciones y brackets.</p>
                 </div>
             </div>
+
             <div id="history-events-container" class="space-y-6"></div>
         </section>
 
@@ -218,25 +184,30 @@
                     <h2 class="text-2xl font-bold text-white">Iniciar Sesión</h2>
                     <p class="text-slate-400 text-sm mt-1">Ingresa a tu cuenta para verificar tu posición</p>
                 </div>
+
                 <form id="form-login" class="space-y-5">
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Nickname</label>
                         <div class="relative">
                             <i class="ph-bold ph-user absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="text" id="login-nickname" required placeholder="Tu nickname" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 text-sm">
+                            <input type="text" id="login-nickname" required placeholder="Tu nickname registrado" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Contraseña</label>
                         <div class="relative">
                             <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 text-sm">
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                         </div>
                     </div>
+
                     <button type="submit" class="w-full py-3 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center justify-center space-x-2">
-                        <span>Ingresar</span><i class="ph-bold ph-arrow-right"></i>
+                        <span>Ingresar</span>
+                        <i class="ph-bold ph-arrow-right"></i>
                     </button>
                 </form>
+
                 <div class="mt-6 pt-6 border-t border-wine-900/80 text-center text-xs text-slate-400">
                     <p>¿No tienes cuenta? <button onclick="navigateTo('view-register')" class="text-wine-400 hover:underline font-semibold">Regístrate gratis</button></p>
                 </div>
@@ -253,36 +224,42 @@
                     <h2 class="text-2xl font-bold text-white">Crear Cuenta</h2>
                     <p class="text-slate-400 text-sm mt-1">Únete a Audition World Class LATAM</p>
                 </div>
+
                 <form id="form-register" class="space-y-5">
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Nickname</label>
                         <div class="relative">
                             <i class="ph-bold ph-at absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="text" id="reg-nickname" required placeholder="Tu nickname de Audition" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 text-sm">
+                            <input type="text" id="reg-nickname" required placeholder="Tu nickname de Audition" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Contraseña</label>
                         <div class="relative">
                             <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="password" id="reg-password" required placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 text-sm">
+                            <input type="password" id="reg-password" required placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Género</label>
                         <div class="relative">
                             <i class="ph-bold ph-gender-intersex absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <select id="reg-genero" required class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 focus:outline-none focus:border-wine-500 text-sm">
+                            <select id="reg-genero" required class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 focus:outline-none focus:border-wine-500 transition-all text-sm">
                                 <option value="Hombre">Hombre</option>
                                 <option value="Mujer">Mujer</option>
                                 <option value="Otros" selected>Otros</option>
                             </select>
                         </div>
                     </div>
+
                     <button type="submit" class="w-full py-3 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center justify-center space-x-2">
-                        <span>Registrarse</span><i class="ph-bold ph-arrow-right"></i>
+                        <span>Registrarse</span>
+                        <i class="ph-bold ph-arrow-right"></i>
                     </button>
                 </form>
+
                 <div class="mt-6 pt-6 border-t border-wine-900/80 text-center text-xs text-slate-400">
                     <p>¿Ya tienes cuenta? <button onclick="navigateTo('view-login')" class="text-wine-400 hover:underline font-semibold">Inicia Sesión</button></p>
                 </div>
@@ -301,79 +278,126 @@
                         <p class="text-slate-400 text-sm">Configura la información visible de tu cuenta.</p>
                     </div>
                 </div>
+
                 <form id="form-profile-edit" onsubmit="handleSaveProfile(event)" class="space-y-6">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nickname</label>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nickname (Identificador)</label>
                         <input type="text" id="prof-nickname" disabled class="w-full bg-[#090507]/60 border border-wine-900/80 rounded-xl py-2.5 px-4 text-slate-400 text-sm font-mono cursor-not-allowed">
                     </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Nombres Completos</label>
-                        <input type="text" id="prof-nombres" required class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-wine-500 text-sm">
+                        <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Nombres Completo</label>
+                        <input type="text" id="prof-nombres" required placeholder="Ej: Carlos Eduardo" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                     </div>
+
                     <div>
-                        <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">URL de Avatar</label>
+                        <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">URL de Foto de Perfil / Avatar</label>
                         <div class="flex items-center space-x-3">
                             <div class="w-12 h-12 rounded-xl overflow-hidden bg-[#090507] border border-wine-800 flex-shrink-0">
                                 <img id="avatar-preview" src="https://i.imgur.com/6VBx3io.png" alt="Preview" class="w-full h-full object-cover">
                             </div>
-                            <input type="url" id="prof-avatar" oninput="document.getElementById('avatar-preview').src = this.value || 'https://i.imgur.com/6VBx3io.png'" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 text-sm">
+                            <input type="url" id="prof-avatar" placeholder="https://i.imgur.com/tu-foto.jpg" 
+                                   oninput="document.getElementById('avatar-preview').src = this.value || 'https://i.imgur.com/6VBx3io.png'"
+                                   class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Género</label>
-                        <select id="prof-genero" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-wine-500 text-sm">
+                        <select id="prof-genero" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-wine-500 transition-all text-sm">
                             <option value="Hombre">Hombre</option>
                             <option value="Mujer">Mujer</option>
                             <option value="Otros">Otros</option>
                         </select>
                     </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div class="relative">
                             <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">MODO PREFERIDO</label>
-                            <button type="button" onclick="toggleModeDropdown()" id="mode-dropdown-btn" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 text-sm text-left flex justify-between items-center focus:outline-none">
+                            <button type="button" onclick="toggleModeDropdown()" id="mode-dropdown-btn" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 text-sm text-left flex justify-between items-center focus:outline-none focus:border-wine-500">
                                 <span id="mode-btn-text" class="truncate">Seleccionar modos...</span>
                                 <i class="ph-bold ph-caret-down text-wine-400"></i>
                             </button>
+
                             <div id="mode-dropdown-menu" class="hidden absolute left-0 right-0 top-full mt-2 bg-wine-950 border border-wine-800 rounded-xl shadow-2xl p-2 z-50 max-h-56 overflow-y-auto space-y-1">
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="NORMAL" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>NORMAL</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="BEAT UP" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>BEAT UP</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="BEAT RUSH" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>BEAT RUSH</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="SHOOTING STAR" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>SHOOTING STAR</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="ONE TWO PARTY" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>ONE TWO PARTY</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="BLOCK BEAT" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>BLOCK BEAT</span></label>
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs"><input type="checkbox" value="GUITAR MODE" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600"><span>GUITAR MODE</span></label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="NORMAL" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>NORMAL</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="BEAT UP" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>BEAT UP</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="BEAT RUSH" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>BEAT RUSH</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="SHOOTING STAR" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>SHOOTING STAR</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="ONE TWO PARTY" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>ONE TWO PARTY</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="BLOCK BEAT" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>BLOCK BEAT</span>
+                                </label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs">
+                                    <input type="checkbox" value="GUITAR MODE" onchange="handleModeCheckboxChange(this)" class="mode-cb rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>GUITAR MODE</span>
+                                </label>
                                 <hr class="border-wine-900 my-1">
-                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs font-bold text-wine-400"><input type="checkbox" value="ALL MODES" id="cb-all-modes" onchange="handleAllModesToggle(this)" class="rounded border-wine-800 bg-[#090507] text-wine-600"><span>ALL MODES</span></label>
+                                <label class="flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-wine-900/60 cursor-pointer text-xs font-bold text-wine-400">
+                                    <input type="checkbox" value="ALL MODES" id="cb-all-modes" onchange="handleAllModesToggle(this)" class="rounded border-wine-800 bg-[#090507] text-wine-600 focus:ring-0">
+                                    <span>ALL MODES</span>
+                                </label>
                             </div>
                         </div>
+
                         <div>
                             <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">FAMILIA / CLAN</label>
-                            <select id="prof-familia" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-wine-500 text-sm"></select>
+                            <select id="prof-familia" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                            </select>
                         </div>
                     </div>
+
                     <div class="pt-4 border-t border-wine-900 space-y-4">
-                        <h3 class="text-xs font-bold text-wine-400 uppercase tracking-wider flex items-center gap-1.5"><i class="ph-bold ph-lock-key"></i><span>Cambiar Contraseña (Opcional)</span></h3>
+                        <h3 class="text-xs font-bold text-wine-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="ph-bold ph-lock-key"></i>
+                            <span>Cambiar Contraseña (Opcional)</span>
+                        </h3>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div><label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nueva Contraseña</label><input type="password" id="prof-new-password" placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 text-sm"></div>
-                            <div><label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Confirmar Contraseña</label><input type="password" id="prof-confirm-password" placeholder="Repite la contraseña" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 text-sm"></div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nueva Contraseña</label>
+                                <input type="password" id="prof-new-password" placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Confirmar Nueva Contraseña</label>
+                                <input type="password" id="prof-confirm-password" placeholder="Repite la contraseña" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                            </div>
                         </div>
                     </div>
+
                     <div class="pt-4 border-t border-wine-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <button type="button" onclick="deleteMyAccount()" class="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5"><i class="ph-bold ph-trash"></i><span>Eliminar mi Cuenta</span></button>
-                        <button type="submit" class="px-6 py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center justify-center space-x-2"><i class="ph-bold ph-floppy-disk"></i><span>Guardar Cambios</span></button>
+                        <button type="button" onclick="deleteMyAccount()" class="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5">
+                            <i class="ph-bold ph-trash"></i>
+                            <span>Eliminar mi Cuenta</span>
+                        </button>
+
+                        <button type="submit" class="px-6 py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center justify-center space-x-2">
+                            <i class="ph-bold ph-floppy-disk"></i>
+                            <span>Guardar Cambios</span>
+                        </button>
                     </div>
                 </form>
             </div>
         </section>
 
-        <!-- VIEW 8: USER PROFILE CARD (CARTA COLECCIONABLE ESTILO ESPORTS) -->
-        <section id="view-profile-card" class="view-section hidden max-w-xl mx-auto py-6 sm:py-8">
+        <!-- VIEW 8: USER PROFILE CARD -->
+        <section id="view-profile-card" class="view-section hidden max-w-2xl mx-auto py-6 sm:py-8">
             <div id="profile-card-container"></div>
-            <div class="mt-4 text-center">
-                <button onclick="downloadProfileCard()" class="px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl shadow-xl transition-all flex items-center justify-center space-x-2 mx-auto text-sm">
-                    <i class="ph-bold ph-download-simple text-lg"></i><span>Descargar Carta de Jugador</span>
-                </button>
-            </div>
         </section>
 
         <!-- VIEW 9: ADMIN PANEL & TORNEO SUIZO / PLAYOFFS -->
@@ -388,7 +412,7 @@
                 </div>
             </div>
 
-            <!-- GESTOR DE TORNEO SUIZO -->
+            <!-- GESTOR DE EVENTOS Y TORNEOS SUIZO -->
             <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
                 <div class="flex items-center justify-between border-b border-wine-900 pb-4">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -396,88 +420,164 @@
                         <span>Creador y Gestor de Torneo Suizo</span>
                     </h3>
                 </div>
+
                 <div id="tournament-setup-box" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div><label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Nombre del Evento</label><input type="text" id="event-title-input" placeholder="Ej: Torneo Relámpago AWC" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500"></div>
-                        <div><label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Número de Rondas Suizo</label><input type="number" id="event-rounds-input" value="3" min="1" max="10" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500"></div>
-                        <div class="flex items-end"><button onclick="startNewEvent()" class="w-full py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center space-x-2"><i class="ph-bold ph-play"></i><span>Iniciar Nuevo Evento</span></button></div>
-                    </div>
-                    <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5"><i class="ph-bold ph-music-notes text-wine-400"></i><span>Lista de Canciones para el Sorteo (1 por línea)</span></label>
-                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">Actualizar Canciones</button>
-                        </div>
-                        <textarea id="event-song-list-input" rows="3" placeholder="Canción 1&#10;Canción 2&#10;Canción 3" class="w-full bg-wine-950 border border-wine-900 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-wine-500 font-mono"></textarea>
-                    </div>
-                    <div id="event-registration-area" class="space-y-4 pt-2">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="flex space-x-2">
-                                <select id="registered-user-select" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-wine-500"><option value="">Seleccionar Usuario...</option></select>
-                                <button onclick="addRegisteredPlayerToEvent()" class="px-4 py-2 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl text-xs flex-shrink-0">Inscribir</button>
-                            </div>
-                            <div class="flex space-x-2">
-                                <input type="text" id="bot-name-input" placeholder="Nombre del Bot..." class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-wine-500">
-                                <button onclick="addBotToEvent()" class="px-4 py-2 bg-wine-900 hover:bg-wine-800 text-wine-200 font-bold rounded-xl text-xs flex-shrink-0 border border-wine-700">+ Bot</button>
-                            </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Nombre del Evento</label>
+                            <input type="text" id="event-title-input" placeholder="Ej: Torneo Relámpago AWC" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Participantes Inscritos</label>
-                            <div id="event-participants-badges" class="flex flex-wrap gap-2 p-3 bg-[#090507] border border-wine-900 rounded-xl min-h-[50px]"></div>
+                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Número de Rondas Suizo</label>
+                            <input type="number" id="event-rounds-input" value="3" min="1" max="10" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
                         </div>
-                        <div class="flex justify-end pt-2">
-                            <button onclick="generateFirstSwissRound()" class="px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold rounded-xl text-xs shadow-lg flex items-center space-x-2"><i class="ph-bold ph-play-circle text-base"></i><span>Generar Ronda 1 (Suiza)</span></button>
+                        <div class="flex items-end">
+                            <button onclick="startNewEvent()" class="w-full py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center space-x-2">
+                                <i class="ph-bold ph-play"></i>
+                                <span>Iniciar Nuevo Evento</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- LISTA DE CANCIONES DEL TORNEO -->
+                    <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                <i class="ph-bold ph-music-notes text-wine-400"></i>
+                                <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
+                            </label>
+                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
+                                Actualizar Canciones
+                            </button>
+                        </div>
+                        <textarea id="event-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Hands Up 140 BPM&#10;Audition - Euro 2005 150 BPM&#10;Audition - Canon 200 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
+                    </div>
+
+                    <!-- INSCRIPCIÓN Y AÑADIR BOTS -->
+                    <div id="event-registration-area" class="hidden pt-4 border-t border-wine-900 space-y-4">
+                        <h4 class="text-sm font-bold text-wine-200">Inscribir Jugadores Registrados o Añadir Bots</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex space-x-2">
+                                <select id="registered-user-select" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                    <!-- Inyectado dinámicamente -->
+                                </select>
+                                <button onclick="addRegisteredPlayerToEvent()" class="px-4 py-2 bg-wine-800 hover:bg-wine-700 text-white font-bold text-xs rounded-xl flex-shrink-0">
+                                    Inscribir
+                                </button>
+                            </div>
+
+                            <div class="flex space-x-2">
+                                <input type="text" id="bot-name-input" placeholder="Nombre del Bot" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                <button onclick="addBotToEvent()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex-shrink-0 border border-slate-700">
+                                    + Añadir BOT
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE INSCRITOS -->
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 mb-2">Inscritos Actuales:</span>
+                            <div id="event-participants-badges" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button onclick="generateFirstSwissRound()" class="w-full sm:w-auto px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
+                                <i class="ph-bold ph-lightning"></i>
+                                <span>Generar Ronda 1 con Sorteo de Canción</span>
+                            </button>
                         </div>
                     </div>
                 </div>
 
-                <div id="active-tournament-admin" class="space-y-6 pt-6 border-t border-wine-900 hidden">
-                    <div id="swiss-admin-container" class="space-y-4"></div>
+                <!-- MONITOR Y CONTROL DEL TORNEO ACTIVO (ADMIN) -->
+                <div id="active-tournament-admin" class="hidden space-y-6 pt-4 border-t border-wine-900">
+                    <div id="swiss-admin-container" class="space-y-6"></div>
+                    <div id="playoffs-admin-container" class="space-y-6"></div>
                 </div>
             </div>
 
-            <!-- CONFIGURACIÓN DE TABS, TIERS, ETAGUETAS Y CLANES -->
+            <!-- TABLA DE CONFIGURACIÓN ORIGINAL -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <!-- PESTAÑAS -->
                 <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-xl space-y-4">
-                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3"><i class="ph-bold ph-tabs text-wine-400"></i><span>Pestañas (Modos)</span></h3>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3">
+                        <i class="ph-bold ph-tabs text-wine-400"></i>
+                        <span>Pestañas (Modos)</span>
+                    </h3>
+
                     <form id="form-create-tab" onsubmit="handleCreateTab(event)" class="space-y-3">
-                        <input type="text" id="tab-name" placeholder="Ej: NORMAL" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-wine-500">
-                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1"><i class="ph-bold ph-plus"></i><span>Crear Pestaña</span></button>
+                        <input type="text" id="tab-name" placeholder="Nombre (Ej: NORMAL)" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500">
+                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+                            <i class="ph-bold ph-plus"></i>
+                            <span>Crear Pestaña</span>
+                        </button>
                     </form>
+
                     <div id="admin-tabs-list" class="space-y-2 pt-2"></div>
                 </div>
+
                 <!-- TIERS -->
                 <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-xl space-y-4">
-                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3"><i class="ph-bold ph-ranking text-wine-400"></i><span>Gestión de Tiers</span></h3>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3">
+                        <i class="ph-bold ph-ranking text-wine-400"></i>
+                        <span>Gestión de Tiers</span>
+                    </h3>
+
                     <form id="form-create-tier" onsubmit="handleCreateTier(event)" class="space-y-3">
-                        <input type="text" id="tier-name" placeholder="Ej: Tier S" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-wine-500">
+                        <input type="text" id="tier-name" placeholder="Ej: Tier S" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500">
+                        
                         <div class="grid grid-cols-2 gap-2">
-                            <input type="color" id="tier-color" value="#800020" class="w-full h-9 bg-[#090507] border border-wine-900 rounded-xl cursor-pointer p-1">
-                            <select id="tier-tab-select" required class="bg-[#090507] border border-wine-900 rounded-xl px-2 py-1 text-xs text-slate-100 focus:outline-none"></select>
+                            <input type="color" id="tier-color" value="#800020" title="Color" class="w-full h-9 bg-[#090507] border border-wine-900 rounded-xl cursor-pointer p-1">
+                            <select id="tier-tab-select" required class="bg-[#090507] border border-wine-900 rounded-xl px-2 py-1 text-xs text-slate-100 focus:outline-none focus:border-wine-500">
+                            </select>
                         </div>
-                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1"><i class="ph-bold ph-plus"></i><span>Crear Tier</span></button>
+
+                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+                            <i class="ph-bold ph-plus"></i>
+                            <span>Crear Tier</span>
+                        </button>
                     </form>
+
                     <div id="admin-tiers-list" class="space-y-2 pt-2"></div>
                 </div>
+
                 <!-- ETIQUETAS -->
                 <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-xl space-y-4">
-                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3"><i class="ph-bold ph-tag text-wine-400"></i><span>Etiquetas</span></h3>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3">
+                        <i class="ph-bold ph-tag text-wine-400"></i>
+                        <span>Etiquetas</span>
+                    </h3>
+
                     <form id="form-create-tag" onsubmit="handleCreateTag(event)" class="space-y-3">
                         <div class="grid grid-cols-3 gap-2">
-                            <input type="text" id="tag-name" placeholder="Ej: VIP" required class="col-span-2 bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-wine-500">
-                            <input type="color" id="tag-color" value="#c92a52" class="w-full h-9 bg-[#090507] border border-wine-900 rounded-xl cursor-pointer p-1">
+                            <input type="text" id="tag-name" placeholder="Ej: VIP" required class="col-span-2 bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500">
+                            <input type="color" id="tag-color" value="#c92a52" title="Color" class="w-full h-9 bg-[#090507] border border-wine-900 rounded-xl cursor-pointer p-1">
                         </div>
-                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1"><i class="ph-bold ph-plus"></i><span>Crear Etiqueta</span></button>
+                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+                            <i class="ph-bold ph-plus"></i>
+                            <span>Crear Etiqueta</span>
+                        </button>
                     </form>
+
                     <div id="admin-tags-list" class="flex flex-wrap gap-2 pt-2"></div>
                 </div>
+
                 <!-- FAMILIAS -->
                 <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-xl space-y-4">
-                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3"><i class="ph-bold ph-users-three text-wine-400"></i><span>Familias</span></h3>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2 border-b border-wine-900 pb-3">
+                        <i class="ph-bold ph-users-three text-wine-400"></i>
+                        <span>Familias</span>
+                    </h3>
+
                     <form id="form-create-clan" onsubmit="handleCreateClan(event)" class="space-y-3">
-                        <input type="text" id="clan-name" placeholder="Ej: Kings" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-wine-500">
-                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1"><i class="ph-bold ph-plus"></i><span>Crear Familia</span></button>
+                        <input type="text" id="clan-name" placeholder="Nombre (Ej: Kings)" required class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500">
+                        <button type="submit" class="w-full py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center space-x-1">
+                            <i class="ph-bold ph-plus"></i>
+                            <span>Crear Familia</span>
+                        </button>
                     </form>
+
                     <div id="admin-clans-list" class="space-y-2 pt-2"></div>
                 </div>
             </div>
@@ -485,9 +585,16 @@
             <!-- TABLA DE ASIGNACIÓN DE USUARIOS -->
             <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-wine-900 pb-3">
-                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2"><i class="ph-bold ph-users text-wine-400"></i><span>Asignación Múltiple de Tiers, Puntos y Etiquetas</span></h3>
-                    <button onclick="fetchUsers().then(() => renderAdminUserTable())" class="px-3 py-1.5 bg-wine-900 hover:bg-wine-800 text-wine-200 rounded-lg text-xs font-semibold flex items-center space-x-1 border border-wine-700"><i class="ph-bold ph-arrows-clockwise"></i><span>Actualizar Lista</span></button>
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <i class="ph-bold ph-users text-wine-400"></i>
+                        <span>Asignación Múltiple de Tiers, Puntos y Etiquetas</span>
+                    </h3>
+                    <button onclick="fetchUsers().then(() => renderAdminUserTable())" class="px-3 py-1.5 bg-wine-900 hover:bg-wine-800 text-wine-200 rounded-lg text-xs font-semibold flex items-center space-x-1 border border-wine-700 transition-all">
+                        <i class="ph-bold ph-arrows-clockwise"></i>
+                        <span>Actualizar Lista</span>
+                    </button>
                 </div>
+
                 <div class="overflow-x-auto">
                     <table id="admin-table" class="w-full text-left text-sm text-slate-300">
                         <thead class="bg-[#090507] text-wine-300 uppercase text-xs">
@@ -507,15 +614,15 @@
 
     </main>
 
-    <!-- PREVISUALIZACIÓN DE PERFIL FIJA (HOVER / TOUCH) -->
+    <!-- PREVISUALIZACIÓN DE PERFIL FIJA (en móvil se muestra como panel inferior al tocar un nickname) -->
     <div id="user-hover-card" class="hidden fixed bottom-6 right-6 z-50 pointer-events-none w-80 bg-wine-950/95 border border-wine-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md transition-all duration-200"></div>
 
-    <!-- MODAL PERSONALIZADO -->
-    <div id="custom-modal-container"></div>
-
     <script src="script.js"></script>
+
+    <!-- MEJORAS EXTRA: swipe del carrusel, tap en móvil y aviso de servidor lento -->
     <script>
         (function () {
+            // 1) Swipe táctil en el carrusel
             const car = document.getElementById('carousel-slides');
             if (car) {
                 let touchX = 0;
@@ -525,6 +632,8 @@
                     if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
                 }, { passive: true });
             }
+
+            // 2) Tarjeta de perfil con TAP en pantallas táctiles (sin hover)
             document.addEventListener('click', function (e) {
                 const card = document.getElementById('user-hover-card');
                 const target = e.target.closest('[onmouseenter^="showUserCard"]');
@@ -534,6 +643,13 @@
                 }
                 if (card && !card.contains(e.target)) hideUserCard();
             });
+
+            // 3) Aviso si el servidor (Render) tarda en despertar
+            setTimeout(function () {
+                if (typeof state !== 'undefined' && state.tiers.length === 0 && state.users.length === 0) {
+                    showToast('Conectando con el servidor… puede tardar unos segundos.', 'warning');
+                }
+            }, 3500);
         })();
     </script>
 </body>
