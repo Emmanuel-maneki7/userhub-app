@@ -433,7 +433,8 @@ function spinSongRoulette(roundIndex) {
             const finalSong = pool[Math.floor(Math.random() * pool.length)];
             songDisplay.textContent = finalSong;
             saveHistoryState();
-            if (evt.swissRounds[roundIndex]) evt.swissRounds[roundIndex].currentSong = finalSong;
+            if (evt.status === 'SWISS' && evt.swissRounds[roundIndex]) evt.swissRounds[roundIndex].currentSong = finalSong;
+            else if (evt.status === 'PLAYOFFS' && evt.playoffs && evt.playoffs.rounds[roundIndex]) evt.playoffs.rounds[roundIndex].currentSong = finalSong;
             saveState();
             refreshTournamentViews();
             showToast(`🎵 ¡Canción sorteada: ${finalSong}!`, 'success');
@@ -460,8 +461,9 @@ function populateClanFilter() {
 }
 
 function startNewEvent() {
-    const title = document.getElementById('event-title-input').value.trim();
-    const rounds = parseInt(document.getElementById('event-rounds-input').value, 10) || 3;
+    const titleInput = document.getElementById('event-title-input');
+    const title = titleInput ? titleInput.value.trim() : '';
+    const rounds = parseInt(document.getElementById('event-rounds-input')?.value, 10) || 3;
     const songInput = document.getElementById('event-song-list-input')?.value || '';
     if (!title) { alert("Por favor ingresa un nombre para el evento."); return; }
 
@@ -481,7 +483,8 @@ function startNewEvent() {
     };
     tempParticipants = [];
     saveState();
-    document.getElementById('event-registration-area')?.classList.remove('hidden');
+    const regArea = document.getElementById('event-registration-area');
+    if (regArea) regArea.classList.remove('hidden');
     renderParticipantsBadges();
     alert(`Torneo "${title}" creado. Inscribe a los participantes.`);
 }
@@ -496,6 +499,7 @@ function updateTournamentSongsFromAdmin() {
 
 function addRegisteredPlayerToEvent() {
     const select = document.getElementById('registered-user-select');
+    if (!select) return;
     const userId = select.value;
     if (!userId) return;
     const user = state.users.find(u => String(u.id) === String(userId));
@@ -516,7 +520,7 @@ function addRegisteredPlayerToEvent() {
 
 function addBotToEvent() {
     const botInput = document.getElementById('bot-name-input');
-    const name = botInput.value.trim() || `Bot_${tempParticipants.length + 1}`;
+    const name = botInput ? botInput.value.trim() || `Bot_${tempParticipants.length + 1}` : `Bot_${tempParticipants.length + 1}`;
     if (tempParticipants.some(p => p.name === name)) { alert("Ya existe un participante con ese nombre."); return; }
     tempParticipants.push({
         id: `bot-${Date.now()}-${Math.floor(Math.random()*10000)}`,
@@ -526,7 +530,7 @@ function addBotToEvent() {
         points: 0,
         playedAgainst: []
     });
-    botInput.value = '';
+    if (botInput) botInput.value = '';
     renderParticipantsBadges();
 }
 
@@ -653,9 +657,13 @@ function generatePairingsForRound(roundNum) {
 
 function reRollRoundSong(roundIndex) {
     const evt = state.activeEvent;
-    if (!evt || !evt.swissRounds[roundIndex]) return;
+    if (!evt) return;
     saveHistoryState();
-    evt.swissRounds[roundIndex].currentSong = getRandomSong();
+    if (evt.status === 'SWISS' && evt.swissRounds[roundIndex]) {
+        evt.swissRounds[roundIndex].currentSong = getRandomSong();
+    } else if (evt.status === 'PLAYOFFS' && evt.playoffs && evt.playoffs.rounds[roundIndex]) {
+        evt.playoffs.rounds[roundIndex].currentSong = getRandomSong();
+    }
     saveState();
     refreshTournamentViews();
 }
@@ -675,6 +683,7 @@ function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
 
 function updateLeaderboard() {
     const evt = state.activeEvent;
+    if (!evt) return;
     const scores = {};
     evt.participants.forEach(p => { scores[p.id] = { participant: p, points: 0, wins: 0, losses: 0 }; });
     evt.swissRounds.forEach(round => {
@@ -691,6 +700,7 @@ function updateLeaderboard() {
 
 function registerPlayedAgainst(roundObj) {
     const evt = state.activeEvent;
+    if (!evt) return;
     roundObj.matches.forEach(m => {
         const p1 = evt.participants.find(p => String(p.id) === String(m.playerA.id));
         const p2 = evt.participants.find(p => String(p.id) === String(m.playerB.id));
@@ -703,6 +713,7 @@ function registerPlayedAgainst(roundObj) {
 
 function nextSwissRound() {
     const evt = state.activeEvent;
+    if (!evt) return;
     const cur = evt.swissRounds[evt.currentRound - 1];
     if (!cur) return;
     if (!cur.matches.every(m => m.winnerId !== null)) {
@@ -744,6 +755,7 @@ function addExtraSwissRound() {
 
 function createPlayoffs() {
     const evt = state.activeEvent;
+    if (!evt) return;
     updateLeaderboard();
     const topCount = parseInt(prompt("¿Cuántos clasificados a PlayOffs? (Ej: 4 u 8)", "4"), 10) || 4;
     saveHistoryState();
@@ -843,20 +855,20 @@ function renderTournamentAdmin() {
         const roundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
         if (!roundObj) return;
         swissBox.innerHTML = `
-            <div class="flex items-center justify-between bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800 mb-4">
                 <div>
-                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Ronda ${state.activeEvent.currentRound}</h4>
+                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Ronda ${state.activeEvent.currentRound} / ${state.activeEvent.maxSwissRounds}</h4>
                     <p class="text-xs text-slate-400">Selecciona al ganador de cada enfrentamiento.</p>
                 </div>
-                <div class="flex space-x-2">
-                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60"><i class="ph-bold ph-arrow-u-up-left"></i></button>
-                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 text-white rounded-lg text-xs font-bold">+ Ronda</button>
-                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 text-white rounded-lg text-xs font-bold">Siguiente ➔</button>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1"><i class="ph-bold ph-arrow-u-up-left"></i> <span>Deshacer</span></button>
+                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold">+ Añadir Ronda</button>
+                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-md">Siguiente Ronda ➔</button>
                     <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950 text-red-400 rounded-lg text-xs font-bold border border-red-800/60"><i class="ph-bold ph-trash"></i></button>
                 </div>
             </div>
             ${roundObj && roundObj.currentSong ? `
-                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between">
+                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between mb-4">
                     <div class="flex items-center space-x-3">
                         <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">🎵</div>
                         <div>
@@ -892,20 +904,23 @@ function renderTournamentAdmin() {
                     `;
                 }).join('')}
             </div>
-            <div class="flex justify-end pt-2">
-                <button onclick="createPlayoffs()" class="px-5 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-lg">🏆 Generar PlayOffs / Finales</button>
+            <div class="flex justify-end pt-4">
+                <button onclick="createPlayoffs()" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2">
+                    <span>🏆 Generar PlayOffs / Finales</span>
+                </button>
             </div>
         `;
     } else if (state.activeEvent.status === 'PLAYOFFS' || state.activeEvent.status === 'FINISHED') {
         const po = state.activeEvent.playoffs;
         swissBox.innerHTML = `
-            <div class="flex items-center justify-between bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800 mb-4">
                 <div>
-                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - PlayOffs</h4>
+                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Fase de PlayOffs</h4>
+                    <p class="text-xs text-slate-400">Determina los ganadores en las llaves del torneo.</p>
                 </div>
                 <div class="flex space-x-2">
-                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border"><i class="ph-bold ph-arrow-u-up-left"></i></button>
-                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 text-white rounded-lg text-xs font-bold">💾 Finalizar Torneo</button>
+                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60"><i class="ph-bold ph-arrow-u-up-left"></i> Deshacer</button>
+                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-md">💾 Finalizar y Guardar Torneo</button>
                 </div>
             </div>
             ${renderPlayoffsBracketHTML(po, true)}
@@ -958,9 +973,9 @@ async function renderUserEventsView(skipFetch = false) {
                         <div class="space-y-3">
                             ${cur.matches.map(m => `
                                 <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
-                                    <div class="flex items-center space-x-3">${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}<span class="text-sm font-bold">${escapeHtml(m.playerA.name)}</span></div>
+                                    <div class="flex items-center space-x-3">${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}<span class="text-sm font-bold text-white">${escapeHtml(m.playerA.name)}</span></div>
                                     <div class="text-xs font-black text-wine-500 bg-wine-950 px-3 py-1 rounded-full border">VS</div>
-                                    <div class="flex items-center space-x-3"><span class="text-sm font-bold">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>${m.playerB && m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB ? m.playerB.avatar : '')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}</div>
+                                    <div class="flex items-center space-x-3"><span class="text-sm font-bold text-white">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>${m.playerB && m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB ? m.playerB.avatar : '')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}</div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1004,6 +1019,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                     <div class="bracket-round">
                         <div class="text-center mb-3">
                             <h5 class="text-xs font-extrabold text-wine-400 uppercase">${escapeHtml(round.roundName)}</h5>${round.currentSong ? `<span class="text-[10px] text-amber-400 font-bold block mt-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">🎵 ${escapeHtml(round.currentSong)}</span>` : ''}
+                            ${isAdminControl ? `<button onclick="spinSongRoulette(${rIdx})" class="mt-2 text-[10px] bg-amber-600 px-2 py-1 rounded text-white font-bold">🎲 Sorteo</button>` : ''}
                         </div>
                         <div class="space-y-4">
                             ${round.matches.map((m, mIdx) => {
