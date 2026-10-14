@@ -57,7 +57,7 @@ function inferToastType(msg) {
 
 window.alert = function (msg) { showToast(msg, inferToastType(String(msg))); };
 
-// ===== 10. MODALES PROPIOS EN VEZ DE CONFIRM / PROMPT =====
+// ===== MODALES PROPIOS =====
 function showCustomModal(title, message, isConfirm = false, callback = null) {
     const container = document.getElementById('custom-modal-container');
     if (!container) return;
@@ -110,14 +110,14 @@ let state = {
 
 let activeTabId = null;
 
-if (!(state.currentUser && (state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR' || state.currentUser.role === 'ADMIN'))) {
+if (!(state.currentUser && (state.currentUser.nickname?.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR' || state.currentUser.role === 'ADMIN'))) {
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 }
 
 function isPrivilegedUser() {
     return !!state.currentUser && (
-        state.currentUser.nickname.toLowerCase() === 'admin' ||
+        state.currentUser.nickname?.toLowerCase() === 'admin' ||
         state.currentUser.role === 'MODERATOR' ||
         state.currentUser.role === 'ADMIN'
     );
@@ -249,7 +249,7 @@ async function fetchGlobalConfig() {
         if (tabsRes.ok) {
             const dbTabs = await tabsRes.json();
             state.tabs = dbTabs;
-            if (dbTabs.length > 0 && !activeTabId) activeTabId = dbTabs[0].id;
+            if (dbTabs.length > 0 && activeTabId === null) activeTabId = dbTabs[0].id;
         }
         if (tiersRes.ok) {
             const dbTiers = await tiersRes.json();
@@ -290,7 +290,7 @@ function navigateTo(viewId) {
     if (viewId === 'view-profile-edit') fillProfileEditForm();
 }
 
-// ===== 5. HERO CON DATOS EN VIVO Y CONTADORES ANIMADOS =====
+// ===== HERO & STATS =====
 function countUp(el, to, ms = 1200) {
     if (!el) return;
     const t0 = performance.now();
@@ -404,7 +404,7 @@ async function fetchUsers() {
     } catch (err) { console.error(err); }
 }
 
-// ===== 6. SORTEO DE CANCIÓN CON RULETA Y EFECTO VISUAL =====
+// ===== RULETA DE CANCIONES =====
 let rouletteInterval = null;
 
 function spinSongRoulette(roundIndex) {
@@ -787,7 +787,6 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
         if (winners.length === 1) {
             po.champion = winners[0];
             evt.status = 'FINISHED';
-            // 6. CONFETI AL CORONAR CAMPEÓN
             confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
             alert(`🏆 ¡CAMPEÓN DEL TORNEO!: ${winners[0].name}`);
         } else if (winners.length > 1) {
@@ -984,7 +983,7 @@ async function renderUserEventsView(skipFetch = false) {
     `;
 }
 
-// ===== 8. BRACKET DE PLAYOFFS CON LÍNEAS CONECTORAS =====
+// ===== PLAYOFFS BRACKET =====
 function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
     if (!playoffs) return '';
     return `
@@ -1055,6 +1054,42 @@ function renderEventHistory() {
             ${renderPlayoffsBracketHTML(evt.playoffs, false)}
         </div>
     `).join('');
+}
+
+// ===== DROPDOWN DE MODOS DE PERFIL =====
+function toggleModeDropdown() {
+    const menu = document.getElementById('mode-dropdown-menu');
+    if (menu) menu.classList.toggle('hidden');
+}
+
+function handleModeCheckboxChange(cb) {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb) allCb.checked = false;
+    updateModeBtnText();
+}
+
+function handleAllModesToggle(allCb) {
+    const checkboxes = document.querySelectorAll('.mode-cb');
+    checkboxes.forEach(cb => cb.checked = allCb.checked);
+    updateModeBtnText();
+}
+
+function updateModeBtnText() {
+    const btnText = document.getElementById('mode-btn-text');
+    const allCb = document.getElementById('cb-all-modes');
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+
+    if (!btnText) return;
+    if (allCb && allCb.checked) btnText.textContent = "ALL MODES";
+    else if (selected.length === 0) btnText.textContent = "Seleccionar modos...";
+    else btnText.textContent = selected.join(', ');
+}
+
+function getSelectedModes() {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb && allCb.checked) return ['ALL MODES'];
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+    return selected.length > 0 ? selected : ['NORMAL'];
 }
 
 // AUTENTICACIÓN Y PERFIL
@@ -1142,7 +1177,6 @@ async function deleteMyAccount() {
     });
 }
 
-// ===== 7. PERFIL COMO CARTA COLECCIONABLE (FIFA/VALORANT) & DESCARGA =====
 function renderProfileCard() {
     const container = document.getElementById('profile-card-container');
     if (!container || !state.currentUser) return;
@@ -1251,7 +1285,7 @@ async function handleCreateTier(e) {
     const color = document.getElementById('tier-color').value;
     const tabId = document.getElementById('tier-tab-select').value;
     if (!name) return;
-    await fetch(`${API_BASE}/tiers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color, tabId }) });
+    await fetch(`${API_BASE}/tiers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color, tabId: Number(tabId) }) });
     document.getElementById('tier-name').value = '';
     await fetchGlobalConfig();
     renderAdminPanel();
@@ -1373,13 +1407,26 @@ async function deleteUserByAdmin(id, uname) {
 function renderTabsNavigation() {
     const c = document.getElementById('tabs-navigation');
     if (!c) return;
-    if (!activeTabId && state.tabs.length > 0) activeTabId = state.tabs[0].id;
-    c.innerHTML = state.tabs.map(t => `<button onclick="setActiveTab(${t.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold ${activeTabId === t.id ? 'bg-wine-700 text-white shadow-lg' : 'bg-wine-950 text-slate-400 border'}">${escapeHtml(t.name)}</button>`).join('');
+
+    if (state.tabs.length === 0) {
+        c.innerHTML = `<p class="text-xs text-slate-500 italic">No hay pestañas creadas.</p>`;
+        return;
+    }
+
+    if (activeTabId === null && state.tabs.length > 0) {
+        activeTabId = state.tabs[0].id;
+    }
+
+    c.innerHTML = state.tabs.map(t => `
+        <button onclick="setActiveTab(${t.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${String(activeTabId) === String(t.id) ? 'bg-wine-700 text-white shadow-lg' : 'bg-wine-950 text-slate-400 border border-wine-900 hover:bg-wine-900'}">
+            ${escapeHtml(t.name)}
+        </button>
+    `).join('');
 }
 
 function setActiveTab(id) { activeTabId = id; renderTabsNavigation(); renderPublicTiers(); }
 
-// ===== 1., 2., 3. & 4. PODIO TOP 3, TIER LIST REAL, RACHAS Y FILTROS =====
+// ===== RENDERIZADO DE TIERS PÚBLICOS =====
 function filterTierTable() { renderPublicTiers(); }
 
 function renderPublicTiers() {
@@ -1398,8 +1445,11 @@ function renderPublicTiers() {
         return;
     }
 
-    const filtered = state.tiers.filter(t => t.tabId === activeTabId);
-    if (filtered.length === 0) { container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No hay Tiers en esta pestaña.</p>`; return; }
+    const filtered = state.tiers.filter(t => String(t.tabId) === String(activeTabId));
+    if (filtered.length === 0) { 
+        container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No hay Tiers creados en esta pestaña actualmente.</p>`; 
+        return; 
+    }
 
     const searchQuery = document.getElementById('tier-search-input')?.value.toLowerCase() || '';
     const clanFilter = document.getElementById('tier-clan-filter')?.value || '';
@@ -1409,7 +1459,7 @@ function renderPublicTiers() {
         state.users.forEach(u => {
             const uname = u.nickname || u.name;
             if (!uname || uname.toLowerCase() === 'admin') return;
-            const rank = (u.tierRanks || []).find(r => r.tierId === tier.dbId);
+            const rank = (u.tierRanks || []).find(r => Number(r.tierId) === Number(tier.dbId));
             if (rank) members.push({ user: u, puntos: rank.puntos });
         });
         members.sort((a, b) => b.puntos - a.puntos);
@@ -1481,7 +1531,7 @@ function renderPublicTiers() {
                             `).join('')}
                         </div>
                     </div>
-                ` : ''}
+                ` : members.length === 0 ? `<p class="text-xs text-slate-500 italic py-2">No hay miembros asignados a este Tier actualmente.</p>` : ''}
             </div>
         `;
     }).join('');
