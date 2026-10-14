@@ -12,15 +12,39 @@
     --text-muted: #94a3b8;
 }
 
-body {
+/* ==========================================
+   0. TIPOGRAFÍA
+   ================================---------- */
+body,
+body.font-sans {
     background-color: var(--bg-main);
     color: var(--text-main);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
     overflow-x: hidden;
     position: relative;
+    -webkit-font-smoothing: antialiased;
 }
 
-/* Fondo futurista ambiental con destellos estelares */
+h1, h2, h3, h4, h5, th, .font-display {
+    font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.04em;
+}
+
+/* Números de puntos alineados */
+td.text-amber-400,
+td.font-extrabold,
+td.font-black {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Contraste: slate-500 era muy oscuro sobre fondo negro */
+body .text-slate-500 {
+    color: #8b9bb0;
+}
+
+/* ==========================================
+   0.1 FONDO CON PROFUNDIDAD
+   ================================---------- */
 body::before {
     content: "";
     position: fixed;
@@ -34,18 +58,51 @@ body::before {
     pointer-events: none;
 }
 
-/* ==========================================
-   1. GLASSMORPHISM Y TARJETAS INTERACTIVAS
-   ================================---------- */
-.view-section, .bg-wine-950\/60, .bg-wine-950\/80, .bg-\[\#090507\] {
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* Cuadrícula sutil que se desvanece hacia abajo */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+        linear-gradient(rgba(201, 42, 82, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201, 42, 82, 0.045) 1px, transparent 1px);
+    background-size: 48px 48px;
+    -webkit-mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
+    mask-image: radial-gradient(ellipse at 50% 20%, #000 20%, transparent 75%);
 }
 
-.group:hover, .view-section .bg-wine-950\/60:hover {
+/* Brillo detrás del título principal (drop-shadow porque el texto es transparente) */
+#view-home h1 {
+    filter: drop-shadow(0 0 22px rgba(201, 42, 82, 0.35));
+}
+
+/* ==========================================
+   1. TARJETAS INTERACTIVAS (glassmorphism solo donde importa)
+   ================================---------- */
+.bg-wine-950\/60,
+.bg-wine-950\/80 {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.group:hover,
+.view-section .bg-wine-950\/60:hover {
     border-color: var(--border-wine-glow);
     box-shadow: 0 0 25px rgba(201, 42, 82, 0.25), inset 0 0 15px rgba(201, 42, 82, 0.05);
+}
+
+/* Transición suave entre vistas */
+.view-section {
+    animation: viewIn 0.35s ease both;
+}
+
+@keyframes viewIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
 }
 
 /* ==========================================
@@ -67,66 +124,20 @@ body::before {
 }
 
 /* ==========================================
-   3. BRACKETS & LÍNEAS CONECTORAS NEÓN
+   3. BRACKETS (SCROLL HORIZONTAL TÁCTIL)
    ================================---------- */
-/* Contenedor relativo de cada tarjeta de enfrentamiento */
-.bracket-card-wrapper, [class*="border-wine-900"] > div {
-    position: relative;
-}
-
-/* Tarjetas de Match */
-.bracket-match-card {
-    background: rgba(28, 10, 17, 0.85);
-    border: 1px solid rgba(128, 0, 32, 0.6);
-    border-radius: 12px;
-    transition: all 0.25s ease;
-}
-
-.bracket-match-card:hover {
-    border-color: rgba(201, 42, 82, 0.9);
-    box-shadow: 0 0 18px rgba(201, 42, 82, 0.35);
-}
-
-/* Línea horizontal que sale a la derecha de los enfrentamientos */
-.bracket-card-wrapper::after {
-    content: "";
-    position: absolute;
-    right: -1.75rem;
-    top: 50%;
-    width: 1.75rem;
-    height: 2px;
-    background: #c92a52;
-    box-shadow: 0 0 8px #c92a52, 0 0 12px #e6738c;
-    z-index: 10;
-}
-
-/* Ocultar conector en la última ronda (Gran Final) */
-.bracket-column:last-child .bracket-card-wrapper::after {
-    display: none;
-}
-
-/* Línea vertical para unir los dos ganadores hacia la siguiente fase */
-.bracket-column:first-child .bracket-card-wrapper:first-child::before {
-    content: "";
-    position: absolute;
-    right: -1.75rem;
-    top: 50%;
-    height: calc(100% + 1.5rem);
-    width: 2px;
-    background: #c92a52;
-    box-shadow: 0 0 8px #c92a52, 0 0 12px #e6738c;
-    z-index: 10;
+.overflow-x-auto {
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* ==========================================
    4. TABLAS LIMPIAS Y PODIO
    ================================---------- */
-/* Contraste suave alternado en filas */
 tbody tr:nth-child(even) {
     background-color: rgba(128, 0, 32, 0.08);
 }
 
-/* Podio especial para los 3 primeros */
 tr:has(td .bg-amber-500\/20), tr.bg-amber-500\/5 {
     background: linear-gradient(90deg, rgba(245, 158, 11, 0.08) 0%, rgba(28, 10, 17, 0.4) 100%) !important;
     border-left: 4px solid #f59e0b !important;
@@ -152,52 +163,55 @@ tr:has(td .bg-amber-700\/20) {
     right: 1.5rem;
     z-index: 9999;
     display: flex;
-    flex-direction: column-reverse;
+    flex-direction: column;
     gap: 0.75rem;
     pointer-events: none;
+    max-width: calc(100vw - 2rem);
 }
 
 .toast-item {
     pointer-events: auto;
     background: rgba(28, 10, 17, 0.95);
     border: 1px solid rgba(201, 42, 82, 0.6);
+    border-left: 5px solid #c92a52;
     color: #fff;
     padding: 0.85rem 1.25rem;
     border-radius: 12px;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(201, 42, 82, 0.3);
     backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    min-width: 240px;
+    max-width: 380px;
     font-size: 0.875rem;
     font-weight: 500;
+    word-break: break-word;
     animation: toastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+.toast-item.toast-success { border-left-color: #34d399; }
+.toast-item.toast-error   { border-left-color: #f43f5e; }
+.toast-item.toast-warning { border-left-color: #fbbf24; }
+.toast-item.toast-info    { border-left-color: #c92a52; }
+
 @keyframes toastIn {
     from { opacity: 0; transform: translateX(50px) scale(0.9); }
-    to { opacity: 1; transform: translateX(0) scale(1); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 /* ==========================================
    6. ANIMACIONES FLUIDAS EN VIVO
    ================================---------- */
 @keyframes pulseGlow {
-    0%, 100% {
-        box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
-    }
-    50% {
-        box-shadow: 0 0 25px rgba(239, 68, 68, 0.9);
-    }
+    0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+    50%      { box-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
 }
 
 @keyframes floatAnim {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-4px);
-    }
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-4px); }
 }
 
 .animate-pulse-glow {
@@ -206,6 +220,24 @@ tr:has(td .bg-amber-700\/20) {
 
 .animate-bounce-short {
     animation: floatAnim 4s infinite ease-in-out;
+}
+
+/* ==========================================
+   7. SKELETON DE CARGA (servidor de Render despertando)
+   ================================---------- */
+.skeleton {
+    background: linear-gradient(90deg,
+        rgba(92, 8, 29, 0.30) 25%,
+        rgba(128, 0, 32, 0.35) 50%,
+        rgba(92, 8, 29, 0.30) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite linear;
+    border-radius: 16px;
+    border: 1px solid rgba(128, 0, 32, 0.3);
+}
+
+@keyframes shimmer {
+    to { background-position: -200% 0; }
 }
 
 /* ==========================================
@@ -242,4 +274,192 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
 
 ::-webkit-scrollbar-thumb:hover {
     background: #800020;
+}
+
+/* ==========================================
+   8. RESPONSIVE: TABLET Y MÓVIL
+   ================================---------- */
+
+/* --- Navegación solo con íconos hasta pantallas grandes --- */
+@media (max-width: 1023px) {
+    #nav-actions button span {
+        display: none;
+    }
+    #nav-actions button i {
+        font-size: 1.25rem;
+    }
+    #nav-actions button {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+/* --- Móvil: barra de navegación inferior tipo app --- */
+@media (max-width: 639px) {
+    /* backdrop-filter en el header haría que el nav "fixed" se posicione dentro del header */
+    header {
+        -webkit-backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        background-color: rgba(28, 10, 17, 0.97) !important;
+    }
+
+    #nav-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        justify-content: space-around;
+        padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
+        background: rgba(28, 10, 17, 0.97);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid rgba(128, 0, 32, 0.5);
+        box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    }
+
+    #nav-actions > * {
+        margin-left: 0 !important;
+    }
+
+    main {
+        padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+    }
+
+    /* Toasts arriba, ocupando el ancho */
+    #toast-container {
+        top: 0.75rem;
+        right: 0.75rem;
+        left: 0.75rem;
+        max-width: none;
+    }
+    .toast-item {
+        max-width: none;
+        min-width: 0;
+    }
+
+    /* Panel de torneo (admin): cabecera y botones apilados */
+    #swiss-admin-container > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    #swiss-admin-container .flex.space-x-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    #swiss-admin-container .flex.space-x-2 > * {
+        margin-left: 0 !important;
+    }
+
+    /* Enfrentamientos apilados */
+    #swiss-admin-container div:has(> .w-5\/12) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+    #swiss-admin-container .w-5\/12 {
+        width: 100%;
+    }
+    #swiss-admin-container div:has(> .w-5\/12) > .text-center,
+    #swiss-admin-container div:has(> .w-5\/12) > .px-2 {
+        text-align: center;
+    }
+    #swiss-admin-container .justify-end {
+        justify-content: flex-start;
+    }
+
+    /* Banner de canción del admin */
+    #swiss-admin-container .border-amber-500\/80 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+/* --- Tablas de Tiers: ocultar columnas secundarias (Familia y Modo) --- */
+@media (max-width: 767px) {
+    #public-tiers-container th:nth-child(n+4),
+    #public-tiers-container td:nth-child(n+4) {
+        display: none;
+    }
+    #public-tiers-container th,
+    #public-tiers-container td {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    /* Tabla del admin convertida en tarjetas */
+    #admin-table thead {
+        display: none;
+    }
+    #admin-table,
+    #admin-table tbody {
+        display: block;
+        width: 100%;
+    }
+    #admin-table-body tr {
+        display: block;
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: rgba(28, 10, 17, 0.6);
+        border: 1px solid rgba(128, 0, 32, 0.4) !important;
+        border-radius: 14px;
+    }
+    #admin-table-body td {
+        display: block;
+        padding: 0.5rem 0 !important;
+        text-align: left !important;
+    }
+    #admin-table-body td:first-child {
+        display: flex;
+    }
+    #admin-table-body td:nth-child(n+2)::before {
+        display: block;
+        margin-bottom: 0.35rem;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #e6738c;
+    }
+    #admin-table-body td:nth-child(2)::before { content: "Nombre / Rol"; }
+    #admin-table-body td:nth-child(3)::before { content: "Tiers y puntos"; }
+    #admin-table-body td:nth-child(4)::before { content: "Etiquetas"; }
+    #admin-table-body td:nth-child(5)::before { content: "Acción"; }
+}
+
+/* --- Dispositivos táctiles: tarjeta de perfil como bottom sheet --- */
+@media (hover: none) {
+    #user-hover-card {
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        pointer-events: auto !important;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+    }
+}
+
+@media (hover: none) and (max-width: 639px) {
+    /* Por encima de la barra inferior */
+    #user-hover-card {
+        bottom: 4.5rem;
+    }
+}
+
+/* --- Zonas táctiles mínimas (pantallas táctiles) --- */
+@media (pointer: coarse) {
+    button:not(.carousel-dot):not([onclick^="removeParticipant"]):not([onclick^="deleteTag"]),
+    select {
+        min-height: 40px;
+    }
+}
+
+/* --- Accesibilidad: respetar "reducir movimiento" --- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
 }
