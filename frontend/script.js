@@ -1,5 +1,108 @@
 console.log("Sistema Audition World Class LATAM listo y conectado");
 
+// ===== SISTEMA DE NOTIFICACIONES TOAST (ELEGANTES Y ESPORTS) =====
+// Los estilos se inyectan desde aquí, así no necesitas tocar tu CSS ni tu HTML.
+(function injectToastStyles() {
+    if (document.getElementById('toast-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'toast-styles';
+    style.textContent = `
+        #toast-container {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            pointer-events: none;
+            max-width: calc(100vw - 2.5rem);
+        }
+        .toast-item {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 260px;
+            max-width: 380px;
+            padding: 0.85rem 1.1rem;
+            border-radius: 0.85rem;
+            background: linear-gradient(135deg, #1a0a10 0%, #2a0d18 100%);
+            border: 1px solid #800020;
+            border-left: 5px solid #c92a52;
+            color: #f1e4e8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 18px rgba(128, 0, 32, 0.35);
+            animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            word-break: break-word;
+        }
+        .toast-item.toast-success { border-left-color: #34d399; }
+        .toast-item.toast-error   { border-left-color: #f43f5e; }
+        .toast-item.toast-warning { border-left-color: #fbbf24; }
+        .toast-item.toast-info    { border-left-color: #c92a52; }
+        .toast-item i { flex-shrink: 0; }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(60px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+    `;
+    document.head.appendChild(style);
+})();
+
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast-item toast-${type}`;
+
+    let icon = 'ph-info text-wine-300';
+    if (type === 'success') icon = 'ph-check-circle text-emerald-400';
+    if (type === 'error') icon = 'ph-warning-circle text-rose-500';
+    if (type === 'warning') icon = 'ph-bell text-amber-400';
+
+    // El mensaje se inserta como texto (no como HTML) para evitar inyección con nicknames
+    const iconEl = document.createElement('i');
+    iconEl.className = `ph-bold ${icon} text-xl`;
+    const textEl = document.createElement('span');
+    textEl.textContent = String(message);
+    toast.appendChild(iconEl);
+    toast.appendChild(textEl);
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(50px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Detecta el tipo de toast según el contenido del mensaje (para que cada alert() tenga su color)
+function inferToastType(msg) {
+    const m = String(msg).toLowerCase();
+    if (msg.includes('⚠️') || m.includes('error') || m.includes('no se pudo') ||
+        m.includes('incorrecto') || m.includes('rechaz') || m.includes('ocurrió un error')) return 'error';
+    if (m.includes('por favor') || m.includes('no hay ') || m.includes('ya está inscrito') ||
+        m.includes('ya existe') || m.includes('se necesitan') || m.includes('has alcanzado') ||
+        m.includes('no coinciden') || m.includes('al menos')) return 'warning';
+    if (m.includes('éxito') || m.includes('exitosamente') || m.includes('correctamente') ||
+        m.includes('creado') || m.includes('creada') || m.includes('bienvenido') ||
+        m.includes('sesión iniciada') || m.includes('actualizado') || m.includes('actualizada') ||
+        m.includes('eliminado') || m.includes('cerrado sesión') || m.includes('ganador')) return 'success';
+    return 'info';
+}
+
+// Reemplaza el alert nativo globalmente
+window.alert = function (msg) {
+    showToast(msg, inferToastType(String(msg)));
+};
+
 const API_BASE = 'https://userhub-app.onrender.com/api';
 const API_URL = `${API_BASE}/users`;
 
