@@ -57,6 +57,14 @@ function inferToastType(msg) {
 
 window.alert = function (msg) { showToast(msg, inferToastType(String(msg))); };
 
+// ===== MANEJADOR SEGURO DE AVATARES =====
+function getUserAvatar(u) {
+    if (!u) return 'https://i.imgur.com/6VBx3io.png';
+    const raw = u.avatar || u.foto || u.image || u.img;
+    if (!raw || typeof raw !== 'string' || raw.trim() === '') return 'https://i.imgur.com/6VBx3io.png';
+    return raw.trim();
+}
+
 // ===== MODALES PROPIOS =====
 function showCustomModal(title, message, isConfirm = false, callback = null) {
     let container = document.getElementById('custom-modal-container');
@@ -515,7 +523,7 @@ function addRegisteredPlayerToEvent() {
     tempParticipants.push({
         id: `usr-${user.id}`,
         name: uname,
-        avatar: user.avatar || 'https://i.imgur.com/6VBx3io.png',
+        avatar: getUserAvatar(user),
         isBot: false,
         points: 0,
         playedAgainst: []
@@ -939,7 +947,7 @@ function renderTournamentAdmin() {
                     return `
                         <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900">
                             <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : ''}">
-                                ${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
+                                ${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
                                 <span class="text-xs truncate">${escapeHtml(m.playerA.name)}</span>
                                 <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1},${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold ml-auto">✔️ Ganador</button>
                             </div>
@@ -948,7 +956,7 @@ function renderTournamentAdmin() {
                                 ${m.playerB ? `
                                     <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold mr-auto">✔️ Ganador</button>
                                     <span class="text-xs truncate">${escapeHtml(m.playerB.name)}</span>
-                                    ${m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
+                                    ${m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
                                 ` : '<span class="text-xs text-slate-500 italic">LIBRE</span>'}
                             </div>
                         </div>
@@ -1015,9 +1023,9 @@ async function renderUserEventsView(skipFetch = false) {
                         <div class="space-y-3">
                             ${cur.matches.map(m => `
                                 <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
-                                    <div class="flex items-center space-x-3">${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}<span class="text-sm font-bold text-white">${escapeHtml(m.playerA.name)}</span></div>
+                                    <div class="flex items-center space-x-3">${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}<span class="text-sm font-bold text-white">${escapeHtml(m.playerA.name)}</span></div>
                                     <div class="text-xs font-black text-wine-500 bg-wine-950 px-3 py-1 rounded-full border">VS</div>
-                                    <div class="flex items-center space-x-3"><span class="text-sm font-bold text-white">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>${m.playerB && m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB ? m.playerB.avatar : '')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}</div>
+                                    <div class="flex items-center space-x-3"><span class="text-sm font-bold text-white">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>${m.playerB && m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}</div>
                                 </div>
                             `).join('')}
                         </div>
@@ -1029,7 +1037,7 @@ async function renderUserEventsView(skipFetch = false) {
                                 <thead class="text-wine-400 border-b border-wine-900"><tr><th class="py-2">Puesto</th><th class="py-2">Jugador</th><th class="py-2 text-right">Pts</th></tr></thead>
                                 <tbody class="divide-y divide-wine-900/40">
                                     ${evt.leaderboard.map((item, idx) => `
-                                        <tr><td class="py-2 font-bold text-wine-400">#${idx + 1}</td><td class="py-2 flex items-center space-x-2">${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-5 h-5 rounded-full object-cover">`}<span class="font-bold text-slate-200">${escapeHtml(item.participant.name)}</span></td><td class="py-2 text-right font-black text-amber-400">${item.points}</td></tr>
+                                        <tr><td class="py-2 font-bold text-wine-400">#${idx + 1}</td><td class="py-2 flex items-center space-x-2">${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(item.participant))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-5 h-5 rounded-full object-cover">`}<span class="font-bold text-slate-200">${escapeHtml(item.participant.name)}</span></td><td class="py-2 text-right font-black text-amber-400">${item.points}</td></tr>
                                     `).join('')}
                                 </tbody>
                             </table>
@@ -1051,7 +1059,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                 <div class="text-center py-6 mb-8 rounded-2xl bg-amber-500/10 border-2 border-amber-500 neon-gold max-w-md mx-auto">
                     <h2 class="text-3xl font-black text-amber-400">🏆 CAMPEÓN 🏆</h2>
                     <div class="flex items-center justify-center space-x-3 mt-3">
-                        ${playoffs.champion.isBot ? '🤖' : `<img src="${escapeHtml(playoffs.champion.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
+                        ${playoffs.champion.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(playoffs.champion))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
                         <span class="text-2xl font-bold text-white">${escapeHtml(playoffs.champion.name)}</span>
                     </div>
                 </div>
@@ -1071,7 +1079,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                     <div class="w-64 bg-wine-950/90 border border-wine-800 rounded-xl p-3 shadow-xl">
                                         <div class="flex items-center justify-between p-2 rounded-lg ${isWinA ? 'bg-green-950 text-green-300 font-bold border border-green-600' : 'text-slate-300'} mb-2">
                                             <div class="flex items-center space-x-2 truncate">
-                                                ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(m.playerA.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
+                                                ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                                 <span class="text-xs font-bold truncate">${m.playerA ? escapeHtml(m.playerA.name) : 'TBD'}</span>
                                             </div>
                                             ${isAdminControl && m.playerA ? `<button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerA.id}')" class="text-[10px] px-2 py-1 ${isWinA ? 'bg-green-600 text-white' : 'bg-wine-900 text-slate-200'} rounded font-bold">✔️</button>` : ''}
@@ -1079,7 +1087,7 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
                                         <div class="text-[10px] text-center font-black text-wine-500 uppercase my-1">vs</div>
                                         <div class="flex items-center justify-between p-2 rounded-lg ${isWinB ? 'bg-green-950 text-green-300 font-bold border border-green-600' : 'text-slate-300'}">
                                             <div class="flex items-center space-x-2 truncate">
-                                                ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(m.playerB.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
+                                                ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
                                                 <span class="text-xs font-bold truncate">${m.playerB ? escapeHtml(m.playerB.name) : 'TBD'}</span>
                                             </div>
                                             ${isAdminControl && m.playerB ? `<button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerB.id}')" class="text-[10px] px-2 py-1 ${isWinB ? 'bg-green-600 text-white' : 'bg-wine-900 text-slate-200'} rounded font-bold">✔️</button>` : ''}
@@ -1176,7 +1184,7 @@ async function handleRegister(e) {
         if (res.ok) {
             const newUser = await res.json();
             alert("¡Registro exitoso!");
-            state.currentUser = { id: newUser.id, nickname: newUser.nickname || nickname, nombres: newUser.nombres || nickname, modo: ['NORMAL'], familia: state.clans[0], avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png', genero, role: newUser.role || 'USER' };
+            state.currentUser = { id: newUser.id, nickname: newUser.nickname || nickname, nombres: newUser.nombres || nickname, modo: ['NORMAL'], familia: state.clans[0], avatar: getUserAvatar(newUser), genero, role: newUser.role || 'USER' };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
@@ -1215,7 +1223,7 @@ async function handleLogin(e) {
             nombres: found.nombres || found.name,
             modo: ['NORMAL'],
             familia: found.familia || state.clans[0],
-            avatar: found.avatar || 'https://i.imgur.com/6VBx3io.png',
+            avatar: getUserAvatar(found),
             genero: found.genero || 'Otros',
             role: found.role || 'USER'
         };
@@ -1248,7 +1256,7 @@ function renderProfileCard() {
     const container = document.getElementById('profile-card-container');
     if (!container || !state.currentUser) return;
     const userTags = state.tags.filter(t => (state.assignments[state.currentUser.nickname]?.tagIds || []).includes(t.id));
-    const avatarUrl = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const avatarUrl = getUserAvatar(state.currentUser);
     const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : state.currentUser.modo;
 
     container.innerHTML = `
@@ -1317,9 +1325,9 @@ function fillProfileEditForm() {
     const nomEl = document.getElementById('prof-nombres');
     if (nomEl) nomEl.value = state.currentUser.nombres || '';
     const avEl = document.getElementById('prof-avatar');
-    if (avEl) avEl.value = state.currentUser.avatar || '';
+    if (avEl) avEl.value = getUserAvatar(state.currentUser);
     const prevEl = document.getElementById('avatar-preview');
-    if (prevEl) prevEl.src = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    if (prevEl) prevEl.src = getUserAvatar(state.currentUser);
     const genEl = document.getElementById('prof-genero');
     if (genEl) genEl.value = state.currentUser.genero || 'Otros';
     const clanSelect = document.getElementById('prof-familia');
@@ -1445,9 +1453,13 @@ function renderAdminUserTable() {
         const assign = state.assignments[uname] || { tagIds: [] };
         const ranks = u.tierRanks || [];
         const avail = state.tiers.filter(t => !ranks.map(r => r.tierId).includes(t.dbId));
+        const userAvatar = getUserAvatar(u);
         return `
             <tr class="border-b border-wine-900/60 text-xs">
-                <td class="py-3 px-4 font-bold text-wine-400">${escapeHtml(uname)}</td>
+                <td class="py-3 px-4 font-bold text-wine-400 flex items-center space-x-2">
+                    <img src="${escapeHtml(userAvatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">
+                    <span>${escapeHtml(uname)}</span>
+                </td>
                 <td class="py-3 px-4">${escapeHtml(u.nombres || '')}</td>
                 <td class="py-3 px-4 space-y-1">
                     ${ranks.map(r => `<div class="flex items-center space-x-2"><span class="px-2 py-0.5 rounded text-white text-[10px]" style="background:${r.tier.color}">${r.tier.name}</span><input type="number" value="${r.puntos}" onchange="updateUserTierPoints(${u.id},${r.tierId}, this.value)" class="w-14 bg-wine-950 border rounded text-center text-amber-400"> pts <button onclick="removeUserTier(${u.id},${r.tierId})" class="text-red-400">×</button></div>`).join('')}
@@ -1567,7 +1579,7 @@ function renderPublicTiers() {
                         ${top3[1] ? `
                             <div class="podium-card" style="--tier-color: ${tier.color}">
                                 <div class="text-xl">🥈</div>
-                                <img src="${escapeHtml(top3[1].user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-slate-300 my-2">
+                                <img src="${escapeHtml(getUserAvatar(top3[1].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-slate-300 my-2">
                                 <h4 class="font-bold text-sm text-white truncate">${escapeHtml(top3[1].user.nickname || top3[1].user.name)}</h4>
                                 <span class="text-amber-400 font-black text-xs">${top3[1].puntos} pts</span>
                             </div>
@@ -1575,7 +1587,7 @@ function renderPublicTiers() {
                         <!-- 1er Puesto -->
                         <div class="podium-card first" style="--tier-color: ${tier.color}">
                             <div class="text-2xl">🥇</div>
-                            <img src="${escapeHtml(top3[0].user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-16 h-16 rounded-full object-cover mx-auto border-2 border-amber-400 my-2 shadow-lg">
+                            <img src="${escapeHtml(getUserAvatar(top3[0].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-16 h-16 rounded-full object-cover mx-auto border-2 border-amber-400 my-2 shadow-lg">
                             <h4 class="font-bold text-sm text-white truncate">${escapeHtml(top3[0].user.nickname || top3[0].user.name)}</h4>
                             <span class="text-amber-400 font-black text-sm">${top3[0].puntos} pts</span>
                         </div>
@@ -1583,7 +1595,7 @@ function renderPublicTiers() {
                         ${top3[2] ? `
                             <div class="podium-card" style="--tier-color: ${tier.color}">
                                 <div class="text-xl">🥉</div>
-                                <img src="${escapeHtml(top3[2].user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-amber-700 my-2">
+                                <img src="${escapeHtml(getUserAvatar(top3[2].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-amber-700 my-2">
                                 <h4 class="font-bold text-sm text-white truncate">${escapeHtml(top3[2].user.nickname || top3[2].user.name)}</h4>
                                 <span class="text-amber-400 font-black text-xs">${top3[2].puntos} pts</span>
                             </div>
@@ -1600,7 +1612,7 @@ function renderPublicTiers() {
                         <div class="tier-members-grid">
                             ${rest.map(item => `
                                 <div class="tier-avatar-chip" style="--tier-color: ${tier.color}" onmouseenter="showUserCard(event, '${escapeHtml(item.user.nickname || item.user.name)}')" onmouseleave="hideUserCard()">
-                                    <img src="${escapeHtml(item.user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-8 h-8 rounded-full object-cover">
+                                    <img src="${escapeHtml(getUserAvatar(item.user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-8 h-8 rounded-full object-cover">
                                     <div class="text-left pl-2">
                                         <span class="text-xs font-bold text-white block truncate max-w-[100px]">${escapeHtml(item.user.nickname || item.user.name)}</span>
                                         <span class="text-[10px] text-amber-400 font-extrabold">${item.puntos} pts</span>
@@ -1620,7 +1632,7 @@ function showUserCard(e, username) {
     if (!card) return;
     const user = state.users.find(u => (u.nickname || u.name) === username);
     if (!user) return;
-    const avatar = user.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const avatar = getUserAvatar(user);
     card.innerHTML = `
         <div class="flex items-center space-x-3 mb-2">
             <img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-10 h-10 rounded-xl object-cover">
