@@ -1,180 +1,278 @@
-/* ===== ESTILOS BASE & GLASSMORPHISM ===== */
-body {
-    background-color: #090507;
-    color: #f1e4e8;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+/* ==========================================
+   AUDITION WORLD CLASS LATAM - ESTILOS GENERALES
+   ================================---------- */
+:root {
+    --bg-main: #060305;
+    --bg-card: rgba(28, 10, 17, 0.75);
+    --border-wine: rgba(128, 0, 32, 0.4);
+    --border-wine-glow: rgba(201, 42, 82, 0.8);
+    --accent-gold: #f59e0b;
+    --accent-gold-glow: rgba(245, 158, 11, 0.6);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
 }
 
-/* Glassmorphism containers */
-.glass-panel {
-    background: rgba(26, 10, 16, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(201, 42, 82, 0.25);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+/* ==========================================
+   0. TIPOGRAFÍA Y RUIDO DE FONDO
+   ================================---------- */
+body,
+body.font-sans {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    position: relative;
+    -webkit-font-smoothing: antialiased;
 }
 
-.glass-panel-glow {
-    background: rgba(26, 10, 16, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(251, 191, 36, 0.35);
-    box-shadow: 0 0 25px rgba(251, 191, 36, 0.15), 0 10px 40px rgba(0, 0, 0, 0.7);
+h1, h2, h3, h4, h5, th, .font-display {
+    font-family: 'Rajdhani', 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.04em;
 }
 
-/* ===== EFECTOS DE NEÓN & GLOW ===== */
-.neon-gold {
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), inset 0 0 15px rgba(245, 158, 11, 0.1);
+td.text-amber-400,
+td.font-extrabold,
+td.font-black {
+    font-variant-numeric: tabular-nums;
 }
 
-.neon-wine {
-    box-shadow: 0 0 20px rgba(201, 42, 82, 0.35), inset 0 0 15px rgba(201, 42, 82, 0.1);
+body .text-slate-500 {
+    color: #8b9bb0;
 }
 
-.hover-glow:hover {
+/* ==========================================
+   0.1 FONDO CON PROFUNDIDAD Y LUCES AMBIENTALES
+   ================================---------- */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle at 30% 20%, rgba(120, 0, 40, 0.25) 0%, transparent 60%),
+                radial-gradient(circle at 80% 80%, rgba(180, 83, 9, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 50% 90%, rgba(80, 0, 25, 0.2) 0%, transparent 50%);
+    z-index: -2;
+    pointer-events: none;
+    animation: ambientPulse 12s ease-in-out infinite alternate;
+}
+
+@keyframes ambientPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(1.05); opacity: 1; }
+}
+
+/* Textura de ruido tenue */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+#view-home h1 {
+    filter: drop-shadow(0 0 22px rgba(201, 42, 82, 0.35));
+}
+
+/* ==========================================
+   1. TARJETAS INTERACTIVAS Y EFECTO 3D
+   ================================---------- */
+.bg-wine-950\/60,
+.bg-wine-950\/80 {
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.3s ease;
+}
+
+.hover-card-3d:hover {
+    transform: perspective(800px) rotateX(1.5deg) rotateY(-1.5deg) translateY(-3px);
+}
+
+.view-section {
+    animation: viewIn 0.35s ease both;
+}
+
+@keyframes viewIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ==========================================
+   PODIO VISUAL DEL TOP 3
+   ================================---------- */
+.podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding-top: 1.5rem;
+}
+
+.podium-card {
+    flex: 1;
+    max-width: 190px;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(201, 42, 82, 0.18), rgba(28, 10, 17, 0.85));
+    border: 1px solid var(--tier-color, #c92a52);
+    box-shadow: 0 0 25px rgba(201, 42, 82, 0.25);
+    position: relative;
+    transition: transform 0.3s ease;
+}
+
+.podium-card:hover {
+    transform: translateY(-5px);
+}
+
+.podium-card.first {
+    transform: translateY(-18px);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(28, 10, 17, 0.9));
+}
+
+.podium-card.first:hover {
+    transform: translateY(-22px);
+}
+
+/* ==========================================
+   2. ESTILO TIER LIST REAL (CORREGIDO)
+   ================================---------- */
+.tier-row {
+    display: flex;
+    align-items: center;
+    background: rgba(28, 10, 17, 0.7);
+    border: 1px solid rgba(128, 0, 32, 0.4);
+    border-radius: 16px;
+    margin-top: 1rem;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.tier-badge-box {
+    width: 130px;
+    min-width: 130px;
+    max-width: 130px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    text-align: center;
+    line-height: 1.2;
+    word-break: break-word;
+    flex-shrink: 0;
+    text-transform: uppercase;
+}
+
+.tier-members-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    align-items: center;
+    flex-grow: 1;
+    overflow-x: auto;
+}
+
+.tier-avatar-chip {
+    display: flex;
+    align-items: center;
+    background: rgba(9, 5, 7, 0.85);
+    border: 1px solid rgba(201, 42, 82, 0.3);
+    padding: 0.35rem 0.75rem 0.35rem 0.35rem;
+    border-radius: 9999px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.tier-avatar-chip:hover {
+    border-color: var(--tier-color, #c92a52);
     transform: translateY(-2px);
-    box-shadow: 0 0 20px rgba(201, 42, 82, 0.5);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(201, 42, 82, 0.3);
 }
 
-/* ===== BRACKETS VISUALES CON LÍNEAS DE CONEXIÓN ===== */
+/* ==========================================
+   3. RACHAS Y CAMBIOS DE POSICIÓN
+   ================================---------- */
+.badge-trend-up { color: #34d399; font-size: 0.7rem; font-weight: 800; }
+.badge-trend-down { color: #f43f5e; font-size: 0.7rem; font-weight: 800; }
+.badge-streak { background: linear-gradient(135deg, #f59e0b, #b45309); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 99px; font-weight: 900; }
+
+/* ==========================================
+   8. BRACKET CON LÍNEAS CONECTORAS
+   ================================---------- */
 .bracket-container {
     display: flex;
-    gap: 3rem;
-    justify-content: center;
+    justify-content: space-around;
     align-items: center;
+    min-width: 750px;
     position: relative;
-    padding: 1rem 0;
 }
 
 .bracket-round {
     display: flex;
     flex-direction: column;
     justify-content: space-around;
-    gap: 2rem;
+    gap: 1.5rem;
     position: relative;
 }
 
-.bracket-match {
-    position: relative;
-    z-index: 2;
-    transition: all 0.3s ease;
-}
-
-.bracket-match:hover {
-    transform: scale(1.02);
-}
-
-/* Líneas de conexión horizontales entre rondas */
-.bracket-round:not(:last-child) .bracket-match::after {
-    content: '';
-    position: absolute;
-    right: -1.5rem;
-    top: 50%;
-    width: 1.5rem;
-    height: 2px;
-    background: linear-gradient(90deg, rgba(201, 42, 82, 0.8), rgba(251, 191, 36, 0.8));
-    z-index: 1;
-}
-
-.bracket-round:not(:first-child) .bracket-match::before {
-    content: '';
-    position: absolute;
-    left: -1.5rem;
-    top: 50%;
-    width: 1.5rem;
-    height: 2px;
-    background: rgba(201, 42, 82, 0.5);
-    z-index: 1;
-}
-
-/* ===== TIERS & PODIO VISUAL ===== */
-.podium {
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    gap: 1.25rem;
-    padding: 1.5rem 0;
-}
-
-.podium-card {
-    background: linear-gradient(180deg, rgba(42, 13, 24, 0.8) 0%, rgba(9, 5, 7, 0.95) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 1.25rem;
-    padding: 1rem;
-    text-align: center;
-    width: 130px;
-    transition: all 0.3s ease;
-}
-
-.podium-card.first {
-    width: 155px;
-    border: 2px solid #fbbf24;
-    box-shadow: 0 0 25px rgba(251, 191, 36, 0.3);
-    transform: translateY(-10px);
-}
-
-.tier-row {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: rgba(9, 5, 7, 0.8);
-    padding: 0.75rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(128, 0, 32, 0.4);
-}
-
-.tier-badge-box {
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.75rem;
-    font-weight: 900;
-    color: #fff;
-    text-transform: uppercase;
-    font-size: 0.85rem;
-    min-width: 110px;
-    text-align: center;
-    letter-spacing: 0.05em;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-
-.tier-members-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-    flex: 1;
-}
-
-.tier-avatar-chip {
-    display: flex;
-    align-items: center;
-    background: rgba(26, 10, 16, 0.9);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0.35rem 0.65rem;
-    border-radius: 9999px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.tier-avatar-chip:hover {
-    border-color: var(--tier-color, #c92a52);
-    box-shadow: 0 0 12px var(--tier-color, #c92a52);
-    transform: scale(1.05);
-}
-
-/* ===== HOVER TRADING CARD FLOTANTE ===== */
-#user-hover-card {
+/* ==========================================
+   10. MODAL PROPIO ESTILIZADO
+   ================================---------- */
+.custom-modal-backdrop {
     position: fixed;
-    pointer-events: none;
+    inset: 0;
+    background: rgba(6, 3, 5, 0.85);
+    backdrop-filter: blur(8px);
     z-index: 99999;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    animation: fadeIn 0.2s ease;
 }
 
-/* ===== ANIMACIÓN SLOT RULETA ===== */
-.slot-spin-anim {
-    animation: slotSpin 0.1s linear infinite;
+.custom-modal-box {
+    background: linear-gradient(135deg, #1c0a11 0%, #2e0d18 100%);
+    border: 1px solid rgba(201, 42, 82, 0.7);
+    border-radius: 20px;
+    padding: 1.75rem;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(201, 42, 82, 0.3);
+    animation: scaleUp 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes slotSpin {
-    0% { transform: translateY(-5px); opacity: 0.7; }
-    50% { transform: translateY(5px); opacity: 1; }
-    100% { transform: translateY(-5px); opacity: 0.7; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleUp { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ==========================================
+   EFECTO RIPPLE PARA BOTONES
+   ================================---------- */
+button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+button:active {
+    transform: scale(0.97);
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #060305; }
+::-webkit-scrollbar-thumb { background: #5c081d; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #800020; }
