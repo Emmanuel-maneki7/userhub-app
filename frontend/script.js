@@ -1,18 +1,51 @@
-console.log("Sistema Audition World Class LATAM listo y conectado (Versión Esports Pro Max con Gestión de Roles)");
+console.log("Sistema Audition World Class LATAM listo y conectado");
 
-// ===== SISTEMA DE NOTIFICACIONES TOAST =====
+// ===== SISTEMA DE NOTIFICACIONES TOAST (ELEGANTES Y ESPORTS) =====
+// Los estilos se inyectan desde aquí, así no necesitas tocar tu CSS ni tu HTML.
 (function injectToastStyles() {
     if (document.getElementById('toast-styles')) return;
     const style = document.createElement('style');
     style.id = 'toast-styles';
     style.textContent = `
-        #toast-container { position: fixed; top: 1.25rem; right: 1.25rem; z-index: 99999; display: flex; flex-direction: column; gap: 0.6rem; pointer-events: none; max-width: calc(100vw - 2.5rem); }
-        .toast-item { pointer-events: auto; display: flex; align-items: center; gap: 0.75rem; min-width: 260px; max-width: 380px; padding: 0.85rem 1.1rem; border-radius: 0.85rem; background: linear-gradient(135deg, #1a0a10 0%, #2a0d18 100%); border: 1px solid #800020; border-left: 5px solid #c92a52; color: #f1e4e8; font-size: 0.85rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 18px rgba(128, 0, 32, 0.35); animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1); word-break: break-word; }
+        #toast-container {
+            position: fixed;
+            top: 1.25rem;
+            right: 1.25rem;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            pointer-events: none;
+            max-width: calc(100vw - 2.5rem);
+        }
+        .toast-item {
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 260px;
+            max-width: 380px;
+            padding: 0.85rem 1.1rem;
+            border-radius: 0.85rem;
+            background: linear-gradient(135deg, #1a0a10 0%, #2a0d18 100%);
+            border: 1px solid #800020;
+            border-left: 5px solid #c92a52;
+            color: #f1e4e8;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 0 18px rgba(128, 0, 32, 0.35);
+            animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+            word-break: break-word;
+        }
         .toast-item.toast-success { border-left-color: #34d399; }
         .toast-item.toast-error   { border-left-color: #f43f5e; }
         .toast-item.toast-warning { border-left-color: #fbbf24; }
         .toast-item.toast-info    { border-left-color: #c92a52; }
-        @keyframes toast-in { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+        .toast-item i { flex-shrink: 0; }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateX(60px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
     `;
     document.head.appendChild(style);
 })();
@@ -24,13 +57,16 @@ function showToast(message, type = 'info') {
         container.id = 'toast-container';
         document.body.appendChild(container);
     }
+
     const toast = document.createElement('div');
     toast.className = `toast-item toast-${type}`;
+
     let icon = 'ph-info text-wine-300';
     if (type === 'success') icon = 'ph-check-circle text-emerald-400';
     if (type === 'error') icon = 'ph-warning-circle text-rose-500';
     if (type === 'warning') icon = 'ph-bell text-amber-400';
 
+    // El mensaje se inserta como texto (no como HTML) para evitar inyección con nicknames
     const iconEl = document.createElement('i');
     iconEl.className = `ph-bold ${icon} text-xl`;
     const textEl = document.createElement('span');
@@ -47,58 +83,108 @@ function showToast(message, type = 'info') {
     }, 3500);
 }
 
+// Detecta el tipo de toast según el contenido del mensaje (para que cada alert() tenga su color)
 function inferToastType(msg) {
     const m = String(msg).toLowerCase();
-    if (msg.includes('⚠️') || m.includes('error') || m.includes('no se pudo') || m.includes('incorrecto') || m.includes('rechaz')) return 'error';
-    if (m.includes('por favor') || m.includes('no hay ') || m.includes('ya existe') || m.includes('se necesitan')) return 'warning';
-    if (m.includes('éxito') || m.includes('exitosamente') || m.includes('correctamente') || m.includes('creado') || m.includes('bienvenido') || m.includes('actualizado')) return 'success';
+    if (msg.includes('⚠️') || m.includes('error') || m.includes('no se pudo') ||
+        m.includes('incorrecto') || m.includes('rechaz') || m.includes('ocurrió un error')) return 'error';
+    if (m.includes('por favor') || m.includes('no hay ') || m.includes('ya está inscrito') ||
+        m.includes('ya existe') || m.includes('se necesitan') || m.includes('has alcanzado') ||
+        m.includes('no coinciden') || m.includes('al menos')) return 'warning';
+    if (m.includes('éxito') || m.includes('exitosamente') || m.includes('correctamente') ||
+        m.includes('creado') || m.includes('creada') || m.includes('bienvenido') ||
+        m.includes('sesión iniciada') || m.includes('actualizado') || m.includes('actualizada') ||
+        m.includes('eliminado') || m.includes('cerrado sesión') || m.includes('ganador')) return 'success';
     return 'info';
 }
 
-window.alert = function (msg) { showToast(msg, inferToastType(String(msg))); };
+// Reemplaza el alert nativo globalmente
+window.alert = function (msg) {
+    showToast(msg, inferToastType(String(msg)));
+};
 
-// ===== MANEJADOR SEGURO DE AVATARES =====
-function getUserAvatar(u) {
-    if (!u) return 'https://i.imgur.com/6VBx3io.png';
-    const raw = u.avatar || u.foto || u.image || u.img;
-    if (!raw || typeof raw !== 'string' || raw.trim() === '') return 'https://i.imgur.com/6VBx3io.png';
-    return raw.trim();
+// ===== MODALES PROPIOS (reemplazan confirm() y prompt() del navegador) =====
+function openModal({ title = '', message = '', confirmText = 'Aceptar', cancelText = 'Cancelar', danger = false, input = null }) {
+    return new Promise(resolve => {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+
+        const box = document.createElement('div');
+        box.className = 'modal-box' + (danger ? ' modal-danger' : '');
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+
+        const icon = document.createElement('div');
+        icon.className = 'modal-icon';
+        icon.innerHTML = `<i class="ph-bold ${danger ? 'ph-warning' : 'ph-question'}"></i>`;
+
+        const h = document.createElement('h3');
+        h.textContent = title;
+        const p = document.createElement('p');
+        p.textContent = message;
+        box.append(icon, h, p);
+
+        let field = null;
+        if (input) {
+            field = document.createElement('input');
+            field.className = 'modal-input';
+            field.type = input.type || 'text';
+            field.value = input.value != null ? input.value : '';
+            box.appendChild(field);
+        }
+
+        const actions = document.createElement('div');
+        actions.className = 'modal-actions';
+        const cancelBtn = document.createElement('button');
+        cancelBtn.type = 'button';
+        cancelBtn.className = 'modal-btn modal-cancel';
+        cancelBtn.textContent = cancelText;
+        const okBtn = document.createElement('button');
+        okBtn.type = 'button';
+        okBtn.className = 'modal-btn ' + (danger ? 'modal-ok-danger' : 'modal-ok');
+        okBtn.textContent = confirmText;
+        actions.append(cancelBtn, okBtn);
+        box.appendChild(actions);
+
+        const close = (val) => {
+            document.removeEventListener('keydown', onKey);
+            overlay.classList.add('closing');
+            setTimeout(() => overlay.remove(), 180);
+            resolve(val);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') close(input ? null : false);
+            if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') close(input ? field.value : true);
+        };
+
+        cancelBtn.onclick = () => close(input ? null : false);
+        okBtn.onclick = () => close(input ? field.value : true);
+        overlay.addEventListener('mousedown', (e) => { if (e.target === overlay) cancelBtn.click(); });
+        document.addEventListener('keydown', onKey);
+
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        (field || okBtn).focus();
+        if (field) field.select();
+    });
 }
 
-// ===== MODAL PROPIO =====
-function showCustomModal(title, message, isConfirm = false, callback = null) {
-    let container = document.getElementById('custom-modal-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'custom-modal-container';
-        document.body.appendChild(container);
-    }
+function confirmDialog(message, opts = {}) {
+    return openModal({
+        title: opts.title || 'Confirmar acción',
+        message: String(message).replace(/^⚠️\s*/, ''),
+        confirmText: opts.confirmText || 'Confirmar',
+        danger: !!opts.danger
+    });
+}
 
-    container.innerHTML = `
-        <div class="custom-modal-backdrop">
-            <div class="custom-modal-box space-y-4">
-                <h3 class="text-lg font-bold text-white flex items-center gap-2 font-display">
-                    <i class="ph-bold ph-warning-circle text-amber-400"></i> ${escapeHtml(title)}
-                </h3>
-                <p class="text-slate-300 text-sm leading-relaxed">${escapeHtml(message)}</p>
-                <div class="flex justify-end space-x-3 pt-2">
-                    ${isConfirm ? `<button id="modal-btn-cancel" class="px-4 py-2 bg-wine-950 border border-wine-800 text-slate-300 rounded-xl text-xs font-bold hover:bg-wine-900">Cancelar</button>` : ''}
-                    <button id="modal-btn-ok" class="px-5 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-xs font-bold shadow-lg">Aceptar</button>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modal-btn-ok').onclick = () => {
-        container.innerHTML = '';
-        if (callback) callback(true);
-    };
-    if (isConfirm) {
-        document.getElementById('modal-btn-cancel').onclick = () => {
-            container.innerHTML = '';
-            if (callback) callback(false);
-        };
-    }
+function promptDialog(message, defaultValue = '', opts = {}) {
+    return openModal({
+        title: opts.title || 'Ingresa un valor',
+        message,
+        confirmText: 'Aceptar',
+        input: { value: defaultValue, type: opts.type || 'text' }
+    });
 }
 
 const API_BASE = 'https://userhub-app.onrender.com/api';
@@ -122,30 +208,43 @@ let state = {
 
 let activeTabId = null;
 
+// Solo admin/mod conservan el evento activo en localStorage; el resto siempre lo pide al servidor
+if (!(state.currentUser && (state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR'))) {
+    state.activeEvent = null;
+    localStorage.removeItem('uh_active_event');
+}
+
+// ===== HELPERS NUEVOS =====
 function isPrivilegedUser() {
     return !!state.currentUser && (
-        state.currentUser.nickname?.toLowerCase() === 'admin' ||
-        state.currentUser.role === 'MODERATOR' ||
-        state.currentUser.role === 'ADMIN'
+        state.currentUser.nickname.toLowerCase() === 'admin' ||
+        state.currentUser.role === 'MODERATOR'
     );
 }
 
 const MAX_HISTORY = 15;
 
+// Re-render sin tocar el servidor (se usa en TODAS las acciones del admin)
 function refreshTournamentViews() {
     renderTournamentAdmin();
     renderUserEventsView(true);
 }
 
+// ===== GUARDADO / CARGA DEL EVENTO ACTIVO =====
+// El SERVIDOR es la fuente de verdad. Cada navegador (admin, moderador o usuario) solo
+// manda cambios cuando el evento realmente cambió localmente, y en cualquier otro caso
+// se sincroniza con lo que diga el servidor (incluido "ya no existe").
 let saveEventTimer = null;
-let eventRev = 0;
-let eventDirty = false;
+let eventRev = 0;          // sube con cada cambio/borrado local (descarta respuestas GET atrasadas)
+let eventDirty = false;    // hay cambios locales aún no confirmados por el servidor
 
 function eventPayloadJson(evt) {
+    // El historial de "Retroceder" NO se sincroniza (es local y pesado)
     const { historyStates, ...payload } = evt;
     return JSON.stringify(payload);
 }
 
+// Lo que se cargó de localStorage se considera ya sincronizado (no se vuelve a subir tal cual)
 let lastSyncedJson = state.activeEvent ? eventPayloadJson(state.activeEvent) : null;
 
 function persistActiveEventLocal() {
@@ -155,16 +254,20 @@ function persistActiveEventLocal() {
         } else {
             localStorage.removeItem('uh_active_event');
         }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+        console.error("localStorage lleno o fallando:", e);
+    }
 }
 
 function saveActiveEventToDB() {
     if (!state.activeEvent) return;
+
     const json = eventPayloadJson(state.activeEvent);
-    if (json === lastSyncedJson) return;
+    if (json === lastSyncedJson) return; // nada cambió: no se sube (evita resucitar eventos viejos)
 
     eventRev++;
     eventDirty = true;
+
     clearTimeout(saveEventTimer);
     saveEventTimer = setTimeout(async () => {
         if (!state.activeEvent) return;
@@ -179,11 +282,16 @@ function saveActiveEventToDB() {
             if (res.ok) {
                 lastSyncedJson = jsonToSend;
                 eventDirty = !!state.activeEvent && eventPayloadJson(state.activeEvent) !== jsonToSend;
+            } else {
+                console.error("El servidor rechazó el evento:", res.status);
             }
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error("Error guardando evento en DB:", err);
+        }
     }, 300);
 }
 
+// Se llama cuando el evento se elimina o se archiva en este navegador
 function markEventRemovedLocally() {
     clearTimeout(saveEventTimer);
     eventRev++;
@@ -191,29 +299,41 @@ function markEventRemovedLocally() {
     lastSyncedJson = null;
 }
 
+// Un evento válido siempre trae título y estado
 function isValidEvent(data) {
     return !!data && typeof data === 'object' && !!data.title && !!data.status;
 }
 
 async function fetchActiveEventFromDB() {
+    // Si hay cambios locales sin confirmar, no se pisan con datos del servidor
     if (eventDirty) return;
     const revAtStart = eventRev;
+
     try {
+        // cache:'no-store' + parámetro único: evita que el navegador devuelva una respuesta vieja
         const res = await fetch(`${API_BASE}/events/active?_=${Date.now()}`, { cache: 'no-store' });
+
+        // Si mientras esperábamos hubo un cambio local, esta respuesta ya está vieja
         if (eventDirty || revAtStart !== eventRev) return;
+
+        // 404 / 204 = "no hay evento activo"
         if (res.status === 404 || res.status === 204) {
             state.activeEvent = null;
             lastSyncedJson = null;
             persistActiveEventLocal();
             return;
         }
-        if (!res.ok) return;
+        if (!res.ok) return; // error del servidor: se conserva lo que había
+
         let data = null;
         const text = await res.text();
+        if (eventDirty || revAtStart !== eventRev) return;
+
         if (text) {
             try { data = JSON.parse(text); } catch (e) { data = null; }
             if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) { data = null; } }
         }
+
         if (isValidEvent(data)) {
             if (state.activeEvent && state.activeEvent.historyStates && state.activeEvent.id === data.id) {
                 data.historyStates = state.activeEvent.historyStates;
@@ -221,11 +341,14 @@ async function fetchActiveEventFromDB() {
             state.activeEvent = data;
             lastSyncedJson = eventPayloadJson(data);
         } else {
+            // null, {} o respuesta sin evento = fue eliminado: todos (también admin/mod) lo dejan de ver
             state.activeEvent = null;
             lastSyncedJson = null;
         }
         persistActiveEventLocal();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+        console.error("Error obteniendo evento activo de DB:", err);
+    }
 }
 
 function saveState() {
@@ -233,10 +356,18 @@ function saveState() {
         localStorage.setItem('uh_clans', JSON.stringify(state.clans));
         localStorage.setItem('uh_assignments', JSON.stringify(state.assignments));
         localStorage.setItem('uh_event_history', JSON.stringify(state.eventHistory));
-        if (state.currentUser) localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
-        else localStorage.removeItem('uh_current_user');
-    } catch (e) { console.error(e); }
+
+        if (state.currentUser) {
+            localStorage.setItem('uh_current_user', JSON.stringify(state.currentUser));
+        } else {
+            localStorage.removeItem('uh_current_user');
+        }
+    } catch (e) {
+        console.error("localStorage lleno o fallando:", e);
+    }
     persistActiveEventLocal();
+
+    // Solo admin/mod publican, y únicamente si el evento cambió respecto a lo sincronizado
     if (state.activeEvent && isPrivilegedUser()) saveActiveEventToDB();
 }
 
@@ -247,19 +378,22 @@ async function fetchGlobalConfig() {
             fetch(`${API_BASE}/tiers`),
             fetch(`${API_BASE}/tabs`)
         ]);
+
         if (clansRes.ok) {
             const dbClans = await clansRes.json();
             if (dbClans.length > 0) {
                 state.clans = ['Sin Familia / Ninguno', ...dbClans.map(c => c.name).filter(n => n !== 'Sin Familia / Ninguno')];
             }
         }
+
         if (tabsRes.ok) {
             const dbTabs = await tabsRes.json();
             state.tabs = dbTabs;
-            if (dbTabs.length > 0 && (activeTabId === null || !dbTabs.some(t => String(t.id) === String(activeTabId)))) {
+            if (dbTabs.length > 0 && !activeTabId) {
                 activeTabId = dbTabs[0].id;
             }
         }
+
         if (tiersRes.ok) {
             const dbTiers = await tiersRes.json();
             state.tiers = dbTiers.map(t => ({
@@ -270,89 +404,35 @@ async function fetchGlobalConfig() {
                 tabId: t.tabId || (state.tabs.length > 0 ? state.tabs[0].id : null)
             }));
         }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+        console.error("Error al cargar configuración global:", err);
+    }
 }
 
 function navigateTo(viewId) {
     const isPrivileged = isPrivilegedUser();
-    if ((viewId === 'view-admin' || viewId === 'view-event-history') && !isPrivileged) viewId = 'view-home';
 
-    document.querySelectorAll('.view-section').forEach(s => s.classList.add('hidden'));
-    const target = document.getElementById(viewId);
-    if (target) {
-        target.classList.remove('hidden');
+    if ((viewId === 'view-admin' || viewId === 'view-event-history') && !isPrivileged) {
+        viewId = 'view-home';
+    }
+
+    const sections = document.querySelectorAll('.view-section');
+    sections.forEach(section => section.classList.add('hidden'));
+
+    const targetSection = document.getElementById(viewId);
+    if (targetSection) {
+        targetSection.classList.remove('hidden');
         window.scrollTo(0, 0);
     }
+
     renderNavActions();
-    if (viewId === 'view-home') {
-        fetchUsers().then(() => {
-            renderHomeStats();
-            renderHomeLiveBanner();
-            renderHallOfFame();
-        });
-    }
-    if (viewId === 'view-tiers') fetchUsers().then(() => { populateClanFilter(); renderPublicTiers(); });
+    if (viewId === 'view-home') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderPublicTiers(); renderHomeStats(); });
+    if (viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderAdminPanel(); renderTournamentAdmin(); });
     if (viewId === 'view-events') renderUserEventsView();
     if (viewId === 'view-event-history') renderEventHistory();
-    if (viewId === 'view-profile-card') renderProfileCard();
+    if (viewId === 'view-profile-card') { renderProfileCard(); fetchUsers().then(() => renderProfileCard()); }
     if (viewId === 'view-profile-edit') fillProfileEditForm();
-}
-
-// ===== HERO & STATS =====
-function countUp(el, to, ms = 1200) {
-    if (!el) return;
-    const t0 = performance.now();
-    (function tick(t) {
-        const p = Math.min((t - t0) / ms, 1);
-        el.textContent = Math.floor(to * (1 - Math.pow(1 - p, 3)));
-        if (p < 1) requestAnimationFrame(tick);
-    })(t0);
-}
-
-function renderHomeStats() {
-    countUp(document.getElementById('stat-users'), state.users.length);
-    countUp(document.getElementById('stat-tournaments'), state.eventHistory.length);
-    countUp(document.getElementById('stat-clans'), Math.max(0, state.clans.length - 1));
-}
-
-function renderHomeLiveBanner() {
-    const banner = document.getElementById('home-live-banner');
-    if (!banner) return;
-    if (state.activeEvent && state.activeEvent.status !== 'SETUP') {
-        banner.className = "mb-6 p-4 rounded-2xl bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 border-2 border-red-500/80 shadow-2xl flex items-center justify-between cursor-pointer hover:scale-[1.01] transition-all glass-panel-glow";
-        banner.innerHTML = `
-            <div class="flex items-center space-x-3" onclick="navigateTo('view-events')">
-                <span class="px-3 py-1 rounded-full bg-red-600 text-white text-xs font-black uppercase animate-pulse shadow-lg shadow-red-600/50">🔴 EN VIVO</span>
-                <div>
-                    <h4 class="text-white font-black text-base">${escapeHtml(state.activeEvent.title)}</h4>
-                    <p class="text-xs text-slate-300">Torneo en curso. Haz clic para seguir las partidas y rondas.</p>
-                </div>
-            </div>
-            <button onclick="navigateTo('view-events')" class="px-4 py-2 bg-wine-700 hover:bg-wine-600 text-white text-xs font-bold rounded-xl shadow-lg hover-glow">Ver Torneo ➔</button>
-        `;
-        banner.classList.remove('hidden');
-    } else {
-        banner.classList.add('hidden');
-    }
-}
-
-function renderHallOfFame() {
-    const hof = document.getElementById('home-hall-of-fame');
-    if (!hof) return;
-    if (state.eventHistory.length === 0) {
-        hof.innerHTML = `<span class="text-slate-500 italic text-xs">Aún no hay campeones registrados. ¡Participa en los próximos torneos!</span>`;
-        return;
-    }
-    hof.innerHTML = state.eventHistory.slice(0, 3).map(evt => {
-        const champ = evt.playoffs && evt.playoffs.champion ? evt.playoffs.champion.name : (evt.leaderboard[0] ? evt.leaderboard[0].participant.name : 'N/D');
-        return `
-            <div class="flex items-center justify-between p-3 rounded-xl bg-[#090507] border border-wine-900/80 shadow-md hover:border-amber-500/50 transition-all">
-                <span class="font-bold text-white text-sm">${escapeHtml(evt.title)}</span>
-                <span class="text-amber-400 font-extrabold text-xs flex items-center gap-1.5 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">🏆 ${escapeHtml(champ)}</span>
-            </div>
-        `;
-    }).join('');
 }
 
 function renderNavActions() {
@@ -361,34 +441,66 @@ function renderNavActions() {
     if (!navContainer) return;
 
     if (state.currentUser) {
-        const isPriv = isPrivilegedUser();
+        const isPrivileged = isPrivilegedUser();
         navContainer.innerHTML = `
             <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b></span>
-            <button onclick="navigateTo('view-events')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800"><i class="ph-bold ph-calendar-star"></i><span>Eventos</span></button>
-            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800"><i class="ph-bold ph-ranking"></i><span>Tiers</span></button>
-            ${isPriv ? `
-                <button onclick="navigateTo('view-event-history')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800" title="Historial"><i class="ph-bold ph-clock-counter-clockwise"></i></button>
-                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold shadow-md flex items-center space-x-1"><i class="ph-bold ph-shield-check"></i><span>Admin</span></button>
+            <button onclick="navigateTo('view-events')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-calendar-star"></i> <span>Eventos</span>
+            </button>
+            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-ranking"></i> <span>Tabla Tiers</span>
+            </button>
+            ${isPrivileged ? `
+                <button onclick="navigateTo('view-event-history')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                    <i class="ph-bold ph-clock-counter-clockwise"></i> <span>Historial</span>
+                </button>
+                <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1 shadow-md shadow-wine-900/40">
+                    <i class="ph-bold ph-shield-check"></i> <span>Panel Admin</span>
+                </button>
             ` : ''}
-            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800" title="Mi Carta"><i class="ph-bold ph-user"></i></button>
-            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 text-xs font-semibold border border-red-900/50" title="Cerrar Sesión"><i class="ph-bold ph-sign-out"></i></button>
+            <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-user"></i> <span>Mi Perfil</span>
+            </button>
+            <button onclick="handleLogout()" class="px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-red-400 text-xs font-semibold flex items-center space-x-1 border border-red-900/50">
+                <i class="ph-bold ph-sign-out"></i> <span>Salir</span>
+            </button>
         `;
+
         if (ctaButtons) {
             ctaButtons.innerHTML = `
-                <button onclick="navigateTo('view-events')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2 hover-glow"><i class="ph-bold ph-calendar-star text-lg"></i><span>Ver Eventos en Vivo</span></button>
-                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2"><i class="ph-bold ph-ranking text-lg"></i><span>Ver Tabla Tiers</span></button>
+                <button onclick="navigateTo('view-events')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-calendar-star text-lg"></i>
+                    <span>Ver Eventos en Vivo</span>
+                </button>
+                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-ranking text-lg"></i>
+                    <span>Ver Tabla Tiers</span>
+                </button>
             `;
         }
     } else {
         navContainer.innerHTML = `
-            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold border border-wine-800 flex items-center space-x-1"><i class="ph-bold ph-ranking"></i><span>Tiers</span></button>
-            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold border border-wine-800 flex items-center space-x-1"><i class="ph-bold ph-sign-in"></i><span>Ingresar</span></button>
-            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1"><i class="ph-bold ph-user-plus"></i><span>Registrarse</span></button>
+            <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-ranking"></i> <span>Tabla Tiers</span>
+            </button>
+            <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
+                <i class="ph-bold ph-sign-in"></i> <span>Iniciar Sesión</span>
+            </button>
+            <button onclick="navigateTo('view-register')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold">
+                <i class="ph-bold ph-user-plus"></i> <span>Registrarse</span>
+            </button>
         `;
+
         if (ctaButtons) {
             ctaButtons.innerHTML = `
-                <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2 hover-glow"><i class="ph-bold ph-user-plus text-lg"></i><span>Registrarse Ahora</span></button>
-                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2"><i class="ph-bold ph-ranking text-lg"></i><span>Ver Tabla Tiers</span></button>
+                <button onclick="navigateTo('view-register')" class="px-6 py-3 rounded-xl bg-wine-700 hover:bg-wine-600 text-white font-semibold transition-all shadow-lg shadow-wine-900/50 hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-user-plus text-lg"></i>
+                    <span>Registrarse Ahora</span>
+                </button>
+                <button onclick="navigateTo('view-tiers')" class="px-6 py-3 rounded-xl bg-wine-950 hover:bg-wine-900 text-slate-200 font-semibold border border-wine-800 transition-all hover:scale-[1.02] flex items-center space-x-2">
+                    <i class="ph-bold ph-ranking text-lg"></i>
+                    <span>Ver Tabla Tiers</span>
+                </button>
             `;
         }
     }
@@ -397,85 +509,60 @@ function renderNavActions() {
 async function fetchUsers() {
     try {
         await fetchGlobalConfig();
-        const res = await fetch(API_URL);
-        if (!res.ok) throw new Error();
-        const users = await res.json();
+        const response = await fetch(API_URL);
+        if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
+        const users = await response.json();
         state.users = users;
+
         users.forEach(u => {
             const username = u.nickname || u.name;
-            if (username && !state.assignments[username]) state.assignments[username] = { tagIds: [] };
-            if (u.role === 'MODERATOR' || u.role === 'ADMIN') {
-                if (!state.assignments[username].tagIds.includes('tag-mod')) state.assignments[username].tagIds.push('tag-mod');
+            if (username && !state.assignments[username]) {
+                state.assignments[username] = { tagIds: [] };
+            }
+            if (u.role === 'MODERATOR') {
+                if (!state.assignments[username].tagIds.includes('tag-mod')) {
+                    state.assignments[username].tagIds.push('tag-mod');
+                }
             }
         });
+
         populateRegisteredUsersSelect();
         return users;
-    } catch (err) { console.error(err); }
+    } catch (error) {
+        console.error('Error al conectar con el servidor:', error);
+    }
 }
 
-// ===== RULETA DE CANCIONES CON EFECTO SLOT =====
-let rouletteInterval = null;
-
-function spinSongRoulette(roundIndex) {
-    const evt = state.activeEvent;
-    if (!evt || !evt.songPool || evt.songPool.length === 0) {
-        alert("No hay canciones configuradas en la lista del torneo.");
-        return;
-    }
-    const pool = evt.songPool;
-    const songDisplay = document.getElementById(`roulette-song-display-${roundIndex}`) || document.getElementById('global-roulette-song');
-    if (!songDisplay) {
-        reRollRoundSong(roundIndex);
-        return;
-    }
-
-    songDisplay.classList.add('slot-spin-anim');
-    let counter = 0;
-    clearInterval(rouletteInterval);
-    rouletteInterval = setInterval(() => {
-        const randomSong = pool[Math.floor(Math.random() * pool.length)];
-        songDisplay.textContent = randomSong;
-        counter++;
-        if (counter > 20) {
-            clearInterval(rouletteInterval);
-            songDisplay.classList.remove('slot-spin-anim');
-            const finalSong = pool[Math.floor(Math.random() * pool.length)];
-            songDisplay.textContent = finalSong;
-            saveHistoryState();
-            if (evt.status === 'SWISS' && evt.swissRounds[roundIndex]) evt.swissRounds[roundIndex].currentSong = finalSong;
-            else if (evt.status === 'PLAYOFFS' && evt.playoffs && evt.playoffs.rounds[roundIndex]) evt.playoffs.rounds[roundIndex].currentSong = finalSong;
-            saveState();
-            refreshTournamentViews();
-            showToast(`🎵 ¡Canción sorteada: ${finalSong}!`, 'success');
-        }
-    }, 60);
-}
-
-// TORNEO SUIZO & PLAYOFFS
+// LÓGICA DE TORNEO SUIZO Y PLAYOFFS
 let tempParticipants = [];
 
 function populateRegisteredUsersSelect() {
     const select = document.getElementById('registered-user-select');
     if (!select) return;
-    select.innerHTML = `<option value="">Seleccionar Usuario Registrado...</option>` +
-        state.users.map(u => `<option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>`).join('');
-}
 
-function populateClanFilter() {
-    const select = document.getElementById('tier-clan-filter');
-    if (!select) return;
-    select.innerHTML = `<option value="">Todas las Familias</option>` +
-        state.clans.filter(c => c !== 'Sin Familia / Ninguno').map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    const registeredOnly = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
+    
+    select.innerHTML = `<option value="">Seleccionar Usuario Registrado...</option>` +
+        registeredOnly.map(u => `
+            <option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>
+        `).join('');
 }
 
 function startNewEvent() {
-    const titleInput = document.getElementById('event-title-input');
-    const title = titleInput ? titleInput.value.trim() : '';
-    const rounds = parseInt(document.getElementById('event-rounds-input')?.value, 10) || 3;
+    const title = document.getElementById('event-title-input').value.trim();
+    const rounds = parseInt(document.getElementById('event-rounds-input').value, 10) || 3;
     const songInput = document.getElementById('event-song-list-input')?.value || '';
-    if (!title) { alert("Por favor ingresa un nombre para el evento."); return; }
 
-    const songPool = songInput.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    if (!title) {
+        alert("Por favor ingresa un nombre para el evento.");
+        return;
+    }
+
+    const songPool = songInput
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
     state.activeEvent = {
         id: 'evt-' + Date.now(),
         title,
@@ -486,60 +573,79 @@ function startNewEvent() {
         swissRounds: [],
         leaderboard: [],
         playoffs: null,
-        songPool,
+        songPool: songPool,
         historyStates: []
     };
+
     tempParticipants = [];
     saveState();
-    const regArea = document.getElementById('event-registration-area');
-    if (regArea) regArea.classList.remove('hidden');
+    
+    document.getElementById('event-registration-area').classList.remove('hidden');
     renderParticipantsBadges();
-    refreshTournamentViews();
-    alert(`Torneo "${title}" creado. Inscribe a los participantes.`);
+    alert(`Evento "${title}" creado. Ahora inscribe a los participantes.`);
 }
 
 function updateTournamentSongsFromAdmin() {
-    if (!state.activeEvent) { alert("No hay torneo activo."); return; }
+    if (!state.activeEvent) {
+        alert("No hay ningún torneo activo.");
+        return;
+    }
     const songInput = document.getElementById('event-song-list-input')?.value || '';
-    state.activeEvent.songPool = songInput.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+    const songPool = songInput
+        .split(/[\n,]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+    state.activeEvent.songPool = songPool;
     saveState();
-    alert("¡Lista de canciones actualizada!");
+    alert("¡Lista de canciones actualizada con éxito!");
 }
 
 function addRegisteredPlayerToEvent() {
     const select = document.getElementById('registered-user-select');
-    if (!select) return;
     const userId = select.value;
     if (!userId) return;
+
     const user = state.users.find(u => String(u.id) === String(userId));
     if (!user) return;
+
     const uname = user.nickname || user.name;
-    if (tempParticipants.some(p => p.name === uname)) { alert("El usuario ya está inscrito."); return; }
+    if (tempParticipants.some(p => p.name === uname)) {
+        alert("El usuario ya está inscrito.");
+        return;
+    }
 
     tempParticipants.push({
         id: `usr-${user.id}`,
         name: uname,
-        avatar: getUserAvatar(user),
+        avatar: user.avatar || 'https://i.imgur.com/6VBx3io.png',
         isBot: false,
         points: 0,
         playedAgainst: []
     });
+
     renderParticipantsBadges();
 }
 
 function addBotToEvent() {
     const botInput = document.getElementById('bot-name-input');
-    const name = botInput ? botInput.value.trim() || `Bot_${tempParticipants.length + 1}` : `Bot_${tempParticipants.length + 1}`;
-    if (tempParticipants.some(p => p.name === name)) { alert("Ya existe un participante con ese nombre."); return; }
+    const name = botInput.value.trim() || `Bot_${tempParticipants.length + 1}`;
+
+    if (tempParticipants.some(p => p.name === name)) {
+        alert("Ya existe un participante o bot con ese nombre.");
+        return;
+    }
+
     tempParticipants.push({
         id: `bot-${Date.now()}-${Math.floor(Math.random()*10000)}`,
-        name,
+        name: name,
         avatar: '🤖',
         isBot: true,
         points: 0,
         playedAgainst: []
     });
-    if (botInput) botInput.value = '';
+
+    botInput.value = '';
     renderParticipantsBadges();
 }
 
@@ -551,12 +657,19 @@ function removeParticipantFromSetup(id) {
 function renderParticipantsBadges() {
     const container = document.getElementById('event-participants-badges');
     if (!container) return;
-    if (tempParticipants.length === 0) { container.innerHTML = `<span class="text-xs text-slate-500 italic">No hay inscritos aún.</span>`; return; }
+
+    if (tempParticipants.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500 italic">No hay inscritos aún.</span>`;
+        return;
+    }
+
     container.innerHTML = tempParticipants.map(p => `
-        <span class="inline-flex items-center space-x-2 px-3 py-1 rounded-xl bg-wine-900 border border-wine-700 text-xs text-white shadow-md">
-            ${p.isBot ? '🤖' : `<img src="${escapeHtml(p.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-4 h-4 rounded-full object-cover">`}
+        <span class="inline-flex items-center space-x-2 px-3 py-1 rounded-xl bg-wine-900 border border-wine-700 text-xs text-white">
+            ${p.isBot ? '🤖' : `<img src="${escapeHtml(p.avatar)}" class="w-4 h-4 rounded-full object-cover">`}
             <span class="font-bold">${escapeHtml(p.name)}</span>
-            <button onclick="removeParticipantFromSetup('${p.id}')" class="text-slate-400 hover:text-red-400 ml-1"><i class="ph-bold ph-x"></i></button>
+            <button onclick="removeParticipantFromSetup('${p.id}')" class="text-slate-400 hover:text-red-400 ml-1">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </span>
     `).join('');
 }
@@ -573,69 +686,90 @@ function saveHistoryState() {
         leaderboard: state.activeEvent.leaderboard,
         playoffs: state.activeEvent.playoffs
     })));
-    if (state.activeEvent.historyStates.length > MAX_HISTORY) state.activeEvent.historyStates.shift();
+    if (state.activeEvent.historyStates.length > MAX_HISTORY) {
+        state.activeEvent.historyStates.shift();
+    }
 }
 
 function undoTournamentStep() {
     const evt = state.activeEvent;
-    if (!evt || !evt.historyStates || evt.historyStates.length === 0) { alert("No hay pasos anteriores."); return; }
+    if (!evt || !evt.historyStates || evt.historyStates.length === 0) {
+        alert("No hay pasos anteriores para retroceder.");
+        return;
+    }
+
     const prev = evt.historyStates.pop();
     Object.assign(evt, prev);
+
     saveState();
     refreshTournamentViews();
 }
 
 async function deleteActiveEvent() {
-    showCustomModal("Eliminar Torneo", "¿Estás seguro de eliminar completamente el torneo activo? Esta acción borrará todo el progreso y no lo guardará en el historial.", true, async (ok) => {
-        if (!ok) return;
-        markEventRemovedLocally();
-        state.activeEvent = null;
-        localStorage.removeItem('uh_active_event');
-        try { await fetch(`${API_BASE}/events/active`, { method: 'DELETE' }); } catch (err) { console.error(err); }
-        refreshTournamentViews();
-        alert("Torneo eliminado correctamente.");
-    });
-}
-
-function archiveActiveEvent() {
     if (!state.activeEvent) return;
-    showCustomModal("Archivar Torneo", "¿Deseas archivar el torneo activo en el Historial tal como está?", true, (ok) => {
-        if (!ok) return;
-        markEventRemovedLocally();
-        const copy = JSON.parse(JSON.stringify(state.activeEvent));
-        delete copy.historyStates;
-        state.eventHistory.unshift(copy);
-        fetch(`${API_BASE}/events/active`, { method: 'DELETE' }).catch(() => {});
-        state.activeEvent = null;
-        saveState();
-        alert("Torneo archivado en el Historial.");
-        navigateTo('view-event-history');
-    });
+
+    const confirmacion = await confirmDialog(`¿Estás seguro de que deseas eliminar permanentemente el torneo activo "${state.activeEvent.title}"? Esta acción no se puede deshacer.`, { danger: true, confirmText: 'Eliminar torneo' });
+    if (!confirmacion) return;
+
+    markEventRemovedLocally();
+    state.activeEvent = null;
+    localStorage.removeItem('uh_active_event');
+
+    let serverOk = true;
+    try {
+        const res = await fetch(`${API_BASE}/events/active`, {
+            method: 'DELETE'
+        });
+        if (!res.ok) {
+            serverOk = false;
+            console.error("El servidor no pudo borrar el evento. Estado HTTP:", res.status);
+        }
+    } catch (err) {
+        serverOk = false;
+        console.error("Error al borrar evento activo en servidor:", err);
+    }
+
+    refreshTournamentViews();
+    if (serverOk) {
+        alert("El torneo activo ha sido eliminado correctamente.");
+    } else {
+        alert("⚠️ Se eliminó en tu panel, pero el servidor NO confirmó el borrado: los demás usuarios podrían seguir viéndolo. Revisa la ruta DELETE /api/events/active en el backend.");
+    }
 }
 
-function deleteHistoryEvent(index) {
-    showCustomModal("Eliminar Historial", "¿Estás seguro de eliminar este torneo del historial permanentemente?", true, (ok) => {
-        if (!ok) return;
-        state.eventHistory.splice(index, 1);
-        saveState();
-        renderEventHistory();
-        alert("Torneo eliminado del historial.");
-    });
+async function deleteHistoryEvent(index) {
+    if (index < 0 || index >= state.eventHistory.length) return;
+
+    const evt = state.eventHistory[index];
+    const confirmacion = await confirmDialog(`¿Estás seguro de eliminar el torneo "${evt.title}" del historial?`, { danger: true, confirmText: 'Eliminar' });
+    if (!confirmacion) return;
+
+    state.eventHistory.splice(index, 1);
+    saveState();
+    renderEventHistory();
+    alert("Torneo eliminado del historial.");
 }
 
 function getRandomSong() {
-    if (!state.activeEvent || !state.activeEvent.songPool || state.activeEvent.songPool.length === 0) return "Canción Libre";
+    if (!state.activeEvent || !state.activeEvent.songPool || state.activeEvent.songPool.length === 0) {
+        return "Canción Libre (Sin lista configurada)";
+    }
     const pool = state.activeEvent.songPool;
     return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function generateFirstSwissRound() {
-    if (tempParticipants.length < 2) { alert("Se necesitan al menos 2 participantes."); return; }
+    if (tempParticipants.length < 2) {
+        alert("Se necesitan al menos 2 participantes para iniciar.");
+        return;
+    }
+
     saveHistoryState();
     state.activeEvent.participants = JSON.parse(JSON.stringify(tempParticipants));
     state.activeEvent.status = 'SWISS';
     state.activeEvent.currentRound = 1;
     state.activeEvent.swissRounds = [];
+
     generatePairingsForRound(1);
     saveState();
     refreshTournamentViews();
@@ -644,12 +778,15 @@ function generateFirstSwissRound() {
 function generatePairingsForRound(roundNum) {
     const evt = state.activeEvent;
     updateLeaderboard();
+
+    // Orden real por puntos (del leaderboard), no por p.points
     const pointsOf = {};
     evt.leaderboard.forEach(item => { pointsOf[item.participant.id] = item.points; });
 
     let pool = evt.participants.filter(p => p.id !== 'bot-bye');
     pool.sort((a, b) => (pointsOf[b.id] || 0) - (pointsOf[a.id] || 0));
 
+    // Un solo BOT_LIBRE reutilizable cuando hay cantidad impar
     if (pool.length % 2 !== 0) {
         let bye = evt.participants.find(p => p.id === 'bot-bye');
         if (!bye) {
@@ -661,34 +798,50 @@ function generatePairingsForRound(roundNum) {
 
     const matches = [];
     const paired = new Set();
+
     for (let i = 0; i < pool.length; i++) {
         const p1 = pool[i];
         if (paired.has(p1.id)) continue;
+
         let p2 = pool.find((p, j) => j > i && !paired.has(p.id) && !p1.playedAgainst.includes(p.id));
         if (!p2) p2 = pool.find((p, j) => j > i && !paired.has(p.id));
         if (!p2) continue;
 
         paired.add(p1.id);
         paired.add(p2.id);
+
+        // Si le toca el bye, el jugador real gana automáticamente
         let winnerId = null;
         if (p1.id === 'bot-bye') winnerId = String(p2.id);
         if (p2.id === 'bot-bye') winnerId = String(p1.id);
 
-        matches.push({ matchId: `m-${roundNum}-${matches.length}`, playerA: p1, playerB: p2, winnerId, pointsAwarded: 3 });
+        matches.push({
+            matchId: `m-${roundNum}-${matches.length}`,
+            playerA: p1,
+            playerB: p2,
+            winnerId,
+            pointsAwarded: 3
+        });
     }
-    evt.swissRounds.push({ roundNumber: roundNum, matches, currentSong: getRandomSong(), isCompleted: false });
+
+    evt.swissRounds.push({
+        roundNumber: roundNum,
+        matches,
+        currentSong: getRandomSong(),
+        songRollId: Date.now(),
+        isCompleted: false
+    });
+
     updateLeaderboard();
 }
 
 function reRollRoundSong(roundIndex) {
     const evt = state.activeEvent;
-    if (!evt) return;
+    if (!evt || !evt.swissRounds[roundIndex]) return;
+
     saveHistoryState();
-    if (evt.status === 'SWISS' && evt.swissRounds[roundIndex]) {
-        evt.swissRounds[roundIndex].currentSong = getRandomSong();
-    } else if (evt.status === 'PLAYOFFS' && evt.playoffs && evt.playoffs.rounds[roundIndex]) {
-        evt.playoffs.rounds[roundIndex].currentSong = getRandomSong();
-    }
+    evt.swissRounds[roundIndex].currentSong = getRandomSong();
+    evt.swissRounds[roundIndex].songRollId = Date.now();
     saveState();
     refreshTournamentViews();
 }
@@ -697,10 +850,18 @@ function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
     const evt = state.activeEvent;
     const round = evt && evt.swissRounds[roundIndex];
     if (!round || !round.matches[matchIndex]) return;
+
     saveHistoryState();
     const match = round.matches[matchIndex];
-    if (String(match.winnerId) === String(winnerId)) match.winnerId = null;
-    else { match.winnerId = String(winnerId); match.pointsAwarded = parseInt(customPoints, 10) || 3; }
+
+    // Segundo clic sobre el mismo ganador = desmarcar
+    if (String(match.winnerId) === String(winnerId)) {
+        match.winnerId = null;
+    } else {
+        match.winnerId = String(winnerId);
+        match.pointsAwarded = parseInt(customPoints, 10) || 3;
+    }
+
     updateLeaderboard();
     saveState();
     refreshTournamentViews();
@@ -708,24 +869,32 @@ function setMatchWinner(roundIndex, matchIndex, winnerId, customPoints = 3) {
 
 function updateLeaderboard() {
     const evt = state.activeEvent;
-    if (!evt) return;
     const scores = {};
-    evt.participants.forEach(p => { scores[p.id] = { participant: p, points: 0, wins: 0, losses: 0 }; });
+
+    evt.participants.forEach(p => {
+        scores[p.id] = { participant: p, points: 0, wins: 0, losses: 0 };
+    });
+
     evt.swissRounds.forEach(round => {
         round.matches.forEach(m => {
             if (!m.winnerId) return;
             const winner = scores[m.winnerId];
             const loserId = String(m.playerA.id) === String(m.winnerId) ? m.playerB.id : m.playerA.id;
-            if (winner) { winner.points += m.pointsAwarded || 3; winner.wins += 1; }
+            if (winner) {
+                winner.points += m.pointsAwarded || 3;
+                winner.wins += 1;
+            }
             if (scores[loserId]) scores[loserId].losses += 1;
         });
     });
-    evt.leaderboard = Object.values(scores).filter(s => s.participant.id !== 'bot-bye').sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+    evt.leaderboard = Object.values(scores)
+        .filter(s => s.participant.id !== 'bot-bye')
+        .sort((a, b) => b.points - a.points || b.wins - a.wins);
 }
 
 function registerPlayedAgainst(roundObj) {
     const evt = state.activeEvent;
-    if (!evt) return;
     roundObj.matches.forEach(m => {
         const p1 = evt.participants.find(p => String(p.id) === String(m.playerA.id));
         const p2 = evt.participants.find(p => String(p.id) === String(m.playerB.id));
@@ -736,31 +905,30 @@ function registerPlayedAgainst(roundObj) {
     });
 }
 
-function nextSwissRound() {
-    const evt = state.activeEvent;
-    if (!evt) return;
-    const cur = evt.swissRounds[evt.currentRound - 1];
-    if (!cur) return;
-    if (!cur.matches.every(m => m.winnerId !== null)) {
-        showCustomModal("Partidas Pendientes", "Hay enfrentamientos sin ganador. ¿Deseas avanzar de ronda?", true, (ok) => {
-            if (!ok) return;
-            proceedNextSwiss(evt, cur);
-        });
-        return;
-    }
-    proceedNextSwiss(evt, cur);
-}
+async function nextSwissRound() {
+    let evt = state.activeEvent;
+    let currentRoundObj = evt.swissRounds[evt.currentRound - 1];
+    if (!currentRoundObj) return;
 
-function proceedNextSwiss(evt, cur) {
+    if (!currentRoundObj.matches.every(m => m.winnerId !== null)) {
+        if (!await confirmDialog("Hay partidas sin ganador marcado. ¿Deseas continuar a la siguiente ronda de todos modos?", { confirmText: 'Continuar' })) return;
+        evt = state.activeEvent;
+        if (!evt) return;
+        currentRoundObj = evt.swissRounds[evt.currentRound - 1];
+        if (!currentRoundObj) return;
+    }
+
     saveHistoryState();
-    cur.isCompleted = true;
-    registerPlayedAgainst(cur);
+    currentRoundObj.isCompleted = true;
+    registerPlayedAgainst(currentRoundObj);
+
     if (evt.currentRound < evt.maxSwissRounds) {
         evt.currentRound += 1;
         generatePairingsForRound(evt.currentRound);
     } else {
-        alert("Límite de rondas alcanzado. Puedes generar los PlayOffs.");
+        alert("Has alcanzado el límite de rondas suizo programadas. Puedes agregar una ronda extra o generar los PlayOffs.");
     }
+
     saveState();
     refreshTournamentViews();
 }
@@ -768,9 +936,15 @@ function proceedNextSwiss(evt, cur) {
 function addExtraSwissRound() {
     const evt = state.activeEvent;
     if (!evt) return;
+
     saveHistoryState();
+
     const cur = evt.swissRounds[evt.currentRound - 1];
-    if (cur) { cur.isCompleted = true; registerPlayedAgainst(cur); }
+    if (cur) {
+        cur.isCompleted = true;
+        registerPlayedAgainst(cur);
+    }
+
     evt.maxSwissRounds += 1;
     evt.currentRound += 1;
     generatePairingsForRound(evt.currentRound);
@@ -778,17 +952,23 @@ function addExtraSwissRound() {
     refreshTournamentViews();
 }
 
-function createPlayoffs() {
+async function createPlayoffs() {
+    const answer = await promptDialog("¿Cuántos clasificados deseas en los PlayOffs? (Ej: 4 u 8)", "4", { title: 'Crear PlayOffs', type: 'number' });
+    if (answer === null) return;
     const evt = state.activeEvent;
     if (!evt) return;
-    updateLeaderboard();
-    const topCount = parseInt(prompt("¿Cuántos clasificados a PlayOffs? (Ej: 4 u 8)", "4"), 10) || 4;
+    const topCount = parseInt(answer, 10) || 4;
+
     saveHistoryState();
+    updateLeaderboard();
+
     const qualified = evt.leaderboard.slice(0, topCount).map(item => item.participant);
+
     for (let i = qualified.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [qualified[i], qualified[j]] = [qualified[j], qualified[i]];
     }
+
     const roundMatches = [];
     for (let i = 0; i < qualified.length; i += 2) {
         roundMatches.push({
@@ -798,11 +978,15 @@ function createPlayoffs() {
             winnerId: qualified[i + 1] ? null : String(qualified[i].id)
         });
     }
+
+    const firstName = qualified.length <= 2 ? 'GRAN FINAL' : (qualified.length <= 4 ? 'SEMIFINAL' : 'ELIMINATORIAS');
+
     evt.playoffs = {
         topCount,
-        rounds: [{ roundName: qualified.length <= 2 ? 'GRAN FINAL' : 'SEMIFINAL', matches: roundMatches, currentSong: getRandomSong() }],
+        rounds: [{ roundName: firstName, matches: roundMatches, currentSong: getRandomSong() }],
         champion: null
     };
+
     evt.status = 'PLAYOFFS';
     saveState();
     refreshTournamentViews();
@@ -812,22 +996,31 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
     const evt = state.activeEvent;
     const po = evt && evt.playoffs;
     if (!po || !po.rounds[roundIdx] || !po.rounds[roundIdx].matches[matchIdx]) return;
+
     saveHistoryState();
+
     const match = po.rounds[roundIdx].matches[matchIdx];
     const target = String(winnerId);
+    // Clic sobre el que ya era ganador lo desmarca
     match.winnerId = (match.winnerId === target) ? null : target;
+
+    // Cualquier cambio invalida las rondas siguientes y el campeón: se regeneran
     po.rounds = po.rounds.slice(0, roundIdx + 1);
     po.champion = null;
     if (evt.status === 'FINISHED') evt.status = 'PLAYOFFS';
 
     const currentRound = po.rounds[roundIdx];
-    if (currentRound.matches.every(m => m.winnerId)) {
-        const winners = currentRound.matches.map(m => (m.playerA && String(m.playerA.id) === String(m.winnerId)) ? m.playerA : m.playerB).filter(Boolean);
+    const allDone = currentRound.matches.every(m => m.winnerId);
+
+    if (allDone) {
+        const winners = currentRound.matches.map(m =>
+            (m.playerA && String(m.playerA.id) === String(m.winnerId)) ? m.playerA : m.playerB
+        ).filter(Boolean);
+
         if (winners.length === 1) {
             po.champion = winners[0];
             evt.status = 'FINISHED';
-            if (typeof confetti === 'function') confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 } });
-            alert(`🏆 ¡CAMPEÓN DEL TORNEO!: ${winners[0].name}`);
+            alert(`🏆 ¡TENEMOS UN GANADOR DEL TORNEO!: ${winners[0].name}`);
         } else if (winners.length > 1) {
             const nextMatches = [];
             for (let i = 0; i < winners.length; i += 2) {
@@ -839,139 +1032,197 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
                 });
             }
             po.rounds.push({
-                roundName: winners.length === 2 ? 'GRAN FINAL' : 'SEMIFINAL',
+                roundName: winners.length === 2 ? 'GRAN FINAL' : (winners.length === 4 ? 'SEMIFINAL' : `Ronda ${roundIdx + 2}`),
                 matches: nextMatches,
                 currentSong: getRandomSong()
             });
         }
     }
+
     saveState();
     refreshTournamentViews();
 }
 
-function finishAndSaveEvent() {
+async function finishAndSaveEvent() {
     if (!state.activeEvent) return;
-    showCustomModal("Guardar Torneo", "¿Deseas finalizar y guardar el torneo en el Historial?", true, (ok) => {
-        if (!ok) return;
-        markEventRemovedLocally();
-        state.activeEvent.status = 'FINISHED';
-        const copy = JSON.parse(JSON.stringify(state.activeEvent));
-        delete copy.historyStates;
-        state.eventHistory.unshift(copy);
-        fetch(`${API_BASE}/events/active`, { method: 'DELETE' }).catch(() => {});
-        state.activeEvent = null;
-        saveState();
-        alert("Torneo guardado en el Historial.");
-        navigateTo('view-event-history');
-    });
+    if (!await confirmDialog("¿Deseas finalizar y guardar este torneo en el Historial de Eventos?", { confirmText: 'Finalizar y guardar' })) return;
+    if (!state.activeEvent) return;
+
+    markEventRemovedLocally();
+    state.activeEvent.status = 'FINISHED';
+
+    // Se guarda sin el historial de "Retroceder" para no llenar el localStorage
+    const copy = JSON.parse(JSON.stringify(state.activeEvent));
+    delete copy.historyStates;
+    state.eventHistory.unshift(copy);
+
+    fetch(`${API_BASE}/events/active`, { method: 'DELETE' })
+        .then(res => { if (!res.ok) console.error("El servidor no pudo borrar el evento. Estado HTTP:", res.status); })
+        .catch(err => console.error(err));
+
+    state.activeEvent = null;
+
+    saveState();
+    alert("Torneo guardado con éxito en el Historial.");
+    navigateTo('view-event-history');
 }
 
 function renderTournamentAdmin() {
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
-    
-    if (!activeBox || !swissBox) return;
 
-    if (!state.activeEvent) {
-        activeBox.classList.add('hidden');
+    if (!state.activeEvent || state.activeEvent.status === 'SETUP') {
+        if (activeBox) activeBox.classList.add('hidden');
         return;
     }
 
+    if (!activeBox || !swissBox) return;
     activeBox.classList.remove('hidden');
 
-    const adminHeaderBar = `
-        <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-950/80 p-4 rounded-xl border border-wine-800 mb-4 shadow-lg glass-panel">
-            <div>
-                <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-extrabold uppercase border border-amber-500/30">${state.activeEvent.status}</span>
-                <h4 class="text-lg font-bold text-white mt-1">${escapeHtml(state.activeEvent.title)}</h4>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1" title="Deshacer último cambio">
-                    <i class="ph-bold ph-arrow-u-up-left"></i> <span>Deshacer</span>
-                </button>
-                <button onclick="archiveActiveEvent()" class="px-3 py-1.5 bg-blue-950 hover:bg-blue-900 text-blue-300 rounded-lg text-xs font-bold border border-blue-800/60 flex items-center space-x-1" title="Archivar en Historial">
-                    <i class="ph-bold ph-archive"></i> <span>Archivar</span>
-                </button>
-                <button onclick="finishAndSaveEvent()" class="px-3 py-1.5 bg-green-800 hover:bg-green-700 text-white rounded-lg text-xs font-bold shadow flex items-center space-x-1" title="Finalizar torneo">
-                    <i class="ph-bold ph-check"></i> <span>Finalizar</span>
-                </button>
-                <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 flex items-center space-x-1" title="Eliminar torneo permanentemente">
-                    <i class="ph-bold ph-trash"></i> <span>Eliminar</span>
-                </button>
-            </div>
-        </div>
-    `;
-
-    if (state.activeEvent.status === 'SETUP') {
-        swissBox.innerHTML = `
-            ${adminHeaderBar}
-            <div class="p-6 bg-wine-950/40 rounded-xl border border-wine-900 text-center space-y-3 glass-panel">
-                <p class="text-sm text-slate-300">El torneo está en fase de <b>Inscripción</b>. Inscribe a los jugadores arriba y presiona Iniciar Torneo.</p>
-                <button onclick="generateFirstSwissRound()" class="px-6 py-2.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-xl shadow-lg hover-glow">🚀 Comenzar Fase Suiza</button>
-            </div>
-        `;
-    } else if (state.activeEvent.status === 'SWISS') {
+    if (state.activeEvent.status === 'SWISS') {
         const roundObj = state.activeEvent.swissRounds[state.activeEvent.currentRound - 1];
         if (!roundObj) return;
+
         swissBox.innerHTML = `
-            ${adminHeaderBar}
-            <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-3 rounded-xl border border-wine-800 mb-4">
-                <span class="text-sm font-bold text-white">Ronda ${state.activeEvent.currentRound} de ${state.activeEvent.maxSwissRounds}</span>
-                <div class="flex gap-2">
-                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold">+ Ronda Extra</button>
-                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow hover-glow">Siguiente Ronda ➔</button>
+            <div class="flex items-center justify-between bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+                <div>
+                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Ronda ${state.activeEvent.currentRound} de ${state.activeEvent.maxSwissRounds}</h4>
+                    <p class="text-xs text-slate-400">Selecciona con ✔️ al ganador de cada enfrentamiento.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1">
+                        <i class="ph-bold ph-arrow-u-up-left"></i> <span>Retroceder</span>
+                    </button>
+                    <button onclick="addExtraSwissRound()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold border border-wine-700">
+                        + Ronda Extra
+                    </button>
+                    <button onclick="nextSwissRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
+                        Siguiente Ronda ➔
+                    </button>
+                    <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                        <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
+                    </button>
                 </div>
             </div>
-            ${roundObj.currentSong ? `
-                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between mb-4 glass-panel-glow">
+
+            ${roundObj && roundObj.currentSong ? `
+                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex items-center justify-between">
                     <div class="flex items-center space-x-3">
-                        <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">🎵</div>
+                        <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">
+                            🎵
+                        </div>
                         <div>
-                            <span class="text-xs font-extrabold uppercase text-amber-400 tracking-wider block">Canción de la ronda:</span>
-                            <span id="global-roulette-song" class="text-lg font-black text-white">${escapeHtml(roundObj.currentSong)}</span>
+                            <span class="text-xs font-extrabold uppercase text-amber-400 tracking-wider block">La canción de esta ronda es:</span>
+                            <span class="song-text text-lg font-black text-white">${escapeHtml(roundObj.currentSong)}</span>
                         </div>
                     </div>
-                    <button onclick="spinSongRoulette(${state.activeEvent.currentRound - 1})" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold flex items-center space-x-1 shadow-md hover-glow">
-                        <i class="ph-bold ph-shuffle"></i> <span>Girar Ruleta</span>
+                    <button onclick="reRollRoundSong(${state.activeEvent.currentRound - 1})" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-md flex items-center space-x-1">
+                        <i class="ph-bold ph-shuffle"></i> <span>Re-sortear Canción</span>
                     </button>
                 </div>
             ` : ''}
-            <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-3">
-                ${roundObj.matches.map((m, idx) => {
-                    const isWinA = String(m.winnerId) === String(m.playerA.id);
-                    const isWinB = m.playerB && String(m.winnerId) === String(m.playerB.id);
-                    return `
-                        <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900 shadow-md">
-                            <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : ''}">
-                                ${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
-                                <span class="text-xs truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerA.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerA.name)}</span>
-                                <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1},${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold ml-auto">✔️ Ganador</button>
+
+            <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+                <div class="grid grid-cols-2 text-center font-bold text-wine-300 text-xs border-b border-wine-900 pb-2 mb-4">
+                    <span>A</span>
+                    <span>B</span>
+                </div>
+
+                <div class="space-y-3">
+                    ${roundObj.matches.map((m, idx) => {
+                        const isWinA = String(m.winnerId) === String(m.playerA.id);
+                        const isWinB = m.playerB && String(m.winnerId) === String(m.playerB.id);
+
+                        return `
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-wine-950/80 border border-wine-900">
+                                <div class="flex items-center space-x-3 w-5/12 ${isWinA ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
+                                    ${m.playerA.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                    <span class="text-xs truncate">${escapeHtml(m.playerA.name)}</span>
+                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerA.id}')" class="px-2 py-1 rounded ${isWinA ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
+                                        ✔️ Ganador
+                                    </button>
+                                </div>
+
+                                <div class="text-xs font-black text-wine-400 px-2">VS</div>
+
+                                <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : (m.winnerId ? 'text-red-500 opacity-60' : 'text-slate-200')}">
+                                    ${m.playerB ? `
+                                        <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 border border-green-800 text-green-400 hover:bg-green-900'} text-xs font-semibold">
+                                            ✔️ Ganador
+                                        </button>
+                                        <span class="text-xs truncate">${escapeHtml(m.playerB.name)}</span>
+                                        ${m.playerB.isBot ? '<span class="text-lg">🤖</span>' : `<img src="${escapeHtml(m.playerB.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                    ` : '<span class="text-xs text-slate-500 italic">LIBRE</span>'}
+                                </div>
                             </div>
-                            <div class="text-xs font-black text-wine-400 px-2">VS</div>
-                            <div class="flex items-center justify-end space-x-3 w-5/12 ${isWinB ? 'text-green-400 font-extrabold' : ''}">
-                                ${m.playerB ? `
-                                    <button onclick="setMatchWinner(${state.activeEvent.currentRound - 1}, ${idx}, '${m.playerB.id}')" class="px-2 py-1 rounded ${isWinB ? 'bg-green-600 text-white' : 'bg-green-950 text-green-400'} text-xs font-semibold mr-auto">✔️ Ganador</button>
-                                    <span class="text-xs truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerB.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(m.playerB.name)}</span>
-                                    ${m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}
-                                ` : '<span class="text-xs text-slate-500 italic">LIBRE</span>'}
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
+                        `;
+                    }).join('')}
+                </div>
             </div>
-            <div class="flex justify-end pt-4">
-                <button onclick="createPlayoffs()" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2 hover-glow">
-                    <span>🏆 Generar PlayOffs / Finales</span>
-                </button>
+
+            <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+                <div class="flex items-center justify-between border-b border-wine-900 pb-2 mb-3">
+                    <h5 class="text-sm font-bold text-wine-300">Tabla de Posiciones Suizo</h5>
+                    <button onclick="createPlayoffs()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs rounded-lg shadow-lg">
+                        🏆 Crear PlayOffs
+                    </button>
+                </div>
+
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="text-wine-400 uppercase border-b border-wine-900/60">
+                        <tr>
+                            <th class="py-2">Puesto</th>
+                            <th class="py-2">Jugador</th>
+                            <th class="py-2 text-center">Puntos</th>
+                            <th class="py-2 text-center">G / P</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wine-900/40">
+                        ${state.activeEvent.leaderboard.map((item, idx) => `
+                            <tr>
+                                <td class="py-2 font-bold text-wine-400">#${idx + 1}</td>
+                                <td class="py-2 flex items-center space-x-2">
+                                    ${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
+                                    <span class="font-bold text-white">${escapeHtml(item.participant.name)}</span>
+                                </td>
+                                <td class="py-2 text-center font-extrabold text-amber-400">${item.points} pts</td>
+                                <td class="py-2 text-center text-slate-400">${item.wins}V / ${item.losses}D</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
             </div>
         `;
-    } else if (state.activeEvent.status === 'PLAYOFFS' || state.activeEvent.status === 'FINISHED') {
+        spinSongIfChanged('swiss-admin-container', songKeyFor(state.activeEvent, roundObj), roundObj.currentSong);
+    }
+
+    if (state.activeEvent.status === 'PLAYOFFS' || state.activeEvent.status === 'FINISHED') {
         const po = state.activeEvent.playoffs;
+
         swissBox.innerHTML = `
-            ${adminHeaderBar}
+            <div class="flex items-center justify-between bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+                <div>
+                    <h4 class="text-lg font-bold text-white">${escapeHtml(state.activeEvent.title)} - Fase de PlayOffs</h4>
+                    <p class="text-xs text-slate-400">Selecciona al ganador de cada llave del bracket.</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1">
+                        <i class="ph-bold ph-arrow-u-up-left"></i> <span>Retroceder</span>
+                    </button>
+                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
+                        💾 Finalizar y Guardar en Historial
+                    </button>
+                    <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                        <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
+                    </button>
+                </div>
+            </div>
+
             ${renderPlayoffsBracketHTML(po, true)}
         `;
+        observeBrackets();
     }
+    maybeCelebrate(state.activeEvent);
 }
 
 async function renderUserEventsView(skipFetch = false) {
@@ -981,59 +1232,97 @@ async function renderUserEventsView(skipFetch = false) {
 
     if (!state.activeEvent || state.activeEvent.status === 'SETUP') {
         container.innerHTML = `
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-12 text-center space-y-4 glass-panel">
-                <div class="w-16 h-16 rounded-2xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto"><i class="ph-bold ph-calendar-x text-3xl"></i></div>
-                <h3 class="text-2xl font-bold text-white">No hay torneos en vivo</h3>
-                <p class="text-slate-400 text-sm max-w-md mx-auto">Vuelve más tarde o revisa el inicio para enterarte de los próximos eventos oficiales.</p>
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-12 text-center space-y-4">
+                <div class="w-16 h-16 rounded-2xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto">
+                    <i class="ph-bold ph-calendar-x text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-white">Próximamente</h3>
+                <p class="text-slate-400 text-sm max-w-md mx-auto">
+                    No hay ningún evento o torneo en vivo en este momento. Estaremos informando en nuestras redes sociales oficiales.
+                </p>
+                <button onclick="navigateTo('view-tiers')" class="mt-2 px-5 py-2.5 rounded-xl bg-wine-700 hover:bg-wine-600 text-white text-sm font-semibold inline-flex items-center space-x-2">
+                    <i class="ph-bold ph-ranking"></i> <span>Ver Tabla Tiers</span>
+                </button>
             </div>
         `;
         return;
     }
 
     const evt = state.activeEvent;
-    const cur = (evt.status === 'SWISS' && evt.swissRounds.length > 0) ? evt.swissRounds[evt.currentRound - 1] : null;
+    const currentSwissRound = (evt.status === 'SWISS' && evt.swissRounds.length > 0) ? evt.swissRounds[evt.currentRound - 1] : null;
 
     container.innerHTML = `
-        <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-6 glass-panel">
+        <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900 pb-4">
                 <div>
-                    <span class="px-3 py-1 rounded-full bg-red-950 border border-red-800 text-red-400 text-xs font-bold uppercase animate-pulse">🔴 EN VIVO</span>
+                    <span class="px-3 py-1 rounded-full bg-red-950 border border-red-800 text-red-400 text-xs font-bold uppercase tracking-wider animate-pulse">
+                        🔴 En Vivo
+                    </span>
                     <h3 class="text-2xl font-black text-white mt-2">${escapeHtml(evt.title)}</h3>
                 </div>
             </div>
-            ${cur && cur.currentSong ? `
-                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-5 rounded-2xl border-2 border-amber-500/80 shadow-2xl flex items-center justify-between glass-panel-glow">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-2xl flex-shrink-0">🎵</div>
-                        <div>
-                            <span class="text-xs font-black uppercase text-amber-400 tracking-widest block">Canción de esta ronda:</span>
-                            <h2 id="global-roulette-song" class="text-xl sm:text-2xl font-black text-white">${escapeHtml(cur.currentSong)}</h2>
-                        </div>
+
+            ${currentSwissRound && currentSwissRound.currentSong ? `
+                <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-5 rounded-2xl border-2 border-amber-500/80 shadow-2xl flex items-center space-x-4 animate-bounce-short">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 border border-amber-500/50 text-amber-400 flex items-center justify-center text-2xl flex-shrink-0">
+                        <i class="ph-bold ph-music-notes flex-shrink-0"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-black uppercase text-amber-400 tracking-widest block">La canción de esta ronda es:</span>
+                        <h2 class="song-text text-xl sm:text-2xl font-black text-white drop-shadow">${escapeHtml(currentSwissRound.currentSong)}</h2>
                     </div>
                 </div>
             ` : ''}
-            ${(evt.status === 'SWISS' && cur) ? `
+
+            ${(evt.status === 'SWISS' && currentSwissRound) ? `
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 space-y-4">
-                        <h4 class="text-sm font-bold text-wine-300 uppercase">Enfrentamientos - Ronda ${evt.currentRound}</h4>
+                        <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider">Enfrentamientos - Ronda ${evt.currentRound}</h4>
                         <div class="space-y-3">
-                            ${cur.matches.map(m => `
-                                <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
-                                    <div class="flex items-center space-x-3 cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerA.name)}')" onmouseleave="hideUserHoverCard()">${m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}<span class="text-sm font-bold text-white">${escapeHtml(m.playerA.name)}</span></div>
-                                    <div class="text-xs font-black text-wine-500 bg-wine-950 px-3 py-1 rounded-full border">VS</div>
-                                    <div class="flex items-center space-x-3 cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerB ? m.playerB.name : '')}')" onmouseleave="hideUserHoverCard()"><span class="text-sm font-bold text-white">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>${m.playerB && m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-7 h-7 rounded-full object-cover">`}</div>
-                                </div>
-                            `).join('')}
+                            ${currentSwissRound.matches.map(m => {
+                                const isWinA = String(m.winnerId) === String(m.playerA.id);
+                                const isWinB = m.playerB && String(m.winnerId) === String(m.playerB.id);
+
+                                return `
+                                    <div class="flex items-center justify-between p-4 rounded-xl bg-[#090507] border border-wine-900 shadow-lg">
+                                        <div class="flex items-center space-x-3 ${isWinA ? 'text-green-400 font-black' : (m.winnerId ? 'text-red-500/70' : 'text-slate-200')}">
+                                            ${m.playerA.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${escapeHtml(m.playerA.avatar)}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                            <span class="text-sm font-bold">${escapeHtml(m.playerA.name)}</span>
+                                        </div>
+
+                                        <div class="text-xs font-black text-wine-500 bg-wine-950 px-3 py-1 rounded-full border border-wine-900">VS</div>
+
+                                        <div class="flex items-center space-x-3 ${isWinB ? 'text-green-400 font-black' : (m.winnerId ? 'text-red-500/70' : 'text-slate-200')}">
+                                            <span class="text-sm font-bold">${escapeHtml(m.playerB ? m.playerB.name : 'BYE')}</span>
+                                            ${m.playerB && m.playerB.isBot ? '<span class="text-xl">🤖</span>' : `<img src="${escapeHtml(m.playerB ? m.playerB.avatar : '')}" class="w-8 h-8 rounded-full object-cover border border-wine-800">`}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
                         </div>
                     </div>
+
                     <div>
-                        <h4 class="text-sm font-bold text-wine-300 uppercase mb-4">Tabla de Posiciones</h4>
+                        <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider mb-4">Tabla de Posiciones</h4>
                         <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
                             <table class="w-full text-left text-xs">
-                                <thead class="text-wine-400 border-b border-wine-900"><tr><th class="py-2">Puesto</th><th class="py-2">Jugador</th><th class="py-2 text-right">Pts</th></tr></thead>
+                                <thead class="text-wine-400 border-b border-wine-900">
+                                    <tr>
+                                        <th class="py-2">Puesto</th>
+                                        <th class="py-2">Jugador</th>
+                                        <th class="py-2 text-right">Pts</th>
+                                    </tr>
+                                </thead>
                                 <tbody class="divide-y divide-wine-900/40">
                                     ${evt.leaderboard.map((item, idx) => `
-                                        <tr><td class="py-2 font-bold text-wine-400">#${idx + 1}</td><td class="py-2 flex items-center space-x-2 cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(item.participant.name)}')" onmouseleave="hideUserHoverCard()">${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(item.participant))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-5 h-5 rounded-full object-cover">`}<span class="font-bold text-slate-200">${escapeHtml(item.participant.name)}</span></td><td class="py-2 text-right font-black text-amber-400">${item.points}</td></tr>
+                                        <tr>
+                                            <td class="py-2 font-bold text-wine-400">#${idx + 1}</td>
+                                            <td class="py-2 flex items-center space-x-2">
+                                                ${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
+                                                <span class="font-bold text-slate-200">${escapeHtml(item.participant.name)}</span>
+                                            </td>
+                                            <td class="py-2 text-right font-black text-amber-400">${item.points}</td>
+                                        </tr>
                                     `).join('')}
                                 </tbody>
                             </table>
@@ -1041,53 +1330,70 @@ async function renderUserEventsView(skipFetch = false) {
                     </div>
                 </div>
             ` : ''}
-            ${(evt.status === 'PLAYOFFS' || evt.status === 'FINISHED') ? renderPlayoffsBracketHTML(evt.playoffs, false) : ''}
+
+            ${(evt.status === 'PLAYOFFS' || evt.status === 'FINISHED') ? `
+                <div class="space-y-4">
+                    <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider text-center">Fase Final - LLaves de PlayOffs</h4>
+                    ${renderPlayoffsBracketHTML(evt.playoffs, false)}
+                </div>
+            ` : ''}
         </div>
     `;
+    if (currentSwissRound && currentSwissRound.currentSong) {
+        spinSongIfChanged('user-events-view-container', songKeyFor(evt, currentSwissRound), currentSwissRound.currentSong);
+    }
+    observeBrackets();
+    maybeCelebrate(evt);
 }
 
-// ===== PLAYOFFS BRACKET ESPORTS CON LÍNEAS VISUALES =====
 function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
     if (!playoffs) return '';
+
+    const sideHTML = (player, isWin, rIdx, mIdx) => `
+        <div class="flex items-center justify-between p-2 rounded-lg ${isWin ? 'bg-green-950/90 text-green-300 font-bold border border-green-600' : 'text-slate-300'}">
+            <div class="flex items-center space-x-2 truncate">
+                ${player ? (player.isBot ? '🤖' : `<img src="${escapeHtml(player.avatar)}" class="w-6 h-6 rounded-full object-cover">`) : ''}
+                <span class="text-xs font-bold truncate">${player ? escapeHtml(player.name) : 'TBD'}</span>
+            </div>
+            ${isAdminControl && player ? `
+                <button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${player.id}')" class="text-[10px] px-2 py-1 ${isWin ? 'bg-green-600 text-white' : 'bg-wine-900 hover:bg-green-700 text-slate-200'} rounded font-bold shadow-md transition-all">
+                    ✔️ ${isWin ? 'Ganador' : 'Elegir'}
+                </button>
+            ` : ''}
+        </div>
+    `;
+
     return `
-        <div class="relative overflow-x-auto py-8 bg-[#090507] rounded-2xl border border-wine-900 p-6 glass-panel">
+        <div class="relative overflow-x-auto py-8 bg-[#090507] rounded-2xl border border-wine-900 p-6">
             ${playoffs.champion ? `
                 <div class="text-center py-6 mb-8 rounded-2xl bg-amber-500/10 border-2 border-amber-500 neon-gold max-w-md mx-auto">
-                    <h2 class="text-3xl font-black text-amber-400">🏆 CAMPEÓN 🏆</h2>
+                    <h2 class="text-3xl font-black text-amber-400 tracking-wider">🏆 GANADOR 🏆</h2>
                     <div class="flex items-center justify-center space-x-3 mt-3">
-                        ${playoffs.champion.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(playoffs.champion))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
+                        ${playoffs.champion.isBot ? '<span class="text-3xl">🤖</span>' : `<img src="${escapeHtml(playoffs.champion.avatar)}" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
                         <span class="text-2xl font-bold text-white">${escapeHtml(playoffs.champion.name)}</span>
                     </div>
                 </div>
             ` : ''}
-            <div class="bracket-container">
+
+            <div class="bracket-wrap relative flex items-stretch gap-16 min-w-max w-fit mx-auto">
                 ${playoffs.rounds.map((round, rIdx) => `
-                    <div class="bracket-round">
-                        <div class="text-center mb-3">
-                            <h5 class="text-xs font-extrabold text-wine-400 uppercase tracking-widest">${escapeHtml(round.roundName)}</h5>${round.currentSong ? `<span class="text-[10px] text-amber-400 font-bold block mt-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">🎵 ${escapeHtml(round.currentSong)}</span>` : ''}
-                            ${isAdminControl ? `<button onclick="spinSongRoulette(${rIdx})" class="mt-2 text-[10px] bg-amber-600 px-2 py-1 rounded text-white font-bold hover:bg-amber-500">🎲 Sorteo</button>` : ''}
+                    <div class="bracket-round flex flex-col relative z-10">
+                        <div class="text-center mb-4">
+                            <h5 class="text-xs font-extrabold text-wine-400 uppercase">${escapeHtml(round.roundName)}</h5>${round.currentSong ? `
+                                <span class="text-[10px] text-amber-400 font-bold block mt-1 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">
+                                    🎵 ${escapeHtml(round.currentSong)}
+                                </span>
+                            ` : ''}
                         </div>
-                        <div class="space-y-6">
+                        <div class="bracket-matches flex flex-col justify-around flex-1 gap-6">
                             ${round.matches.map((m, mIdx) => {
                                 const isWinA = m.winnerId && m.playerA && String(m.winnerId) === String(m.playerA.id);
                                 const isWinB = m.winnerId && m.playerB && String(m.winnerId) === String(m.playerB.id);
                                 return `
-                                    <div class="bracket-match w-64 bg-wine-950/90 border border-wine-800 rounded-xl p-3 shadow-2xl glass-panel">
-                                        <div class="flex items-center justify-between p-2 rounded-lg ${isWinA ? 'bg-green-950/90 text-green-300 font-bold border border-green-500' : 'text-slate-300'} mb-2">
-                                            <div class="flex items-center space-x-2 truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerA ? m.playerA.name : '')}')" onmouseleave="hideUserHoverCard()">
-                                                ${m.playerA ? (m.playerA.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerA))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
-                                                <span class="text-xs font-bold truncate">${m.playerA ? escapeHtml(m.playerA.name) : 'Por Definir'}</span>
-                                            </div>
-                                            ${isAdminControl && m.playerA ? `<button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerA.id}')" class="text-[10px] px-2 py-1 ${isWinA ? 'bg-green-600 text-white' : 'bg-wine-900 text-slate-200'} rounded font-bold">✔️</button>` : ''}
-                                        </div>
+                                    <div class="bracket-card w-64 bg-wine-950/90 border border-wine-800 rounded-xl p-3 shadow-xl relative">
+                                        ${sideHTML(m.playerA, isWinA, rIdx, mIdx)}
                                         <div class="text-[10px] text-center font-black text-wine-500 uppercase my-1">vs</div>
-                                        <div class="flex items-center justify-between p-2 rounded-lg ${isWinB ? 'bg-green-950/90 text-green-300 font-bold border border-green-500' : 'text-slate-300'}">
-                                            <div class="flex items-center space-x-2 truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(m.playerB ? m.playerB.name : '')}')" onmouseleave="hideUserHoverCard()">
-                                                ${m.playerB ? (m.playerB.isBot ? '🤖' : `<img src="${escapeHtml(getUserAvatar(m.playerB))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">`) : ''}
-                                                <span class="text-xs font-bold truncate">${m.playerB ? escapeHtml(m.playerB.name) : 'Por Definir'}</span>
-                                            </div>
-                                            ${isAdminControl && m.playerB ? `<button onclick="setPlayoffWinner(${rIdx},${mIdx}, '${m.playerB.id}')" class="text-[10px] px-2 py-1 ${isWinB ? 'bg-green-600 text-white' : 'bg-wine-900 text-slate-200'} rounded font-bold">✔️</button>` : ''}
-                                        </div>
+                                        ${sideHTML(m.playerB, isWinB, rIdx, mIdx)}
                                     </div>
                                 `;
                             }).join('')}
@@ -1099,200 +1405,539 @@ function renderPlayoffsBracketHTML(playoffs, isAdminControl = false) {
     `;
 }
 
+// Dibuja las líneas neón que conectan cada pareja de partidas con la siguiente ronda
+function drawBracketLinesFor(wrap) {
+    const old = wrap.querySelector(':scope > svg.bracket-lines');
+    if (old) old.remove();
+
+    const rounds = Array.from(wrap.querySelectorAll(':scope > .bracket-round'));
+    if (rounds.length < 2) return;
+
+    const base = wrap.getBoundingClientRect();
+    if (!base.width) return;
+
+    const pos = (el) => {
+        const r = el.getBoundingClientRect();
+        return { l: r.left - base.left, r: r.right - base.left, cy: r.top - base.top + r.height / 2 };
+    };
+
+    let d = '';
+    for (let i = 0; i < rounds.length - 1; i++) {
+        const cur = Array.from(rounds[i].querySelectorAll('.bracket-card'));
+        const nxt = Array.from(rounds[i + 1].querySelectorAll('.bracket-card'));
+        nxt.forEach((n, k) => {
+            const np = pos(n);
+            const parents = [cur[2 * k], cur[2 * k + 1]].filter(Boolean).map(pos);
+            if (!parents.length) return;
+            const midX = (parents[0].r + np.l) / 2;
+            parents.forEach(p => { d += `M${p.r} ${p.cy}H${midX}`; });
+            d += `M${midX} ${parents[0].cy}V${parents[parents.length - 1].cy}`;
+            d += `M${midX} ${np.cy}H${np.l}`;
+        });
+    }
+    if (!d) return;
+
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'bracket-lines');
+    svg.setAttribute('width', base.width);
+    svg.setAttribute('height', base.height);
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#c92a52');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+    wrap.insertBefore(svg, wrap.firstChild);
+}
+
+function observeBrackets() {
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.bracket-wrap').forEach(wrap => {
+            if (wrap._ro) return;
+            wrap._ro = new ResizeObserver(() => drawBracketLinesFor(wrap));
+            wrap._ro.observe(wrap);
+        });
+    });
+}
+
 function renderEventHistory() {
     const container = document.getElementById('history-events-container');
     if (!container) return;
-    if (state.eventHistory.length === 0) { container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No hay torneos registrados.</p>`; return; }
+
+    if (state.eventHistory.length === 0) {
+        container.innerHTML = emptyStateHTML('ph-clock-counter-clockwise', 'Historial vacío', 'Cuando finalices un torneo, aparecerá aquí con su tabla de posiciones y su bracket.');
+        return;
+    }
+
     container.innerHTML = state.eventHistory.map((evt, idx) => `
-        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4 shadow-xl glass-panel">
+        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4">
             <div class="flex items-center justify-between border-b border-wine-900 pb-3">
-                <div>
+                <div class="flex items-center space-x-3">
                     <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
-                    <span class="text-[10px] text-slate-400">Torneo Archivado / Finalizado</span>
+                    <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
                 </div>
-                <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950 hover:bg-red-900 text-red-400 rounded-xl text-xs font-semibold border border-red-800/50 flex items-center space-x-1">
-                    <i class="ph-bold ph-trash"></i> <span>Eliminar del Historial</span>
+                <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1">
+                    <i class="ph-bold ph-trash"></i>
+                    <span>Eliminar Registro</span>
                 </button>
             </div>
-            ${evt.leaderboard && evt.leaderboard.length > 0 ? `
-                <div>
-                    <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Podio Final</h4>
-                    <div class="flex flex-wrap gap-4 text-xs bg-[#090507] p-3 rounded-xl border border-wine-900">
-                        ${evt.leaderboard.map((item, pIdx) => `<span class="text-slate-300"><b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)</span>`).join(' • ')}
+
+            <div>
+                <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Tabla de Posiciones Final</h4>
+                <div class="bg-[#090507] p-3 rounded-xl border border-wine-900">
+                    <div class="flex flex-wrap gap-4 text-xs">
+                        ${evt.leaderboard.map((item, pIdx) => `
+                            <span class="text-slate-300">
+                                <b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)
+                            </span>
+                        `).join(' • ')}
                     </div>
                 </div>
-            ` : ''}
-            ${renderPlayoffsBracketHTML(evt.playoffs, false)}
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">PlayOffs Bracket</h4>
+                ${renderPlayoffsBracketHTML(evt.playoffs, false)}
+            </div>
         </div>
     `).join('');
+    observeBrackets();
 }
 
-// AUTENTICACIÓN Y PERFIL
+// FUNCIONES DE USUARIOS Y PERFILES
 async function handleRegister(e) {
     e.preventDefault();
     const nickname = document.getElementById('reg-nickname')?.value.trim();
     const password = document.getElementById('reg-password')?.value;
     const genero = document.getElementById('reg-genero')?.value || 'Otros';
-    if (!nickname || !password) { alert("Completa todos los campos."); return; }
+
+    if (!nickname || !password) {
+        alert("Por favor completa todos los campos.");
+        return;
+    }
 
     try {
-        const res = await fetch(API_URL, {
+        const response = await fetch(API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nickname, password, genero })
         });
-        if (res.ok) {
-            const newUser = await res.json();
-            alert("¡Registro exitoso!");
-            state.currentUser = { id: newUser.id, nickname: newUser.nickname || nickname, nombres: newUser.nombres || nickname, modo: ['NORMAL'], familia: state.clans[0], avatar: getUserAvatar(newUser), genero, role: newUser.role || 'USER' };
+
+        if (response.ok) {
+            const newUser = await response.json();
+            alert("¡Usuario registrado exitosamente!");
+            state.currentUser = {
+                id: newUser.id,
+                nickname: newUser.nickname || nickname,
+                nombres: newUser.nombres || nickname,
+                modo: ['NORMAL'],
+                familia: state.clans[0] || 'Sin Familia / Ninguno',
+                avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png',
+                genero: newUser.genero || genero,
+                role: newUser.role || 'USER'
+            };
             saveState();
             await fetchUsers();
             navigateTo('view-profile-edit');
-        } else { alert("Error al registrar."); }
-    } catch (err) { console.error(err); }
+        } else {
+            const errData = await response.json().catch(() => ({}));
+            alert("Error al registrar: " + (errData.error || `Código ${response.status}`));
+        }
+    } catch (error) {
+        console.error("Error al conectar con la API:", error);
+        alert("No se pudo conectar con el servidor backend. Intenta nuevamente.");
+    }
 }
 
 async function handleLogin(e) {
     e.preventDefault();
     const nickname = document.getElementById('login-nickname')?.value.trim();
     const password = document.getElementById('login-password')?.value;
-    if (!nickname || !password) { alert("Usuario o contraseña incorrectos"); return; }
 
-    try {
-        const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nickname, password })
-        });
-        if (res.ok) {
-            const data = await res.json();
-            state.currentUser = data.user;
-            saveState();
-            alert(`¡Bienvenido, ${state.currentUser.nickname}!`);
-            navigateTo('view-home');
-            return;
-        }
-    } catch (e) {}
+    if (!nickname || !password) {
+        alert("Usuario / contraseña incorrecto");
+        return;
+    }
+
+    if (nickname.toLowerCase() === 'admin' && password === 'rushero123') {
+        state.currentUser = { id: 0, nickname: 'Admin', nombres: 'Administrador Principal', modo: ['ALL MODES'], familia: 'Audition HQ', avatar: 'https://i.imgur.com/6VBx3io.png', genero: 'Otros', role: 'ADMIN' };
+        saveState();
+        alert("Sesión iniciada como Administrador.");
+        navigateTo('view-admin');
+        return;
+    }
 
     await fetchUsers();
-    const found = state.users.find(u => (u.nickname || u.name || '').toLowerCase() === nickname.toLowerCase());
-    if (found && (!found.password || found.password === password)) {
+
+    const foundUser = state.users.find(u => 
+        (u.name && u.name.toLowerCase() === nickname.toLowerCase()) || 
+        (u.nickname && u.nickname.toLowerCase() === nickname.toLowerCase())
+    );
+
+    if (foundUser) {
+        if (foundUser.password && foundUser.password !== password) {
+            alert("Usuario / contraseña incorrecto");
+            return;
+        }
+
+        let parseModo = ['NORMAL'];
+        try {
+            if (foundUser.modo) {
+                parseModo = foundUser.modo.startsWith('[') ? JSON.parse(foundUser.modo) : [foundUser.modo];
+            }
+        } catch (err) {
+            parseModo = [foundUser.modo || 'NORMAL'];
+        }
+
         state.currentUser = {
-            id: found.id,
-            nickname: found.nickname || found.name,
-            nombres: found.nombres || found.name,
-            modo: ['NORMAL'],
-            familia: found.familia || state.clans[0],
-            avatar: getUserAvatar(found),
-            genero: found.genero || 'Otros',
-            role: found.role || 'USER'
+            id: foundUser.id,
+            nickname: foundUser.nickname || foundUser.name || nickname,
+            nombres: foundUser.nombres || foundUser.name || nickname,
+            modo: parseModo,
+            familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
+            avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png',
+            genero: foundUser.genero || 'Otros',
+            role: foundUser.role || 'USER'
         };
         saveState();
-        alert(`¡Bienvenido, ${state.currentUser.nickname}!`);
+        alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
         navigateTo('view-home');
     } else {
-        alert("Usuario o contraseña incorrectos");
+        alert("Usuario / contraseña incorrecto");
     }
 }
 
 function handleLogout() {
     state.currentUser = null;
     saveState();
-    alert("Sesión cerrada.");
+    alert("Has cerrado sesión.");
     navigateTo('view-home');
 }
 
 async function deleteMyAccount() {
-    showCustomModal("Eliminar Cuenta", "¿Estás seguro de eliminar tu cuenta permanentemente?", true, async (ok) => {
-        if (!ok) return;
-        try {
-            await fetch(`${API_URL}/${state.currentUser.id}`, { method: 'DELETE' });
+    if (!state.currentUser || !state.currentUser.id) return;
+
+    const confirmacion = await confirmDialog("¿Estás seguro de que deseas eliminar tu cuenta? Esta acción borra permanentemente todos tus datos y puntos.", { danger: true, confirmText: 'Eliminar mi cuenta' });
+    if (!confirmacion) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert("Tu cuenta ha sido eliminada correctamente.");
             handleLogout();
-        } catch (e) { alert("Error al eliminar cuenta."); }
-    });
-}
-
-function renderProfileCard() {
-    const container = document.getElementById('profile-card-container');
-    if (!container || !state.currentUser) return;
-    const userTags = state.tags.filter(t => (state.assignments[state.currentUser.nickname]?.tagIds || []).includes(t.id));
-    const avatarUrl = getUserAvatar(state.currentUser);
-    const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : state.currentUser.modo;
-
-    container.innerHTML = `
-        <div id="player-collectible-card" class="bg-gradient-to-b from-[#2a0d18] via-[#1c0a11] to-[#090507] border-2 border-amber-500/80 rounded-3xl p-8 shadow-2xl relative overflow-hidden text-center space-y-4 neon-gold">
-            <div class="absolute top-4 right-4 bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-xs font-black uppercase border border-amber-500/40">AWC PRO</div>
-            <div class="w-32 h-32 rounded-2xl overflow-hidden bg-wine-900 border-2 border-amber-400 mx-auto shadow-2xl mt-2">
-                <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
-            </div>
-            <div>
-                <h2 class="text-3xl font-black text-white uppercase font-display">${escapeHtml(state.currentUser.nickname)}</h2>
-                <p class="text-xs text-amber-300 font-bold uppercase tracking-widest">${escapeHtml(state.currentUser.familia || 'Sin Clan')}</p>
-            </div>
-            <div class="grid grid-cols-2 gap-3 py-3 border-y border-wine-900 text-xs">
-                <div><span class="block text-[10px] text-slate-400 uppercase">Modos</span><span class="font-bold text-white">${escapeHtml(modosText)}</span></div>
-                <div><span class="block text-[10px] text-slate-400 uppercase">Género</span><span class="font-bold text-white">${escapeHtml(state.currentUser.genero || 'Otros')}</span></div>
-            </div>
-            <div class="flex flex-wrap justify-center gap-1.5 pt-1">
-                ${userTags.map(t => `<span class="px-2.5 py-1 rounded-md text-xs font-black text-white shadow" style="background:${t.color}">${t.name}</span>`).join('')}
-            </div>
-        </div>
-    `;
-}
-
-function downloadProfileCard() {
-    const cardEl = document.getElementById('player-collectible-card');
-    if (!cardEl) return;
-    if (typeof html2canvas === 'undefined') {
-        alert("Librería de captura no disponible.");
-        return;
+        } else {
+            alert("No se pudo eliminar la cuenta.");
+        }
+    } catch (error) {
+        console.error("Error al eliminar cuenta:", error);
+        alert("Ocurrió un error al conectar con el servidor.");
     }
-    html2canvas(cardEl, { backgroundColor: '#090507', scale: 2 }).then(canvas => {
-        const link = document.createElement('a');
-        link.download = `Carta_${state.currentUser.nickname}_AWC.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-        showToast("¡Carta descargada con éxito!", "success");
+}
+
+async function deleteUserByAdmin(userId, username) {
+    if (!await confirmDialog(`¿Estás seguro de que deseas eliminar permanentemente a "${username}"?`, { danger: true, confirmText: 'Eliminar usuario' })) return;
+
+    try {
+        const response = await fetch(`${API_URL}/${userId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert(`Usuario ${username} eliminado con éxito.`);
+            await fetchUsers();
+            renderAdminUserTable();
+            renderPublicTiers();
+        } else {
+            alert("No se pudo eliminar el usuario.");
+        }
+    } catch (err) {
+        console.error("Error al eliminar usuario por Admin:", err);
+    }
+}
+
+async function updateUserRole(userId, newRole) {
+    try {
+        const response = await fetch(`${API_BASE}/users/${userId}/role`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: newRole })
+        });
+
+        if (response.ok) {
+            const updated = await response.json();
+            const username = updated.nickname || updated.name;
+
+            if (!state.assignments[username]) {
+                state.assignments[username] = { tagIds: [] };
+            }
+            let tagIds = state.assignments[username].tagIds;
+
+            if (newRole === 'MODERATOR' && !tagIds.includes('tag-mod')) {
+                tagIds.push('tag-mod');
+            } else if (newRole === 'USER') {
+                state.assignments[username].tagIds = tagIds.filter(id => id !== 'tag-mod');
+            }
+
+            saveState();
+            await fetchUsers();
+            renderAdminUserTable();
+            renderPublicTiers();
+            alert(`Rol actualizado a ${newRole} para ${username}`);
+        } else {
+            alert("No se pudo actualizar el rol.");
+        }
+    } catch (err) {
+        console.error("Error al actualizar rol:", err);
+    }
+}
+
+function toggleModeDropdown() {
+    const menu = document.getElementById('mode-dropdown-menu');
+    if (menu) menu.classList.toggle('hidden');
+}
+
+function handleModeCheckboxChange(cb) {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb) allCb.checked = false;
+    updateModeBtnText();
+}
+
+function handleAllModesToggle(allCb) {
+    const checkboxes = document.querySelectorAll('.mode-cb');
+    checkboxes.forEach(cb => {
+        cb.checked = allCb.checked;
     });
+    updateModeBtnText();
+}
+
+function updateModeBtnText() {
+    const btnText = document.getElementById('mode-btn-text');
+    const allCb = document.getElementById('cb-all-modes');
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+
+    if (!btnText) return;
+    if (allCb && allCb.checked) {
+        btnText.textContent = "ALL MODES";
+    } else if (selected.length === 0) {
+        btnText.textContent = "Seleccionar modos...";
+    } else {
+        btnText.textContent = selected.join(', ');
+    }
+}
+
+function getSelectedModes() {
+    const allCb = document.getElementById('cb-all-modes');
+    if (allCb && allCb.checked) return ['ALL MODES'];
+    const selected = Array.from(document.querySelectorAll('.mode-cb:checked')).map(cb => cb.value);
+    return selected.length > 0 ? selected : ['NORMAL'];
 }
 
 async function handleSaveProfile(e) {
     e.preventDefault();
     if (!state.currentUser) return;
+
     const nombres = document.getElementById('prof-nombres').value;
-    const modo = ['NORMAL'];
+    const modo = getSelectedModes();
     const familia = document.getElementById('prof-familia').value;
-    const avatar = document.getElementById('prof-avatar').value.trim();
+    const avatar = document.getElementById('prof-avatar').value.trim() || 'https://i.imgur.com/6VBx3io.png';
     const genero = document.getElementById('prof-genero').value;
 
-    state.currentUser = { ...state.currentUser, nombres, modo, familia, avatar, genero };
+    const newPassword = document.getElementById('prof-new-password')?.value;
+    const confirmPassword = document.getElementById('prof-confirm-password')?.value;
+
+    let updateData = { nombres, modo, familia, avatar, genero };
+
+    if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+            alert("⚠️ Las contraseñas ingresadas no coinciden.");
+            return;
+        }
+        if (newPassword.length < 4) {
+            alert("⚠️ La contraseña debe tener al menos 4 caracteres.");
+            return;
+        }
+        updateData.password = newPassword;
+    }
+
+    state.currentUser.nombres = nombres;
+    state.currentUser.modo = modo;
+    state.currentUser.familia = familia;
+    state.currentUser.avatar = avatar;
+    state.currentUser.genero = genero;
+
     saveState();
-    try {
-        await fetch(`${API_URL}/${state.currentUser.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nombres, modo, familia, avatar, genero })
-        });
-        alert("¡Perfil actualizado!");
-        navigateTo('view-profile-card');
-    } catch (e) { alert("Error al guardar perfil."); }
+
+    if (state.currentUser.id) {
+        try {
+            const response = await fetch(`${API_URL}/${state.currentUser.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData)
+            });
+
+            if (response.ok) {
+                await fetchUsers();
+                renderPublicTiers();
+                
+                if (document.getElementById('prof-new-password')) document.getElementById('prof-new-password').value = '';
+                if (document.getElementById('prof-confirm-password')) document.getElementById('prof-confirm-password').value = '';
+                
+                alert("¡Perfil actualizado correctamente!");
+                navigateTo('view-profile-card');
+            } else {
+                alert("Ocurrió un error al guardar los cambios.");
+            }
+        } catch (err) {
+            console.error("Error al sincronizar perfil con backend:", err);
+            alert("Error al conectar con el servidor.");
+        }
+    }
 }
 
 function fillProfileEditForm() {
     if (!state.currentUser) return;
-    const nomEl = document.getElementById('prof-nombres');
-    if (nomEl) nomEl.value = state.currentUser.nombres || '';
-    const avEl = document.getElementById('prof-avatar');
-    if (avEl) avEl.value = getUserAvatar(state.currentUser);
-    const genEl = document.getElementById('prof-genero');
-    if (genEl) genEl.value = state.currentUser.genero || 'Otros';
+    document.getElementById('prof-nickname').value = state.currentUser.nickname || '';
+    document.getElementById('prof-nombres').value = state.currentUser.nombres || '';
+    
+    const avatarVal = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    document.getElementById('prof-avatar').value = avatarVal;
+    document.getElementById('avatar-preview').src = avatarVal;
+
+    const generoSelect = document.getElementById('prof-genero');
+    if (generoSelect) generoSelect.value = state.currentUser.genero || 'Otros';
+
     const clanSelect = document.getElementById('prof-familia');
     if (clanSelect) {
-        clanSelect.innerHTML = state.clans.map(c => `<option value="${escapeHtml(c)}" ${state.currentUser.familia === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+        const currentFamilia = state.currentUser.familia || 'Sin Familia / Ninguno';
+        clanSelect.innerHTML = state.clans.map(clan => `
+            <option value="${escapeHtml(clan)}" ${currentFamilia === clan ? 'selected' : ''}>
+                ${escapeHtml(clan)}
+            </option>
+        `).join('');
+    }
+
+    const userModos = Array.isArray(state.currentUser.modo) ? state.currentUser.modo : [state.currentUser.modo];
+    const allCb = document.getElementById('cb-all-modes');
+    
+    if (userModos.includes('ALL MODES')) {
+        if (allCb) allCb.checked = true;
+        document.querySelectorAll('.mode-cb').forEach(cb => cb.checked = true);
+    } else {
+        if (allCb) allCb.checked = false;
+        document.querySelectorAll('.mode-cb').forEach(cb => {
+            cb.checked = userModos.includes(cb.value);
+        });
+    }
+    updateModeBtnText();
+}
+
+function renderProfileCard() {
+    const container = document.getElementById('profile-card-container');
+    if (!container || !state.currentUser) return;
+
+    const me = state.users.find(u => String(u.id) === String(state.currentUser.id));
+    const ranks = (me && me.tierRanks) ? [...me.tierRanks].sort((a, b) => b.puntos - a.puntos) : [];
+    const best = ranks[0];
+    const frameColor = best && best.tier && best.tier.color ? best.tier.color : '#c92a52';
+
+    const assign = state.assignments[state.currentUser.nickname] || {};
+    const userTagIds = assign.tagIds || [];
+    const userTags = state.tags.filter(t => userTagIds.includes(t.id));
+    const modosText = Array.isArray(state.currentUser.modo) ? state.currentUser.modo.join(', ') : (state.currentUser.modo || 'NORMAL');
+    const avatarUrl = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const generoVal = state.currentUser.genero || 'Otros';
+
+    container.innerHTML = `
+        <div class="max-w-md mx-auto">
+            <div id="profile-collectible" class="collectible tilt" style="--tier-color:${escapeHtml(frameColor)}">
+                <div class="collectible-top">
+                    <span class="collectible-brand">AWC LATAM</span>
+                    ${best && best.tier ? `<span class="collectible-tier" style="background:${escapeHtml(frameColor)}">${escapeHtml(best.tier.name)}</span>` : ''}
+                </div>
+
+                <div class="collectible-avatar">
+                    <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="Avatar">
+                </div>
+
+                <h2 class="collectible-name">${escapeHtml(state.currentUser.nickname)}</h2>
+                <p class="collectible-sub">${escapeHtml(state.currentUser.nombres || 'Sin nombre asignado')} · ${escapeHtml(generoVal)}</p>
+
+                <div class="collectible-points">
+                    <span>${best ? best.puntos : 0}</span><small>PTS</small>
+                </div>
+
+                <div class="collectible-grid">
+                    <div>
+                        <span class="collectible-label">Modo preferido</span>
+                        <span class="collectible-value">${escapeHtml(modosText)}</span>
+                    </div>
+                    <div>
+                        <span class="collectible-label">Familia</span>
+                        <span class="collectible-value">${escapeHtml(state.currentUser.familia || 'Sin Familia / Ninguno')}</span>
+                    </div>
+                </div>
+
+                ${ranks.length > 0 ? `
+                    <div class="collectible-chips">
+                        ${ranks.map(tr => `<span style="background:${escapeHtml(tr.tier.color)}">${escapeHtml(tr.tier.name)} · ${tr.puntos}</span>`).join('')}
+                    </div>
+                ` : ''}
+
+                ${userTags.length > 0 ? `
+                    <div class="collectible-chips">
+                        ${userTags.map(tag => `<span style="background:${escapeHtml(tag.color)}">${escapeHtml(tag.name)}</span>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center gap-3 mt-5">
+                <button onclick="downloadProfileCard()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
+                    <i class="ph-bold ph-download-simple"></i>
+                    <span>Descargar Carta</span>
+                </button>
+                <button onclick="navigateTo('view-profile-edit')" class="px-4 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center space-x-2">
+                    <i class="ph-bold ph-pencil"></i>
+                    <span>Editar Perfil</span>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+async function downloadProfileCard() {
+    const el = document.getElementById('profile-collectible');
+    if (!el) return;
+    if (typeof html2canvas !== 'function') {
+        showToast('No se pudo cargar el generador de imágenes. Revisa tu conexión.', 'error');
+        return;
+    }
+    const prevTransform = el.style.transform;
+    el.style.transform = 'none';
+    try {
+        showToast('Generando tu carta…', 'info');
+        const canvas = await html2canvas(el, { backgroundColor: '#1c0a11', scale: 2, useCORS: true });
+        canvas.toBlob(blob => {
+            if (!blob) { showToast('No se pudo generar la imagen.', 'error'); return; }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `carta-${state.currentUser.nickname}.png`;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+            showToast('¡Carta descargada!', 'success');
+        }, 'image/png');
+    } catch (err) {
+        console.error('Error generando carta:', err);
+        showToast('No se pudo exportar la carta (el servidor de tu avatar bloquea la exportación).', 'error');
+    } finally {
+        el.style.transform = prevTransform;
     }
 }
 
-// ADMIN PANEL
 function renderAdminPanel() {
     renderAdminTabsList();
     renderAdminTiersList();
@@ -1303,112 +1948,327 @@ function renderAdminPanel() {
 
 async function handleCreateTab(e) {
     e.preventDefault();
-    const name = document.getElementById('tab-name').value.trim();
+    const nameInput = document.getElementById('tab-name');
+    const name = nameInput.value.trim();
     if (!name) return;
-    await fetch(`${API_BASE}/tabs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
-    document.getElementById('tab-name').value = '';
-    await fetchGlobalConfig();
-    renderAdminPanel();
+
+    try {
+        const response = await fetch(`${API_BASE}/tabs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+        if (response.ok) {
+            nameInput.value = '';
+            await fetchGlobalConfig();
+            renderAdminPanel();
+            alert(`Pestaña "${name}" creada.`);
+        } else {
+            const err = await response.json();
+            alert("Error: " + (err.error || "No se pudo crear la pestaña"));
+        }
+    } catch (err) {
+        console.error("Error creando pestaña:", err);
+    }
 }
 
-async function deleteTab(id) { await fetch(`${API_BASE}/tabs/${id}`, { method: 'DELETE' }); await fetchGlobalConfig(); renderAdminPanel(); }
+async function deleteTab(tabId) {
+    try {
+        await fetch(`${API_BASE}/tabs/${tabId}`, { method: 'DELETE' });
+        await fetchGlobalConfig();
+        renderAdminPanel();
+    } catch (err) {
+        console.error("Error eliminando pestaña:", err);
+    }
+}
 
 function renderAdminTabsList() {
-    const c = document.getElementById('admin-tabs-list');
-    const s = document.getElementById('tier-tab-select');
-    if (!c) return;
-    c.innerHTML = state.tabs.map(t => `<div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border text-xs"><span class="font-bold">${escapeHtml(t.name)}</span><button onclick="deleteTab(${t.id})" class="text-red-400"><i class="ph-bold ph-trash"></i></button></div>`).join('');
-    if (s) s.innerHTML = state.tabs.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    const container = document.getElementById('admin-tabs-list');
+    const select = document.getElementById('tier-tab-select');
+    if (!container) return;
+
+    if (state.tabs.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay pestañas.</p>`;
+        if (select) select.innerHTML = `<option value="">Crea una pestaña primero</option>`;
+        return;
+    }
+
+    container.innerHTML = state.tabs.map(tab => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
+            <span class="font-bold text-slate-200">${escapeHtml(tab.name)}</span>
+            <button onclick="deleteTab(${tab.id})" class="text-slate-500 hover:text-red-400 transition-colors">
+                <i class="ph-bold ph-trash"></i>
+            </button>
+        </div>
+    `).join('');
+
+    if (select) {
+        select.innerHTML = state.tabs.map(tab => `
+            <option value="${tab.id}">${escapeHtml(tab.name)}</option>
+        `).join('');
+    }
 }
 
 async function handleCreateTier(e) {
     e.preventDefault();
-    const name = document.getElementById('tier-name').value.trim();
-    const color = document.getElementById('tier-color').value;
-    const tabId = document.getElementById('tier-tab-select').value;
+    const nameInput = document.getElementById('tier-name');
+    const colorInput = document.getElementById('tier-color');
+    const tabSelect = document.getElementById('tier-tab-select');
+
+    const name = nameInput.value.trim();
+    const color = colorInput.value;
+    const tabId = tabSelect ? tabSelect.value : null;
+
     if (!name) return;
-    await fetch(`${API_BASE}/tiers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color, tabId: Number(tabId) }) });
-    document.getElementById('tier-name').value = '';
-    await fetchGlobalConfig();
-    renderAdminPanel();
+
+    try {
+        await fetch(`${API_BASE}/tiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, color, tabId })
+        });
+        await fetchGlobalConfig();
+        nameInput.value = '';
+        renderAdminPanel();
+        alert(`Tier "${name}" creado con éxito.`);
+    } catch (err) {
+        console.error("Error creando tier:", err);
+    }
 }
 
-async function deleteTier(id) {
-    const t = state.tiers.find(x => x.id === id);
-    if (!t) return;
-    await fetch(`${API_BASE}/tiers/${t.dbId}`, { method: 'DELETE' });
-    await fetchUsers();
-    renderAdminPanel();
+async function deleteTier(tierId) {
+    const tier = state.tiers.find(t => t.id === tierId);
+    if (!tier) return;
+    if (!await confirmDialog(`¿Eliminar el tier "${tier.name}"? Los usuarios asignados perderán este Tier.`, { danger: true, confirmText: 'Eliminar tier' })) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/tiers/${tier.dbId}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            alert("Error: " + (err.error || "No se pudo eliminar el tier"));
+            return;
+        }
+        await fetchUsers();
+        renderAdminPanel();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error eliminando tier:", err);
+        alert("No se pudo conectar con el servidor.");
+    }
+}
+
+async function moveTier(tierId, direction) {
+    const tier = state.tiers.find(t => t.id === tierId);
+    if (!tier) return;
+
+    const sameTab = state.tiers.filter(t => t.tabId === tier.tabId);
+    const pos = sameTab.findIndex(t => t.id === tierId);
+    const neighbor = sameTab[pos + direction];
+    if (!neighbor) return;
+
+    const i = state.tiers.findIndex(t => t.id === tier.id);
+    const j = state.tiers.findIndex(t => t.id === neighbor.id);
+    [state.tiers[i], state.tiers[j]] = [state.tiers[j], state.tiers[i]];
+
+    renderAdminTiersList();
+    renderPublicTiers();
+
+    try {
+        const response = await fetch(`${API_BASE}/tiers/reorder`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids: state.tiers.map(t => t.dbId) })
+        });
+        if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
+    } catch (err) {
+        console.error("Error guardando el orden:", err);
+        alert("No se pudo guardar el orden. Se restaurará la lista.");
+        await fetchGlobalConfig();
+        renderAdminTiersList();
+        renderPublicTiers();
+    }
 }
 
 function renderAdminTiersList() {
-    const c = document.getElementById('admin-tiers-list');
-    if (!c) return;
-    c.innerHTML = state.tiers.map(t => `<div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border text-xs"><span class="font-bold" style="color:${t.color}">${escapeHtml(t.name)}</span><button onclick="deleteTier('${t.id}')" class="text-red-400"><i class="ph-bold ph-trash"></i></button></div>`).join('');
+    const container = document.getElementById('admin-tiers-list');
+    if (!container) return;
+
+    if (state.tiers.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay Tiers creados.</p>`;
+        return;
+    }
+
+    container.innerHTML = state.tiers.map((tier, idx) => {
+        const parentTab = state.tabs.find(t => t.id === tier.tabId);
+        const tabName = parentTab ? parentTab.name : 'Sin pestaña';
+        const sameTab = state.tiers.filter(t => t.tabId === tier.tabId);
+        const pos = sameTab.findIndex(t => t.id === tier.id);
+        const canUp = pos > 0;
+        const canDown = pos < sameTab.length - 1;
+
+        return `
+            <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
+                <div class="flex items-center space-x-2">
+                    <span class="w-3 h-3 rounded-full" style="background-color: ${tier.color}"></span>
+                    <div>
+                        <span class="font-bold text-slate-200 block">${escapeHtml(tier.name)}</span>
+                        <span class="text-[10px] text-wine-400">Modo: ${escapeHtml(tabName)}</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-1">
+                    <button onclick="moveTier('${tier.id}', -1)" ${canUp ? '' : 'disabled'} class="text-slate-500 hover:text-wine-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                        <i class="ph-bold ph-arrow-up"></i>
+                    </button>
+                    <button onclick="moveTier('${tier.id}', 1)" ${canDown ? '' : 'disabled'} class="text-slate-500 hover:text-wine-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                        <i class="ph-bold ph-arrow-down"></i>
+                    </button>
+                    <button onclick="deleteTier('${tier.id}')" class="text-slate-500 hover:text-red-400 transition-colors ml-2">
+                        <i class="ph-bold ph-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function handleCreateTag(e) {
     e.preventDefault();
-    const name = document.getElementById('tag-name').value.trim();
-    const color = document.getElementById('tag-color').value;
+    const nameInput = document.getElementById('tag-name');
+    const colorInput = document.getElementById('tag-color');
+
+    const name = nameInput.value.trim();
+    const color = colorInput.value;
+
     if (!name) return;
+
     state.tags.push({ id: 'tag-' + Date.now(), name, color });
     saveState();
-    document.getElementById('tag-name').value = '';
+
+    nameInput.value = '';
+    renderAdminPanel();
+    alert(`Etiqueta "${name}" creada.`);
+}
+
+function deleteTag(tagId) {
+    state.tags = state.tags.filter(t => t.id !== tagId);
+    saveState();
     renderAdminPanel();
 }
 
-function deleteTag(id) { state.tags = state.tags.filter(t => t.id !== id); saveState(); renderAdminPanel(); }
-
 function renderAdminTagsList() {
-    const c = document.getElementById('admin-tags-list');
-    if (!c) return;
-    c.innerHTML = state.tags.map(t => `<span class="px-2 py-1 rounded text-xs text-white" style="background:${t.color}">${t.name} <button onclick="deleteTag('${t.id}')">×</button></span>`).join('');
+    const container = document.getElementById('admin-tags-list');
+    if (!container) return;
+
+    if (state.tags.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay etiquetas creadas.</p>`;
+        return;
+    }
+
+    container.innerHTML = state.tags.map(tag => `
+        <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-white shadow-sm" style="background-color: ${tag.color}">
+            <span>${escapeHtml(tag.name)}</span>
+            <button onclick="deleteTag('${tag.id}')" class="hover:text-slate-200 ml-1">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </span>
+    `).join('');
+}
+
+async function handleCreateClan(e) {
+    e.preventDefault();
+    const clanInput = document.getElementById('clan-name');
+    const clanName = clanInput.value.trim();
+
+    if (!clanName) return;
+
+    try {
+        await fetch(`${API_BASE}/clans`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: clanName })
+        });
+        await fetchGlobalConfig();
+        clanInput.value = '';
+        renderAdminPanel();
+        alert(`Familia "${clanName}" creada.`);
+    } catch (err) {
+        console.error("Error creando familia:", err);
+    }
+}
+
+async function deleteClan(clanName) {
+    try {
+        await fetch(`${API_BASE}/clans/${encodeURIComponent(clanName)}`, { method: 'DELETE' });
+        await fetchGlobalConfig();
+        renderAdminPanel();
+    } catch (err) {
+        console.error("Error eliminando familia:", err);
+    }
 }
 
 function renderAdminClansList() {
-    const c = document.getElementById('admin-clans-list');
-    if (!c) return;
-    c.innerHTML = state.clans.map(cl => `<div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border text-xs"><span class="font-bold">${escapeHtml(cl)}</span></div>`).join('');
+    const container = document.getElementById('admin-clans-list');
+    if (!container) return;
+
+    if (state.clans.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay familias creadas.</p>`;
+        return;
+    }
+
+    container.innerHTML = state.clans.map(clan => `
+        <div class="flex items-center justify-between p-2 rounded-xl bg-[#090507] border border-wine-900 text-xs">
+            <span class="font-bold text-slate-200">${escapeHtml(clan)}</span>
+            <button onclick="deleteClan('${escapeHtml(clan)}')" class="text-slate-500 hover:text-red-400 transition-colors">
+                <i class="ph-bold ph-trash"></i>
+            </button>
+        </div>
+    `).join('');
 }
 
 async function addUserToTier(userId, tierId, puntos = 0) {
     if (!tierId) return;
-    await fetch(`${API_BASE}/users/${userId}/tiers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tierId: Number(tierId), puntos: Number(puntos) }) });
-    await fetchUsers();
-    renderAdminUserTable();
+
+    try {
+        await fetch(`${API_BASE}/users/${userId}/tiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierId: Number(tierId), puntos: Number(puntos) })
+        });
+        await fetchUsers();
+        renderAdminUserTable();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al asignar tier/puntos al usuario:", err);
+    }
 }
 
-async function updateUserTierPoints(userId, tierId, pts) {
-    await fetch(`${API_BASE}/users/${userId}/tiers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tierId: Number(tierId), puntos: Number(pts) }) });
-    await fetchUsers();
+async function updateUserTierPoints(userId, tierId, newPoints) {
+    const pts = parseInt(newPoints, 10);
+    if (isNaN(pts)) return;
+
+    try {
+        await fetch(`${API_BASE}/users/${userId}/tiers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tierId: Number(tierId), puntos: pts })
+        });
+        await fetchUsers();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al actualizar puntos:", err);
+    }
 }
 
 async function removeUserTier(userId, tierId) {
-    await fetch(`${API_BASE}/users/${userId}/tiers/${tierId}`, { method: 'DELETE' });
-    await fetchUsers();
-    renderAdminUserTable();
-}
-
-// CAMBIAR ROL DIRECTAMENTE DESDE EL PANEL ADMIN
-async function changeUserRole(userId, newRole) {
     try {
-        const res = await fetch(`${API_URL}/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ role: newRole })
+        await fetch(`${API_BASE}/users/${userId}/tiers/${tierId}`, {
+            method: 'DELETE'
         });
-
-        if (res.ok) {
-            showToast(`¡Rol actualizado a ${newRole} con éxito!`, 'success');
-            await fetchUsers();
-            renderAdminUserTable();
-        } else {
-            showToast("No se pudo cambiar el rol en el servidor.", "error");
-        }
-    } catch (e) {
-        console.error(e);
-        showToast("Error de conexión al intentar cambiar el rol.", "error");
+        await fetchUsers();
+        renderAdminUserTable();
+        renderPublicTiers();
+    } catch (err) {
+        console.error("Error al quitar tier al usuario:", err);
     }
 }
 
@@ -1416,267 +2276,748 @@ function renderAdminUserTable() {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
 
-    tbody.innerHTML = state.users.map(u => {
-        const uname = u.nickname || u.name;
-        const assign = state.assignments[uname] || { tagIds: [] };
-        const ranks = u.tierRanks || [];
-        const avail = state.tiers.filter(t => !ranks.map(r => r.tierId).includes(t.dbId));
-        const userAvatar = getUserAvatar(u);
-        const currentRole = u.role || 'USER';
+    const allUsers = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
+
+    if (allUsers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">No hay usuarios registrados.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = allUsers.map(user => {
+        const username = user.nickname || user.name || 'Usuario';
+        const userAssign = state.assignments[username] || { tagIds: [] };
+        const userRanks = user.tierRanks || [];
+        const currentRole = user.role || 'USER';
+
+        const assignedTierIds = userRanks.map(tr => tr.tierId);
+        const availableTiers = state.tiers.filter(t => !assignedTierIds.includes(t.dbId));
 
         return `
-            <tr class="border-b border-wine-900/60 text-xs">
-                <td class="py-3 px-4 font-bold text-wine-400 flex items-center space-x-2">
-                    <img src="${escapeHtml(userAvatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover">
-                    <span>${escapeHtml(uname)}</span>
-                </td>
-                <td class="py-3 px-4">${escapeHtml(u.nombres || '')}</td>
-                <td class="py-3 px-4">
-                    <select onchange="changeUserRole(${u.id}, this.value)" class="bg-wine-950 border border-wine-800 rounded px-2 py-1 text-white font-bold focus:border-amber-400">
-                        <option value="USER" ${currentRole === 'USER' ? 'selected' : ''}>JUGADOR</option>
-                        <option value="MODERATOR" ${currentRole === 'MODERATOR' ? 'selected' : ''}>MODERADOR</option>
-                        <option value="ADMIN" ${currentRole === 'ADMIN' ? 'selected' : ''}>ADMINISTRADOR</option>
-                    </select>
-                </td>
-                <td class="py-3 px-4 space-y-1">
-                    ${ranks.map(r => `<div class="flex items-center space-x-2"><span class="px-2 py-0.5 rounded text-white text-[10px]" style="background:${r.tier.color}">${r.tier.name}</span><input type="number" value="${r.puntos}" onchange="updateUserTierPoints(${u.id},${r.tierId}, this.value)" class="w-14 bg-wine-950 border rounded text-center text-amber-400"> pts <button onclick="removeUserTier(${u.id},${r.tierId})" class="text-red-400">×</button></div>`).join('')}
-                    ${avail.length > 0 ? `<select onchange="addUserToTier(${u.id}, this.value)" class="bg-wine-950 border rounded p-1"><option value="">+ Añadir Tier...</option>${avail.map(t => `<option value="${t.dbId}">${t.name}</option>`).join('')}</select>` : ''}
-                </td>
-                <td class="py-3 px-4">
-                    <div class="flex flex-wrap gap-1">
-                        ${state.tags.map(t => `<button onclick="toggleUserTag('${uname}', '${t.id}')" class="px-2 py-0.5 rounded text-[10px] ${assign.tagIds.includes(t.id) ? 'text-white' : 'text-slate-500 bg-[#090507]'}" style="${assign.tagIds.includes(t.id) ? 'background:'+t.color : ''}">${t.name}</button>`).join('')}
+            <tr class="hover:bg-wine-900/20 transition-colors border-b border-wine-900/60">
+                <td class="py-3 px-4 font-semibold text-wine-400 align-top flex items-center gap-2">
+                    <img src="${escapeHtml(user.avatar || 'https://i.imgur.com/6VBx3io.png')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-6 h-6 rounded-full object-cover border border-wine-800 flex-shrink-0">
+                    <div>
+                        <span>${escapeHtml(username)}</span>
+                        <span class="block text-[10px] text-slate-500 font-normal">${escapeHtml(user.genero || 'Otros')}</span>
                     </div>
                 </td>
-                <td class="py-3 px-4 text-center">
-                    <button onclick="deleteUserByAdmin(${u.id}, '${uname}')" class="text-red-400 hover:text-red-300"><i class="ph-bold ph-trash"></i></button>
+                <td class="py-3 px-4 text-slate-300 align-top font-medium">
+                    ${escapeHtml(user.nombres || 'Sin nombre asignado')}
+                    <div class="mt-2">
+                        <select onchange="updateUserRole(${user.id}, this.value)" class="bg-wine-950 border border-wine-800 rounded-lg py-1 px-2 text-xs text-wine-300 focus:outline-none focus:border-wine-500">
+                            <option value="USER" ${currentRole === 'USER' ? 'selected' : ''}>Usuario</option>
+                            <option value="MODERATOR" ${currentRole === 'MODERATOR' ? 'selected' : ''}>Moderador</option>
+                        </select>
+                    </div>
+                </td>
+                
+                <td class="py-3 px-4 space-y-2 align-top">
+                    <div class="space-y-1.5">
+                        ${userRanks.length > 0 ? userRanks.map(tr => `
+                            <div class="flex items-center space-x-2 bg-[#090507] border border-wine-900 p-1.5 rounded-lg">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold text-white" style="background-color: ${tr.tier.color}">
+                                    ${escapeHtml(tr.tier.name)}
+                                </span>
+                                <input type="number" value="${tr.puntos}" 
+                                       onchange="updateUserTierPoints(${user.id},${tr.tierId}, this.value)" 
+                                       class="w-16 bg-wine-950 border border-wine-800 rounded py-0.5 px-1 text-xs text-amber-400 font-bold text-center focus:outline-none focus:border-amber-500">
+                                <span class="text-[10px] text-slate-500">pts</span>
+                                <button onclick="removeUserTier(${user.id},${tr.tierId})" class="text-slate-500 hover:text-red-400 ml-auto transition-colors">
+                                    <i class="ph-bold ph-x"></i>
+                                </button>
+                            </div>
+                        `).join('') : '<span class="text-xs text-slate-500 italic">Sin Tiers asignados</span>'}
+                    </div>
+
+                    ${availableTiers.length > 0 ? `
+                        <div class="pt-1">
+                            <select onchange="addUserToTier(${user.id}, this.value)" class="bg-wine-950/80 border border-wine-800 rounded-lg py-1 px-2 text-xs text-wine-300 focus:outline-none focus:border-wine-500 w-full">
+                                <option value="">+ Añadir a otro Tier...</option>
+                                ${availableTiers.map(tier => `
+                                    <option value="${tier.dbId}">${escapeHtml(tier.name)}</option>
+                                `).join('')}
+                            </select>
+                        </div>
+                    ` : ''}
+                </td>
+
+                <td class="py-3 px-4 align-top">
+                    <div class="flex flex-wrap gap-1">
+                        ${state.tags.map(tag => {
+                            const isChecked = userAssign.tagIds.includes(tag.id);
+                            return `
+                                <button onclick="toggleUserTag('${username}', '${tag.id}')" 
+                                    class="px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${isChecked ? 'text-white border-transparent' : 'text-slate-500 border-wine-900 bg-[#090507]'}"
+                                    style="${isChecked ? `background-color: ${tag.color}` : ''}">
+                                    ${escapeHtml(tag.name)}
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </td>
+
+                <td class="py-3 px-4 align-top text-center">
+                    <button onclick="deleteUserByAdmin(${user.id}, '${escapeHtml(username)}')" 
+                            class="p-2 bg-red-950/50 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-lg text-xs font-bold transition-all" 
+                            title="Eliminar usuario">
+                        <i class="ph-bold ph-trash text-sm"></i>
+                    </button>
                 </td>
             </tr>
         `;
     }).join('');
 }
 
-function toggleUserTag(uname, tagId) {
-    if (!state.assignments[uname]) state.assignments[uname] = { tagIds: [] };
-    const ids = state.assignments[uname].tagIds;
-    const idx = ids.indexOf(tagId);
-    if (idx > -1) ids.splice(idx, 1); else ids.push(tagId);
+function toggleUserTag(username, tagId) {
+    if (!state.assignments[username]) {
+        state.assignments[username] = { tagIds: [] };
+    }
+    const tagIds = state.assignments[username].tagIds;
+    const index = tagIds.indexOf(tagId);
+
+    if (index > -1) {
+        tagIds.splice(index, 1);
+    } else {
+        tagIds.push(tagId);
+    }
+
     saveState();
     renderAdminUserTable();
-}
-
-async function deleteUserByAdmin(id, uname) {
-    showCustomModal("Eliminar Usuario", `¿Eliminar a "${uname}"?`, true, async (ok) => {
-        if (!ok) return;
-        await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-        await fetchUsers();
-        renderAdminUserTable();
-    });
+    renderPublicTiers();
 }
 
 function renderTabsNavigation() {
-    const c = document.getElementById('tabs-navigation');
-    if (!c) return;
+    const container = document.getElementById('tabs-navigation');
+    if (!container) return;
 
     if (state.tabs.length === 0) {
-        c.innerHTML = `<p class="text-xs text-slate-500 italic">No hay pestañas creadas.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-500 italic">No hay pestañas de modos creadas.</p>`;
         return;
     }
 
-    if (activeTabId === null && state.tabs.length > 0) {
+    if (!activeTabId && state.tabs.length > 0) {
         activeTabId = state.tabs[0].id;
     }
 
-    c.innerHTML = state.tabs.map(t => `
-        <button onclick="setActiveTab(${t.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${String(activeTabId) === String(t.id) ? 'bg-wine-700 text-white shadow-lg' : 'bg-wine-950 text-slate-400 border border-wine-900 hover:bg-wine-900'}">
-            ${escapeHtml(t.name)}
+    container.innerHTML = state.tabs.map(tab => `
+        <button onclick="setActiveTab(${tab.id})" class="px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTabId === tab.id ? 'bg-wine-700 text-white shadow-lg shadow-wine-900/50' : 'bg-wine-950 text-slate-400 hover:bg-wine-900 border border-wine-900'}">
+            ${escapeHtml(tab.name)}
         </button>
     `).join('');
 }
 
-function setActiveTab(id) { activeTabId = id; renderTabsNavigation(); renderPublicTiers(); }
+function setActiveTab(tabId) {
+    activeTabId = tabId;
+    renderTabsNavigation();
+    renderPublicTiers();
+}
 
-// ===== RENDERIZADO DE TIERS PÚBLICOS =====
-function filterTierTable() { renderPublicTiers(); }
+// ===== TIERS: vista, filtros, podio y cambios de posición =====
+let tiersViewMode = localStorage.getItem('uh_tiers_view') || 'table';
+const RANK_KEY = 'uh_rank_snapshots';
+
+function loadRankSnapshots() {
+    try { return JSON.parse(localStorage.getItem(RANK_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveRankSnapshots(snaps) {
+    try { localStorage.setItem(RANK_KEY, JSON.stringify(snaps)); } catch (e) { /* sin espacio */ }
+}
+
+function emptyStateHTML(icon, title, text, action = '') {
+    return `
+        <div class="empty-state">
+            <div class="empty-icon"><i class="ph-bold ${icon}"></i></div>
+            <h3>${title}</h3>
+            <p>${text}</p>
+            ${action}
+        </div>
+    `;
+}
+
+function setTiersView(mode) {
+    tiersViewMode = mode;
+    try { localStorage.setItem('uh_tiers_view', mode); } catch (e) { /* ignorar */ }
+    renderPublicTiers();
+}
+
+function updateTiersToolbar() {
+    const bt = document.getElementById('tiers-view-table');
+    const bl = document.getElementById('tiers-view-list');
+    if (bt) bt.classList.toggle('active', tiersViewMode === 'table');
+    if (bl) bl.classList.toggle('active', tiersViewMode === 'list');
+
+    const sel = document.getElementById('tiers-family-filter');
+    if (sel && sel.options.length !== state.clans.length + 1) {
+        const cur = sel.value || 'all';
+        sel.innerHTML = `<option value="all">Todas las familias</option>` +
+            state.clans.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+        sel.value = Array.from(sel.options).some(o => o.value === cur) ? cur : 'all';
+    }
+}
+
+function getModoText(u) {
+    let arr = ['NORMAL'];
+    try {
+        if (u.modo) arr = u.modo.startsWith('[') ? JSON.parse(u.modo) : [u.modo];
+    } catch (e) {
+        arr = [u.modo || 'NORMAL'];
+    }
+    return Array.isArray(arr) ? arr.join(', ') : String(arr);
+}
+
+function showUserCardFromEl(ev, el) {
+    showUserCard(ev, el.dataset.user);
+}
+
+// Compara el ranking actual con el del día anterior (guardado en este navegador)
+function computeRankDeltas(snaps, tier, members, today) {
+    const key = String(tier.dbId);
+    const current = {};
+    members.forEach(m => { current[m.user.id] = m.rank; });
+
+    let snap = snaps[key];
+    if (!snap) snap = { day: today, current, previous: {} };
+    else if (snap.day !== today) snap = { day: today, previous: snap.current || {}, current };
+    else snap.current = current;
+    snaps[key] = snap;
+
+    const out = {};
+    members.forEach(m => {
+        const prev = snap.previous[m.user.id];
+        if (prev) out[m.user.id] = prev - m.rank;
+    });
+    return out;
+}
+
+function deltaBadge(d) {
+    if (!d) return '';
+    return d > 0
+        ? `<span class="rank-delta up">▲${d}</span>`
+        : `<span class="rank-delta down">▼${Math.abs(d)}</span>`;
+}
+
+function renderPodium(top3, delta) {
+    const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+    const cls = { 1: 'first', 2: 'second', 3: 'third' };
+    const medal = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    return `
+        <div class="podium px-4 pt-8 pb-2">
+            ${order.map(m => {
+                const u = m.user;
+                const uname = u.nickname || u.name;
+                const avatar = u.avatar || 'https://i.imgur.com/6VBx3io.png';
+                return `
+                    <div class="podium-card tilt ${cls[m.rank]}">
+                        <div class="podium-medal">${medal[m.rank]}</div>
+                        <div class="podium-avatar"><img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt=""></div>
+                        <span class="podium-name cursor-pointer" data-user="${escapeHtml(uname)}" onmouseenter="showUserCardFromEl(event, this)" onmouseleave="hideUserCard()">${escapeHtml(uname)}</span>
+                        <div class="podium-points">${m.puntos}<small>PTS</small></div>
+                        ${deltaBadge(delta[u.id])}
+                        <div class="podium-family">${escapeHtml(u.familia || 'Sin Familia / Ninguno')}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function renderTierRow(m, delta) {
+    const u = m.user;
+    const uname = u.nickname || u.name;
+    const rank = m.rank;
+    const avatar = u.avatar || 'https://i.imgur.com/6VBx3io.png';
+
+    let rankBadge = `<span class="font-bold text-slate-400">#${rank}</span>`;
+    if (rank === 1) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-black border border-amber-500/40 text-xs">🥇</span>`;
+    else if (rank === 2) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-300/20 text-slate-300 font-black border border-slate-300/40 text-xs">🥈</span>`;
+    else if (rank === 3) rankBadge = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-amber-700/20 text-amber-600 font-black border border-amber-700/40 text-xs">🥉</span>`;
+
+    return `
+        <tr class="hover:bg-wine-900/30 transition-colors ${rank === 1 ? 'bg-amber-500/5' : ''}">
+            <td class="py-3 px-4 text-center font-bold">
+                <div class="inline-flex flex-col items-center gap-0.5">${rankBadge}${deltaBadge(delta[u.id])}</div>
+            </td>
+            <td class="py-3 px-4">
+                <div class="flex items-center gap-2 font-bold text-slate-100">
+                    <div class="w-7 h-7 rounded-full overflow-hidden bg-wine-900 border border-wine-700/60 flex-shrink-0">
+                        <img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
+                    </div>
+                    <span class="cursor-pointer hover:text-wine-400 transition-colors" data-user="${escapeHtml(uname)}"
+                          onmouseenter="showUserCardFromEl(event, this)" onmouseleave="hideUserCard()">${escapeHtml(uname)}</span>
+                </div>
+            </td>
+            <td class="py-3 px-4 text-center font-extrabold text-amber-400">${m.puntos} pts</td>
+            <td class="py-3 px-4 text-slate-300 font-medium">${escapeHtml(u.familia || 'Sin Familia / Ninguno')}</td>
+            <td class="py-3 px-4 text-wine-300 font-medium">
+                <span class="px-2.5 py-1 rounded-lg bg-wine-950/80 border border-wine-800 text-wine-300 text-xs font-semibold">${escapeHtml(getModoText(u))}</span>
+            </td>
+        </tr>
+    `;
+}
+
+function renderTierTableBlock(tier, total, visible, delta, filtering) {
+    const showPodium = !filtering && visible.length > 0;
+    const rows = showPodium ? visible.slice(3) : visible;
+    const emptyMsg = total === 0
+        ? 'No hay miembros asignados a este Tier actualmente.'
+        : 'Ningún jugador coincide con la búsqueda.';
+
+    return `
+        <div class="bg-wine-950/60 border border-wine-900 rounded-2xl overflow-hidden shadow-xl" style="--tier-color:${escapeHtml(tier.color)}">
+            <div class="px-6 py-4 flex items-center justify-between border-b border-wine-900/80" style="border-left: 6px solid ${escapeHtml(tier.color)}">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span>${escapeHtml(tier.name)}</span>
+                    <span class="text-xs px-2 py-0.5 rounded-full bg-wine-900/80 text-wine-300 font-mono">${total} miembros</span>
+                </h3>
+            </div>
+
+            ${showPodium ? renderPodium(visible.slice(0, 3), delta) : ''}
+
+            <div class="p-4 overflow-x-auto">
+                ${rows.length > 0 ? `
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                            <tr class="border-b border-wine-900/80 text-wine-300 font-semibold uppercase text-[11px] tracking-wider">
+                                <th class="py-3 px-4 w-16 text-center">Puesto</th>
+                                <th class="py-3 px-4">Nickname</th>
+                                <th class="py-3 px-4 text-center">Puntos</th>
+                                <th class="py-3 px-4">Familia</th>
+                                <th class="py-3 px-4">Modo</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-wine-900/40">
+                            ${rows.map(m => renderTierRow(m, delta)).join('')}
+                        </tbody>
+                    </table>
+                ` : (showPodium ? '' : `<p class="text-xs text-slate-500 italic py-2">${emptyMsg}</p>`)}
+            </div>
+        </div>
+    `;
+}
+
+function renderTierListBlock(tier, total, visible, delta) {
+    return `
+        <div class="tierlist-row" style="--tier-color:${escapeHtml(tier.color)}">
+            <div class="tierlist-label">
+                <span>${escapeHtml(tier.name)}</span>
+                <small>${total} miembros</small>
+            </div>
+            <div class="tierlist-members">
+                ${visible.length > 0 ? visible.map(m => {
+                    const u = m.user;
+                    const uname = u.nickname || u.name;
+                    const avatar = u.avatar || 'https://i.imgur.com/6VBx3io.png';
+                    return `
+                        <div class="tier-chip">
+                            <img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="">
+                            <div class="min-w-0">
+                                <span class="chip-name cursor-pointer" data-user="${escapeHtml(uname)}" onmouseenter="showUserCardFromEl(event, this)" onmouseleave="hideUserCard()">${escapeHtml(uname)}</span>
+                                <span class="chip-pts">#${m.rank} · ${m.puntos} pts</span>
+                            </div>
+                            ${deltaBadge(delta[u.id])}
+                        </div>
+                    `;
+                }).join('') : `<span class="text-xs text-slate-500 italic">${total === 0 ? 'Sin miembros en este Tier.' : 'Sin resultados.'}</span>`}
+            </div>
+        </div>
+    `;
+}
 
 function renderPublicTiers() {
     renderTabsNavigation();
+    updateTiersToolbar();
     const container = document.getElementById('public-tiers-container');
     if (!container) return;
 
     if (!state.currentUser) {
         container.innerHTML = `
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 text-center space-y-4 glass-panel">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 text-center space-y-4">
+                <div class="w-12 h-12 rounded-xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto">
+                    <i class="ph-bold ph-lock-key text-2xl"></i>
+                </div>
                 <h3 class="text-xl font-bold text-white">Contenido Privado</h3>
-                <p class="text-slate-400 text-sm">Inicia sesión para ver las tablas TIER.</p>
-                <button onclick="navigateTo('view-login')" class="px-5 py-2 bg-wine-700 text-white rounded-xl text-sm font-semibold">Iniciar Sesión</button>
+                <p class="text-slate-400 text-sm max-w-md mx-auto">
+                    Debes registrarte o iniciar sesión con tu cuenta para visualizar las tablas de posiciones TIER de Audition World Class LATAM.
+                </p>
+                <div class="pt-2 flex justify-center gap-3">
+                    <button onclick="navigateTo('view-login')" class="px-5 py-2 bg-wine-700 hover:bg-wine-600 text-white rounded-xl text-sm font-semibold transition-all">
+                        Iniciar Sesión
+                    </button>
+                    <button onclick="navigateTo('view-register')" class="px-5 py-2 bg-wine-950 hover:bg-wine-900 text-slate-200 border border-wine-800 rounded-xl text-sm font-semibold transition-all">
+                        Registrarse
+                    </button>
+                </div>
             </div>
         `;
         return;
     }
 
-    const filtered = state.tiers.filter(t => String(t.tabId) === String(activeTabId));
-    if (filtered.length === 0) { 
-        container.innerHTML = `<p class="text-slate-500 text-sm text-center py-8">No hay Tiers creados en esta pestaña actualmente.</p>`; 
-        return; 
+    const filteredTiers = state.tiers.filter(t => t.tabId === activeTabId);
+
+    if (filteredTiers.length === 0) {
+        container.innerHTML = emptyStateHTML('ph-ranking', 'Sin Tiers todavía', 'No hay Tiers creados para esta pestaña actualmente.');
+        return;
     }
 
-    const searchQuery = document.getElementById('tier-search-input')?.value.toLowerCase() || '';
-    const clanFilter = document.getElementById('tier-clan-filter')?.value || '';
+    const q = ((document.getElementById('tiers-search') || {}).value || '').trim().toLowerCase();
+    const fam = (document.getElementById('tiers-family-filter') || {}).value || 'all';
+    const filtering = !!q || fam !== 'all';
+    const snaps = loadRankSnapshots();
+    const today = new Date().toLocaleDateString('en-CA');
 
-    container.innerHTML = filtered.map(tier => {
-        let members = [];
+    const html = filteredTiers.map(tier => {
+        const members = [];
         state.users.forEach(u => {
             const uname = u.nickname || u.name;
-            if (!uname) return;
-            const rank = (u.tierRanks || []).find(r => Number(r.tierId) === Number(tier.dbId));
-            if (rank) members.push({ user: u, puntos: rank.puntos });
+            if (!uname || uname.toLowerCase() === 'admin') return;
+            const userRank = (u.tierRanks || []).find(tr => tr.tierId === tier.dbId);
+            if (userRank) members.push({ user: u, puntos: userRank.puntos });
         });
+
         members.sort((a, b) => b.puntos - a.puntos);
+        members.forEach((m, i) => { m.rank = i + 1; });
 
-        members = members.filter(item => {
-            const uname = (item.user.nickname || item.user.name).toLowerCase();
-            const clan = item.user.familia || 'Sin Familia / Ninguno';
-            const matchesSearch = uname.includes(searchQuery);
-            const matchesClan = !clanFilter || clan === clanFilter;
-            return matchesSearch && matchesClan;
+        const delta = computeRankDeltas(snaps, tier, members, today);
+
+        const visible = members.filter(m => {
+            const name = (m.user.nickname || m.user.name || '').toLowerCase();
+            const famOk = fam === 'all' || (m.user.familia || 'Sin Familia / Ninguno') === fam;
+            return (!q || name.includes(q)) && famOk;
         });
 
-        const top3 = members.slice(0, 3);
-        const rest = members.slice(3);
-
-        return `
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-xl space-y-6 glass-panel" style="--tier-color: ${tier.color}">
-                <div class="flex items-center justify-between border-b border-wine-900 pb-3" style="border-left: 6px solid ${tier.color}; padding-left: 1rem;">
-                    <h3 class="text-xl font-black text-white uppercase font-display">${escapeHtml(tier.name)}</h3>
-                    <span class="text-xs px-2.5 py-1 rounded-full bg-wine-900 text-wine-300 font-mono">${members.length} jugadores</span>
-                </div>
-
-                <!-- 1. PODIO VISUAL DEL TOP 3 -->
-                ${top3.length > 0 ? `
-                    <div class="podium">
-                        ${top3[1] ? `
-                            <div class="podium-card" style="--tier-color: ${tier.color}">
-                                <div class="text-xl">🥈</div>
-                                <img src="${escapeHtml(getUserAvatar(top3[1].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-slate-300 my-2">
-                                <h4 class="font-bold text-sm text-white truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(top3[1].user.nickname || top3[1].user.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(top3[1].user.nickname || top3[1].user.name)}</h4>
-                                <span class="text-amber-400 font-black text-xs">${top3[1].puntos} pts</span>
-                            </div>
-                        ` : ''}
-                        <div class="podium-card first" style="--tier-color: ${tier.color}">
-                            <div class="text-2xl">🥇</div>
-                            <img src="${escapeHtml(getUserAvatar(top3[0].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-16 h-16 rounded-full object-cover mx-auto border-2 border-amber-400 my-2 shadow-lg">
-                            <h4 class="font-bold text-sm text-white truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(top3[0].user.nickname \vert{}\vert{} top3[0].user.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(top3[0].user.nickname || top3[0].user.name)}</h4>
-                            <span class="text-amber-400 font-black text-sm">${top3[0].puntos} pts</span>
-                        </div>
-                        ${top3[2] ? `
-                            <div class="podium-card" style="--tier-color: ${tier.color}">
-                                <div class="text-xl">🥉</div>
-                                <img src="${escapeHtml(getUserAvatar(top3[2].user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-14 h-14 rounded-full object-cover mx-auto border-2 border-amber-700 my-2">
-                                <h4 class="font-bold text-sm text-white truncate cursor-pointer" onmouseenter="showUserHoverCard(event, '${escapeHtml(top3[2].user.nickname || top3[2].user.name)}')" onmouseleave="hideUserHoverCard()">${escapeHtml(top3[2].user.nickname || top3[2].user.name)}</h4>
-                                <span class="text-amber-400 font-black text-xs">${top3[2].puntos} pts</span>
-                            </div>
-                        ` : ''}
-                    </div>
-                ` : ''}
-
-                <!-- 2. TIER LIST REAL -->
-                ${rest.length > 0 ? `
-                    <div class="tier-row">
-                        <div class="tier-badge-box" style="background: ${tier.color}">
-                            ${escapeHtml(tier.name)}
-                        </div>
-                        <div class="tier-members-grid">
-                            ${rest.map(item => `
-                                <div class="tier-avatar-chip" style="--tier-color: ${tier.color}" onmouseenter="showUserHoverCard(event, '${escapeHtml(item.user.nickname || item.user.name)}')" onmouseleave="hideUserHoverCard()">
-                                    <img src="${escapeHtml(getUserAvatar(item.user))}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-8 h-8 rounded-full object-cover">
-                                    <div class="text-left pl-2">
-                                        <span class="text-xs font-bold text-white block truncate max-w-[100px]">${escapeHtml(item.user.nickname || item.user.name)}</span>
-                                        <span class="text-[10px] text-amber-400 font-extrabold">${item.puntos} pts</span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : members.length === 0 ? `<p class="text-xs text-slate-500 italic py-2">No hay miembros asignados a este Tier actualmente.</p>` : ''}
-            </div>
-        `;
+        return tiersViewMode === 'list'
+            ? renderTierListBlock(tier, members.length, visible, delta)
+            : renderTierTableBlock(tier, members.length, visible, delta, filtering);
     }).join('');
+
+    saveRankSnapshots(snaps);
+    container.innerHTML = html;
 }
 
-// ===== TRADING CARD FLOTANTE (HOVER CARD PRO) =====
-function showUserHoverCard(e, username) {
-    if (!username) return;
-    let card = document.getElementById('user-hover-card');
-    if (!card) {
-        card = document.createElement('div');
-        card.id = 'user-hover-card';
-        card.className = 'hidden fixed z-[99999] pointer-events-none p-4 rounded-2xl bg-gradient-to-b from-[#2a0d18] to-[#090507] border-2 border-amber-500/80 shadow-2xl space-y-2 max-w-xs text-left neon-gold';
-        document.body.appendChild(card);
+// ===== PORTADA: contadores animados, franja "EN VIVO" y Salón de la Fama =====
+function countUp(el, to, ms = 1100) {
+    if (!el) return;
+    const from = parseInt(el.dataset.val || '0', 10);
+    if (el.dataset.val !== undefined && from === to) return;
+    el.dataset.val = to;
+    const t0 = performance.now();
+    (function tick(t) {
+        const p = Math.min((t - t0) / ms, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(from + (to - from) * eased);
+        if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+}
+
+function renderHomeStats() {
+    const players = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin').length;
+    countUp(document.getElementById('stat-players'), players);
+    countUp(document.getElementById('stat-modes'), state.tabs.length);
+    countUp(document.getElementById('stat-families'), state.clans.filter(c => c !== 'Sin Familia / Ninguno').length);
+
+    const banner = document.getElementById('live-banner');
+    const title = document.getElementById('live-banner-title');
+    const evt = state.activeEvent;
+    if (banner) {
+        const live = !!(evt && evt.status && evt.status !== 'SETUP');
+        banner.classList.toggle('hidden', !live);
+        if (live && title) title.textContent = evt.title;
     }
+
+    renderHallOfFame();
+}
+
+function renderHallOfFame() {
+    const c = document.getElementById('hof-container');
+    if (!c) return;
+
+    const champs = state.eventHistory.filter(e => e.playoffs && e.playoffs.champion).slice(0, 6);
+    if (champs.length === 0) {
+        c.innerHTML = emptyStateHTML('ph-crown', 'Aún no hay campeones', 'Los ganadores de cada torneo aparecerán aquí. ¡El primer nombre puede ser el tuyo!');
+        return;
+    }
+
+    c.innerHTML = `
+        <div class="hof-grid">
+            ${champs.map(e => {
+                const ch = e.playoffs.champion;
+                return `
+                    <div class="hof-card tilt">
+                        <div class="hof-crown">🏆</div>
+                        <div class="hof-avatar">
+                            ${ch.isBot ? '<span class="text-3xl">🤖</span>' : `<img src="${escapeHtml(ch.avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="">`}
+                        </div>
+                        <div class="hof-name">${escapeHtml(ch.name)}</div>
+                        <div class="hof-event">${escapeHtml(e.title)}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+// ===== SORTEO DE CANCIÓN estilo ruleta =====
+const songKeys = {};
+
+function songKeyFor(evt, round) {
+    return `${evt.id}|${round.roundNumber}|${round.songRollId || ''}|${round.currentSong}`;
+}
+
+function spinSongIfChanged(containerId, key, finalText) {
+    const el = document.querySelector(`#${containerId} .song-text`);
+    if (!el) return;
+
+    const prev = songKeys[containerId];
+    songKeys[containerId] = key;
+    if (prev === undefined || prev === key) return; // primera vez o sin cambios
+
+    const pool = state.activeEvent && state.activeEvent.songPool;
+    if (!pool || pool.length < 2) return;
+
+    let n = 0;
+    el.classList.add('song-spinning');
+    const timer = setInterval(() => {
+        n++;
+        if (n >= 22) {
+            clearInterval(timer);
+            el.textContent = finalText;
+            el.classList.remove('song-spinning');
+            el.classList.add('song-landed');
+            setTimeout(() => el.classList.remove('song-landed'), 700);
+            return;
+        }
+        el.textContent = pool[Math.floor(Math.random() * pool.length)];
+    }, 70);
+}
+
+// ===== CONFETI al coronar un campeón =====
+let lastChampionKey;
+
+function fireConfetti() {
+    if (typeof confetti !== 'function') return;
+    const colors = ['#c92a52', '#f59e0b', '#ffffff', '#e6738c'];
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.65 }, colors });
+    setTimeout(() => confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0 }, colors }), 250);
+    setTimeout(() => confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1 }, colors }), 400);
+}
+
+function maybeCelebrate(evt) {
+    const champ = evt && evt.playoffs && evt.playoffs.champion;
+    const key = champ ? `${evt.id}|${champ.id}` : null;
+    if (lastChampionKey === undefined) { lastChampionKey = key; return; }
+    if (key && key !== lastChampionKey) fireConfetti();
+    lastChampionKey = key;
+}
+
+// ===== EFECTOS: inclinación 3D en tarjetas y ripple en botones =====
+function initFx() {
+    if (window.matchMedia('(hover: hover)').matches) {
+        document.addEventListener('pointermove', (e) => {
+            const el = e.target.closest ? e.target.closest('.tilt') : null;
+            document.querySelectorAll('.tilt.tilting').forEach(t => {
+                if (t !== el) { t.classList.remove('tilting'); t.style.transform = ''; }
+            });
+            if (!el) return;
+            const r = el.getBoundingClientRect();
+            const x = (e.clientX - r.left) / r.width - 0.5;
+            const y = (e.clientY - r.top) / r.height - 0.5;
+            el.classList.add('tilting');
+            el.style.transform = `perspective(800px) rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 8).toFixed(2)}deg) translateY(-2px)`;
+        });
+    }
+
+    document.addEventListener('pointerdown', (e) => {
+        const btn = e.target.closest ? e.target.closest('button') : null;
+        if (!btn || btn.classList.contains('carousel-dot')) return;
+        const r = btn.getBoundingClientRect();
+        const size = Math.max(r.width, r.height);
+        const ripple = document.createElement('span');
+        ripple.className = 'ripple';
+        ripple.style.width = ripple.style.height = size + 'px';
+        ripple.style.left = (e.clientX - r.left - size / 2) + 'px';
+        ripple.style.top = (e.clientY - r.top - size / 2) + 'px';
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    });
+}
+
+function showUserCard(event, username) {
+    const card = document.getElementById('user-hover-card');
+    if (!card) return;
 
     const user = state.users.find(u => (u.nickname || u.name) === username);
     if (!user) return;
-    const avatar = getUserAvatar(user);
-    const userTags = state.tags.filter(t => (state.assignments[user.nickname]?.tagIds || []).includes(t.id));
+
+    const assign = state.assignments[username] || { tagIds: [] };
+    const userTags = state.tags.filter(t => assign.tagIds.includes(t.id));
+    const avatarUrl = user.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const generoVal = user.genero || 'Otros';
+    const familiaText = user.familia || 'Sin Familia / Ninguno';
+    
+    let modoArr = ['NORMAL'];
+    try {
+        if (user.modo) {
+            modoArr = user.modo.startsWith('[') ? JSON.parse(user.modo) : [user.modo];
+        }
+    } catch (e) {
+        modoArr = [user.modo || 'NORMAL'];
+    }
+    const modoText = Array.isArray(modoArr) ? modoArr.join(', ') : modoArr;
 
     card.innerHTML = `
-        <div class="flex items-center space-x-3 border-b border-wine-900 pb-2">
-            <img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-12 h-12 rounded-xl object-cover border border-amber-400 shadow-md">
-            <div>
-                <h4 class="text-white font-black text-sm uppercase tracking-wide">${escapeHtml(username)}</h4>
-                <p class="text-[10px] text-amber-300 font-bold uppercase">${escapeHtml(user.familia || 'Sin Clan')}</p>
+        <div class="flex items-center space-x-3 mb-3">
+            <div class="w-12 h-12 rounded-xl overflow-hidden bg-wine-900 border border-wine-700/60 flex-shrink-0">
+                <img src="${escapeHtml(avatarUrl)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" class="w-full h-full object-cover">
+            </div>
+            <div class="overflow-hidden">
+                <h4 class="text-white font-bold text-sm truncate">${escapeHtml(username)}</h4>
+                <p class="text-slate-400 text-xs truncate">${escapeHtml(user.nombres || 'Sin nombre')}</p>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-wine-900 text-wine-300 font-mono inline-block mt-0.5">${escapeHtml(generoVal)}</span>
             </div>
         </div>
-        <div class="flex items-center justify-between text-[11px] pt-1">
-            <span class="text-slate-400">Género: <b class="text-white">${escapeHtml(user.genero || 'Otros')}</b></span>
-            <span class="text-slate-400">Rol: <b class="text-amber-400">${escapeHtml(user.role || 'JUGADOR')}</b></span>
+        <div class="grid grid-cols-2 gap-2 text-xs py-2 border-y border-wine-900/80 mb-2">
+            <div>
+                <span class="block text-[10px] text-wine-400 uppercase font-semibold">Familia</span>
+                <span class="text-slate-200 truncate block">${escapeHtml(familiaText)}</span>
+            </div>
+            <div>
+                <span class="block text-[10px] text-wine-400 uppercase font-semibold">Modo</span>
+                <span class="text-slate-200 truncate block">${escapeHtml(modoText)}</span>
+            </div>
         </div>
-        <div class="flex flex-wrap gap-1 pt-2">
-            ${userTags.map(t => `<span class="px-2 py-0.5 rounded text-[9px] font-bold text-white" style="background:${t.color}">${t.name}</span>`).join('')}
+        <div>
+            <span class="block text-[10px] text-wine-400 uppercase font-semibold mb-1">Etiquetas</span>
+            <div class="flex flex-wrap gap-1">
+                ${userTags.length > 0 ? userTags.map(tag => `
+                    <span class="px-2 py-0.5 rounded text-[10px] font-semibold text-white" style="background-color: ${tag.color}">
+                        ${escapeHtml(tag.name)}
+                    </span>
+                `).join('') : '<span class="text-[10px] text-slate-500 italic">Sin etiquetas</span>'}
+            </div>
         </div>
     `;
 
-    card.style.left = `${e.clientX + 15}px`;
-    card.style.top = `${e.clientY + 15}px`;
     card.classList.remove('hidden');
 }
 
-function hideUserHoverCard() {
+function hideUserCard() {
     const card = document.getElementById('user-hover-card');
     if (card) card.classList.add('hidden');
 }
 
 function escapeHtml(str) {
     if (typeof str !== 'string') return str;
-    return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' })[m]);
+    return str.replace(/[&<>"']/g, function (m) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        }[m];
+    });
 }
 
 let currentSlide = 0;
-const totalSlides = 1;
+const totalSlides = 2;
+let carouselInterval = null;
+
 function updateCarousel() {
-    const c = document.getElementById('carousel-slides');
-    if (c) c.style.transform = `translateX(-${currentSlide * 100}%)`;
+    const slidesContainer = document.getElementById('carousel-slides');
+    const dots = document.querySelectorAll('.carousel-dot');
+    
+    if (slidesContainer) {
+        slidesContainer.style.transform = `translateX(-${currentSlide * 100}%)`;
+    }
+
+    dots.forEach((dot, index) => {
+        if (index === currentSlide) {
+            dot.classList.remove('bg-wine-900');
+            dot.classList.add('bg-wine-500', 'w-6');
+        } else {
+            dot.classList.remove('bg-wine-500', 'w-6');
+            dot.classList.add('bg-wine-900', 'w-2.5');
+        }
+    });
 }
-function nextSlide() { currentSlide = (currentSlide + 1) % totalSlides; updateCarousel(); }
-function prevSlide() { currentSlide = (currentSlide - 1 + totalSlides) % totalSlides; updateCarousel(); }
+
+function nextSlide() {
+    currentSlide = (currentSlide + 1) % totalSlides;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function prevSlide() {
+    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function goToSlide(index) {
+    currentSlide = index;
+    updateCarousel();
+    resetCarouselTimer();
+}
+
+function startCarouselTimer() {
+    if (carouselInterval) clearInterval(carouselInterval);
+    carouselInterval = setInterval(() => {
+        nextSlide();
+    }, 4000);
+}
+
+function resetCarouselTimer() {
+    startCarouselTimer();
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-    const reg = document.getElementById('form-register');
-    if (reg) reg.addEventListener('submit', handleRegister);
-    const log = document.getElementById('form-login');
-    if (log) log.addEventListener('submit', handleLogin);
-    const prof = document.getElementById('form-profile-edit');
-    if (prof) prof.addEventListener('submit', handleSaveProfile);
+    const formReg = document.getElementById('form-register');
+    if (formReg) formReg.addEventListener('submit', handleRegister);
 
-    fetchUsers().then(() => {
-        renderHomeStats();
-        renderHomeLiveBanner();
-        renderHallOfFame();
+    const formLog = document.getElementById('form-login');
+    if (formLog) formLog.addEventListener('submit', handleLogin);
+
+    const formProfile = document.getElementById('form-profile-edit');
+    if (formProfile) formProfile.addEventListener('submit', handleSaveProfile);
+
+    initFx();
+
+    document.addEventListener('click', (e) => {
+        const btn = document.getElementById('mode-dropdown-btn');
+        const menu = document.getElementById('mode-dropdown-menu');
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
+            menu.classList.add('hidden');
+        }
     });
+
+    fetchUsers().then(() => { renderPublicTiers(); renderHomeStats(); });
     fetchActiveEventFromDB().then(() => {
+        renderHomeStats();
         if (state.activeEvent && document.getElementById('event-song-list-input')) {
             document.getElementById('event-song-list-input').value = (state.activeEvent.songPool || []).join('\n');
         }
     });
     navigateTo('view-home');
+    startCarouselTimer();
+
+    // Sincroniza con el servidor cada 5 s: si el admin elimina o cambia el torneo,
+    // todos (usuarios, moderadores) lo ven actualizado sin recargar
+    setInterval(async () => {
+        const evView = document.getElementById('view-events');
+        const adminView = document.getElementById('view-admin');
+        const onEvents = evView && !evView.classList.contains('hidden');
+        const onAdmin = adminView && !adminView.classList.contains('hidden');
+        const homeView = document.getElementById('view-home');
+        const onHome = homeView && !homeView.classList.contains('hidden');
+        if (!onEvents && !onAdmin && !onHome) return;
+
+        const before = JSON.stringify(state.activeEvent);
+        await fetchActiveEventFromDB();
+        if (JSON.stringify(state.activeEvent) === before) return; // sin cambios: no se redibuja
+
+        if (onEvents) renderUserEventsView(true);
+        if (onAdmin) renderTournamentAdmin();
+        if (onHome) renderHomeStats();
+    }, 5000);
 });
