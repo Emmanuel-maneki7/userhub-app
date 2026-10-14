@@ -249,7 +249,9 @@ async function fetchGlobalConfig() {
         if (tabsRes.ok) {
             const dbTabs = await tabsRes.json();
             state.tabs = dbTabs;
-            if (dbTabs.length > 0 && activeTabId === null) activeTabId = dbTabs[0].id;
+            if (dbTabs.length > 0 && (activeTabId === null || !dbTabs.some(t => String(t.id) === String(activeTabId)))) {
+                activeTabId = dbTabs[0].id;
+            }
         }
         if (tiersRes.ok) {
             const dbTiers = await tiersRes.json();
@@ -479,7 +481,7 @@ function startNewEvent() {
     };
     tempParticipants = [];
     saveState();
-    document.getElementById('event-registration-area').classList.remove('hidden');
+    document.getElementById('event-registration-area')?.classList.remove('hidden');
     renderParticipantsBadges();
     alert(`Torneo "${title}" creado. Inscribe a los participantes.`);
 }
@@ -787,7 +789,7 @@ function setPlayoffWinner(roundIdx, matchIdx, winnerId) {
         if (winners.length === 1) {
             po.champion = winners[0];
             evt.status = 'FINISHED';
-            confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+            if (typeof confetti === 'function') confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
             alert(`🏆 ¡CAMPEÓN DEL TORNEO!: ${winners[0].name}`);
         } else if (winners.length > 1) {
             const nextMatches = [];
@@ -1208,6 +1210,10 @@ function renderProfileCard() {
 function downloadProfileCard() {
     const cardEl = document.getElementById('player-collectible-card');
     if (!cardEl) return;
+    if (typeof html2canvas === 'undefined') {
+        alert("Librería de captura no disponible.");
+        return;
+    }
     html2canvas(cardEl, { backgroundColor: '#090507', scale: 2 }).then(canvas => {
         const link = document.createElement('a');
         link.download = `Carta_${state.currentUser.nickname}_AWC.png`;
@@ -1241,13 +1247,20 @@ async function handleSaveProfile(e) {
 
 function fillProfileEditForm() {
     if (!state.currentUser) return;
-    document.getElementById('prof-nickname').value = state.currentUser.nickname;
-    document.getElementById('prof-nombres').value = state.currentUser.nombres || '';
-    document.getElementById('prof-avatar').value = state.currentUser.avatar || '';
-    document.getElementById('avatar-preview').src = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
-    document.getElementById('prof-genero').value = state.currentUser.genero || 'Otros';
+    const nickEl = document.getElementById('prof-nickname');
+    if (nickEl) nickEl.value = state.currentUser.nickname;
+    const nomEl = document.getElementById('prof-nombres');
+    if (nomEl) nomEl.value = state.currentUser.nombres || '';
+    const avEl = document.getElementById('prof-avatar');
+    if (avEl) avEl.value = state.currentUser.avatar || '';
+    const prevEl = document.getElementById('avatar-preview');
+    if (prevEl) prevEl.src = state.currentUser.avatar || 'https://i.imgur.com/6VBx3io.png';
+    const genEl = document.getElementById('prof-genero');
+    if (genEl) genEl.value = state.currentUser.genero || 'Otros';
     const clanSelect = document.getElementById('prof-familia');
-    clanSelect.innerHTML = state.clans.map(c => `<option value="${escapeHtml(c)}" ${state.currentUser.familia === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+    if (clanSelect) {
+        clanSelect.innerHTML = state.clans.map(c => `<option value="${escapeHtml(c)}" ${state.currentUser.familia === c ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('');
+    }
 }
 
 // ADMIN PANEL
