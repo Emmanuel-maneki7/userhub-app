@@ -2,8 +2,15 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1c0a11">
     <title>AUDITION WORLD CLASS LATAM - Ranking & Torneos</title>
+
+    <!-- Fuentes: Inter (texto) + Rajdhani (títulos estilo esports) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Phosphor Icons CDN -->
@@ -12,6 +19,10 @@
         tailwind.config = {
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+                        display: ['Rajdhani', 'Inter', 'sans-serif']
+                    },
                     colors: {
                         wine: {
                             50: '#fdf2f4',
@@ -31,21 +42,26 @@
             }
         }
     </script>
-    <!-- ENLACE AL NUEVO ARCHIVO DE ESTILOS EXTERNO -->
+
+    <!-- Evita que el JS inyecte estilos de toast duplicados: se usan los de style.css -->
+    <style id="toast-styles"></style>
+
+    <!-- ARCHIVO DE ESTILOS EXTERNO -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-[#090507] text-slate-100 min-h-screen flex flex-col font-sans selection:bg-wine-600 selection:text-white">
 
     <!-- TOP NAVIGATION BAR -->
     <header class="bg-wine-950/80 backdrop-blur-md border-b border-wine-900 sticky top-0 z-40">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
             <div class="flex items-center space-x-2 sm:space-x-3 cursor-pointer min-w-0" onclick="navigateTo('view-home')">
                 <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden shadow-lg shadow-wine-900/50 border border-wine-700/50 flex-shrink-0">
                     <img src="logo.jpg" alt="Audition World Class LATAM Logo" class="w-full h-full object-cover">
                 </div>
                 <div class="truncate">
-                    <span class="text-xs sm:text-lg md:text-xl font-extrabold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase whitespace-nowrap block">
-                        AUDITION WORLD CLASS LATAM
+                    <span class="font-display text-lg sm:text-lg md:text-xl font-bold tracking-wide bg-gradient-to-r from-white via-wine-100 to-wine-400 bg-clip-text text-transparent uppercase whitespace-nowrap block">
+                        <span class="sm:hidden">AWC LATAM</span>
+                        <span class="hidden sm:inline">AUDITION WORLD CLASS LATAM</span>
                     </span>
                 </div>
             </div>
@@ -57,16 +73,16 @@
     </header>
 
     <!-- MAIN CONTENT AREA -->
-    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative">
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative">
 
         <!-- VIEW 1: HOME / LANDING -->
         <section id="view-home" class="view-section transition-opacity duration-300">
-            <div class="text-center max-w-4xl mx-auto py-12 space-y-8">
+            <div class="text-center max-w-4xl mx-auto py-8 sm:py-12 space-y-8">
                 <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-wine-900/50 border border-wine-700/50 text-wine-300 text-xs font-semibold">
                     <i class="ph-bold ph-trophy text-wine-400"></i>
                     <span>Comunidad Competitiva LATAM</span>
                 </div>
-                <h1 class="text-4xl sm:text-5xl font-black tracking-tight bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase">
+                <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-white via-wine-100 to-wine-300 bg-clip-text text-transparent uppercase">
                     Audition World Class Ranking
                 </h1>
                 <p class="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
@@ -78,8 +94,8 @@
 
                 <!-- CARRUSEL DE ANUNCIOS FORMATO A4 -->
                 <div class="pt-6">
-                    <div class="relative w-full max-w-2xl mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/90 group">
-                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full h-[520px] sm:h-[620px]">
+                    <div class="relative w-full max-w-md sm:max-w-lg mx-auto rounded-2xl overflow-hidden border border-wine-900 shadow-2xl bg-wine-950/90 group">
+                        <div id="carousel-slides" class="flex transition-transform duration-700 ease-in-out w-full aspect-[210/297] max-h-[75vh]">
                             <div class="w-full h-full flex-shrink-0 flex items-center justify-center bg-[#090507]">
                                 <img src="anuncio1.png" alt="Anuncio 1" class="h-full w-auto object-contain rounded-xl p-2" onerror="this.src='https://placehold.co/600x850/1c0a11/e6738c?text=Anuncio+1+A4'">
                             </div>
@@ -88,16 +104,16 @@
                             </div>
                         </div>
 
-                        <button onclick="prevSlide()" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                        <button onclick="prevSlide()" aria-label="Anuncio anterior" class="absolute left-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
                             <i class="ph-bold ph-caret-left text-lg"></i>
                         </button>
-                        <button onclick="nextSlide()" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
+                        <button onclick="nextSlide()" aria-label="Anuncio siguiente" class="absolute right-3 top-1/2 -translate-y-1/2 bg-wine-950/80 hover:bg-wine-800 text-white p-2.5 rounded-full border border-wine-700/60 opacity-80 group-hover:opacity-100 transition-all shadow-lg z-10">
                             <i class="ph-bold ph-caret-right text-lg"></i>
                         </button>
 
                         <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2 bg-wine-950/90 px-3 py-1.5 rounded-full border border-wine-800/80 z-10">
-                            <button onclick="goToSlide(0)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
-                            <button onclick="goToSlide(1)" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
+                            <button onclick="goToSlide(0)" aria-label="Ir al anuncio 1" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-500 transition-all"></button>
+                            <button onclick="goToSlide(1)" aria-label="Ir al anuncio 2" class="carousel-dot w-2.5 h-2.5 rounded-full bg-wine-900 transition-all"></button>
                         </div>
                     </div>
                 </div>
@@ -109,7 +125,7 @@
         <section id="view-tiers" class="view-section hidden transition-opacity duration-300 space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
-                    <h2 class="text-2xl font-black text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                    <h2 class="text-2xl font-bold text-slate-100 uppercase tracking-wide flex items-center gap-2">
                         <i class="ph-bold ph-ranking text-wine-400"></i>
                         <span>Tablas de Clasificación TIER</span>
                     </h2>
@@ -118,14 +134,18 @@
             </div>
 
             <div id="tabs-navigation" class="flex flex-wrap gap-2 pb-2"></div>
-            <div id="public-tiers-container" class="space-y-6"></div>
+            <div id="public-tiers-container" class="space-y-6">
+                <!-- Skeleton mientras el servidor responde (se reemplaza al cargar) -->
+                <div class="skeleton h-40"></div>
+                <div class="skeleton h-40"></div>
+            </div>
         </section>
 
         <!-- VIEW 3: EVENTOS EN VIVO PARA JUGADORES/VISITANTES -->
         <section id="view-events" class="view-section hidden transition-opacity duration-300 space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
-                    <h2 class="text-2xl font-black text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                    <h2 class="text-2xl font-bold text-slate-100 uppercase tracking-wide flex items-center gap-2">
                         <i class="ph-bold ph-calendar-star text-wine-400"></i>
                         <span>Eventos & Torneos Oficiales</span>
                     </h2>
@@ -134,7 +154,8 @@
             </div>
 
             <div id="user-events-view-container">
-                <!-- Se llena dinámicamente -->
+                <!-- Skeleton mientras el servidor responde (se reemplaza al cargar) -->
+                <div class="skeleton h-56"></div>
             </div>
         </section>
 
@@ -142,7 +163,7 @@
         <section id="view-event-history" class="view-section hidden transition-opacity duration-300 space-y-6">
             <div class="flex items-center justify-between border-b border-wine-900/80 pb-4">
                 <div>
-                    <h2 class="text-2xl font-black text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                    <h2 class="text-2xl font-bold text-slate-100 uppercase tracking-wide flex items-center gap-2">
                         <i class="ph-bold ph-clock-counter-clockwise text-wine-400"></i>
                         <span>Historial de Eventos Finalizados</span>
                     </h2>
@@ -154,8 +175,8 @@
         </section>
 
         <!-- VIEW 5: LOGIN -->
-        <section id="view-login" class="view-section hidden max-w-md mx-auto py-12">
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+        <section id="view-login" class="view-section hidden max-w-md mx-auto py-8 sm:py-12">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
                 <div class="text-center mb-8">
                     <div class="w-12 h-12 rounded-xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto mb-3">
                         <i class="ph-bold ph-keyhole text-2xl"></i>
@@ -194,8 +215,8 @@
         </section>
 
         <!-- VIEW 6: REGISTER -->
-        <section id="view-register" class="view-section hidden max-w-md mx-auto py-12">
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
+        <section id="view-register" class="view-section hidden max-w-md mx-auto py-8 sm:py-12">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-sm">
                 <div class="text-center mb-8">
                     <div class="w-12 h-12 rounded-xl bg-wine-900/50 border border-wine-700/50 text-wine-400 flex items-center justify-center mx-auto mb-3">
                         <i class="ph-bold ph-user-plus text-2xl"></i>
@@ -246,8 +267,8 @@
         </section>
 
         <!-- VIEW 7: PROFILE EDIT -->
-        <section id="view-profile-edit" class="view-section hidden max-w-2xl mx-auto py-8">
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
+        <section id="view-profile-edit" class="view-section hidden max-w-2xl mx-auto py-6 sm:py-8">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-5 sm:p-8 shadow-2xl backdrop-blur-sm">
                 <div class="flex items-center justify-between border-b border-wine-900 pb-6 mb-6">
                     <div>
                         <h2 class="text-2xl font-bold text-white flex items-center gap-2">
@@ -359,13 +380,13 @@
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-wine-900 flex items-center justify-between">
-                        <button type="button" onclick="deleteMyAccount()" class="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5">
+                    <div class="pt-4 border-t border-wine-900 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <button type="button" onclick="deleteMyAccount()" class="px-4 py-2 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5">
                             <i class="ph-bold ph-trash"></i>
                             <span>Eliminar mi Cuenta</span>
                         </button>
 
-                        <button type="submit" class="px-6 py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center space-x-2">
+                        <button type="submit" class="px-6 py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-semibold rounded-xl shadow-lg shadow-wine-900/50 transition-all text-sm flex items-center justify-center space-x-2">
                             <i class="ph-bold ph-floppy-disk"></i>
                             <span>Guardar Cambios</span>
                         </button>
@@ -375,13 +396,13 @@
         </section>
 
         <!-- VIEW 8: USER PROFILE CARD -->
-        <section id="view-profile-card" class="view-section hidden max-w-2xl mx-auto py-8">
+        <section id="view-profile-card" class="view-section hidden max-w-2xl mx-auto py-6 sm:py-8">
             <div id="profile-card-container"></div>
         </section>
 
         <!-- VIEW 9: ADMIN PANEL & TORNEO SUIZO / PLAYOFFS -->
-        <section id="view-admin" class="view-section hidden max-w-6xl mx-auto py-8 space-y-8">
-            <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+        <section id="view-admin" class="view-section hidden max-w-6xl mx-auto py-6 sm:py-8 space-y-8">
+            <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 class="text-2xl font-bold text-white flex items-center gap-2">
                         <i class="ph-bold ph-shield-check text-wine-400"></i>
@@ -392,7 +413,7 @@
             </div>
 
             <!-- GESTOR DE EVENTOS Y TORNEOS SUIZO -->
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
                 <div class="flex items-center justify-between border-b border-wine-900 pb-4">
                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
                         <i class="ph-bold ph-trophy text-amber-400"></i>
@@ -420,12 +441,12 @@
 
                     <!-- LISTA DE CANCIONES DEL TORNEO -->
                     <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
-                        <div class="flex items-center justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                             <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
                                 <i class="ph-bold ph-music-notes text-wine-400"></i>
                                 <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
                             </label>
-                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all">
+                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
                                 Actualizar Canciones
                             </button>
                         </div>
@@ -461,7 +482,7 @@
                         </div>
 
                         <div class="pt-2 flex justify-end">
-                            <button onclick="generateFirstSwissRound()" class="px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center space-x-2">
+                            <button onclick="generateFirstSwissRound()" class="w-full sm:w-auto px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
                                 <i class="ph-bold ph-lightning"></i>
                                 <span>Generar Ronda 1 con Sorteo de Canción</span>
                             </button>
@@ -562,8 +583,8 @@
             </div>
 
             <!-- TABLA DE ASIGNACIÓN DE USUARIOS -->
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-4">
-                <div class="flex items-center justify-between border-b border-wine-900 pb-3">
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-wine-900 pb-3">
                     <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
                         <i class="ph-bold ph-users text-wine-400"></i>
                         <span>Asignación Múltiple de Tiers, Puntos y Etiquetas</span>
@@ -575,7 +596,7 @@
                 </div>
 
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm text-slate-300">
+                    <table id="admin-table" class="w-full text-left text-sm text-slate-300">
                         <thead class="bg-[#090507] text-wine-300 uppercase text-xs">
                             <tr>
                                 <th class="py-3 px-4">Usuario</th>
@@ -593,9 +614,43 @@
 
     </main>
 
-    <!-- PREVISUALIZACIÓN DE PERFIL FIJA -->
+    <!-- PREVISUALIZACIÓN DE PERFIL FIJA (en móvil se muestra como panel inferior al tocar un nickname) -->
     <div id="user-hover-card" class="hidden fixed bottom-6 right-6 z-50 pointer-events-none w-80 bg-wine-950/95 border border-wine-800 rounded-2xl p-5 shadow-2xl backdrop-blur-md transition-all duration-200"></div>
 
     <script src="script.js"></script>
+
+    <!-- MEJORAS EXTRA: swipe del carrusel, tap en móvil y aviso de servidor lento -->
+    <script>
+        (function () {
+            // 1) Swipe táctil en el carrusel
+            const car = document.getElementById('carousel-slides');
+            if (car) {
+                let touchX = 0;
+                car.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+                car.addEventListener('touchend', e => {
+                    const dx = e.changedTouches[0].clientX - touchX;
+                    if (Math.abs(dx) > 50) { dx < 0 ? nextSlide() : prevSlide(); }
+                }, { passive: true });
+            }
+
+            // 2) Tarjeta de perfil con TAP en pantallas táctiles (sin hover)
+            document.addEventListener('click', function (e) {
+                const card = document.getElementById('user-hover-card');
+                const target = e.target.closest('[onmouseenter^="showUserCard"]');
+                if (target && window.matchMedia('(hover: none)').matches) {
+                    showUserCard(e, target.textContent.trim());
+                    return;
+                }
+                if (card && !card.contains(e.target)) hideUserCard();
+            });
+
+            // 3) Aviso si el servidor (Render) tarda en despertar
+            setTimeout(function () {
+                if (typeof state !== 'undefined' && state.tiers.length === 0 && state.users.length === 0) {
+                    showToast('Conectando con el servidor… puede tardar unos segundos.', 'warning');
+                }
+            }, 3500);
+        })();
+    </script>
 </body>
 </html>
