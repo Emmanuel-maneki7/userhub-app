@@ -1108,6 +1108,57 @@ async function finishAndSaveEvent() {
     navigateTo('view-event-history');
 }
 
+// Tabla de posiciones del sistema suizo (se mantiene visible en PlayOffs y al finalizar)
+function swissStandingsHTML(evt) {
+    if (!evt || !evt.leaderboard || evt.leaderboard.length === 0) return '';
+
+    const qualified = new Set();
+    if (evt.playoffs && evt.playoffs.topCount) {
+        evt.leaderboard.slice(0, evt.playoffs.topCount).forEach(item => qualified.add(String(item.participant.id)));
+    }
+    const roundsPlayed = (evt.swissRounds || []).length;
+
+    return `
+        <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+            <div class="flex items-center justify-between border-b border-wine-900 pb-2 mb-3">
+                <h5 class="text-sm font-bold text-wine-300">Tabla de Posiciones Suizo</h5>
+                <span class="text-[10px] text-slate-400">${roundsPlayed} ${roundsPlayed === 1 ? 'ronda jugada' : 'rondas jugadas'}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                    <thead class="text-wine-400 uppercase border-b border-wine-900/60">
+                        <tr>
+                            <th class="py-2">Puesto</th>
+                            <th class="py-2">Jugador</th>
+                            <th class="py-2 text-center">Puntos</th>
+                            <th class="py-2 text-center">G / P</th>
+                            <th class="py-2 text-right"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-wine-900/40">
+                        ${evt.leaderboard.map((item, idx) => `
+                            <tr>
+                                <td class="py-2 font-bold text-wine-400">#${idx + 1}</td>
+                                <td class="py-2">
+                                    <div class="flex items-center space-x-2">
+                                        ${item.participant.isBot ? '🤖' : `<img src="${escapeHtml(item.participant.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
+                                        <span class="font-bold text-white">${escapeHtml(item.participant.name)}</span>
+                                    </div>
+                                </td>
+                                <td class="py-2 text-center font-extrabold text-amber-400">${item.points} pts</td>
+                                <td class="py-2 text-center text-slate-400">${item.wins}V / ${item.losses}D</td>
+                                <td class="py-2 text-right">
+                                    ${qualified.has(String(item.participant.id)) ? '<span class="px-2 py-0.5 rounded-full bg-green-950 text-green-400 border border-green-800 text-[10px] font-bold">Clasificado</span>' : ''}
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
 function renderTournamentAdmin() {
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
@@ -1260,6 +1311,8 @@ function renderTournamentAdmin() {
             </div>
 
             ${renderPlayoffsBracketHTML(po, true)}
+
+            ${swissStandingsHTML(state.activeEvent)}
         `;
         observeBrackets();
     }
@@ -1374,8 +1427,9 @@ async function renderUserEventsView(skipFetch = false) {
 
             ${(evt.status === 'PLAYOFFS' || evt.status === 'FINISHED') ? `
                 <div class="space-y-4">
-                    <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider text-center">Fase Final - LLaves de PlayOffs</h4>
+                    <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider text-center">Fase Final - Llaves de PlayOffs</h4>
                     ${renderPlayoffsBracketHTML(evt.playoffs, false)}
+                    ${swissStandingsHTML(evt)}
                 </div>
             ` : ''}
         </div>
@@ -1877,6 +1931,8 @@ function fillProfileEditForm() {
     updateModeBtnText();
 }
 
+let profileCardRanks = [];
+
 function renderProfileCard() {
     const container = document.getElementById('profile-card-container');
     if (!container || !state.currentUser) return;
@@ -1884,6 +1940,7 @@ function renderProfileCard() {
     const me = state.users.find(u => String(u.id) === String(state.currentUser.id));
     const ranks = (me && me.tierRanks) ? [...me.tierRanks].sort((a, b) => b.puntos - a.puntos) : [];
     const best = ranks[0];
+    profileCardRanks = ranks;
     const frameColor = best && best.tier && best.tier.color ? best.tier.color : '#c92a52';
 
     const assign = state.assignments[state.currentUser.nickname] || {};
@@ -1898,7 +1955,7 @@ function renderProfileCard() {
             <div id="profile-collectible" class="collectible tilt" style="--tier-color:${escapeHtml(frameColor)}">
                 <div class="collectible-top">
                     <span class="collectible-brand">AWC LATAM</span>
-                    ${best && best.tier ? `<span class="collectible-tier" style="background:${escapeHtml(frameColor)}">${escapeHtml(best.tier.name)}</span>` : ''}
+                    ${best && best.tier ? `<span id="card-tier-badge" class="collectible-tier" style="background:${escapeHtml(frameColor)}">${escapeHtml(best.tier.name)}</span>` : ''}
                 </div>
 
                 <div class="collectible-avatar">
@@ -1909,8 +1966,9 @@ function renderProfileCard() {
                 <p class="collectible-sub">${escapeHtml(state.currentUser.nombres || 'Sin nombre asignado')} · ${escapeHtml(generoVal)}</p>
 
                 <div class="collectible-points">
-                    <span>${best ? best.puntos : 0}</span><small>PTS</small>
+                    <span id="card-points">${best ? best.puntos : 0}</span><small>PTS</small>
                 </div>
+                <div id="card-tier-label" class="collectible-tier-label">${best && best.tier ? escapeHtml(best.tier.name) : 'Sin tier asignado'}</div>
 
                 <div class="collectible-grid">
                     <div>
@@ -1925,8 +1983,14 @@ function renderProfileCard() {
 
                 ${ranks.length > 0 ? `
                     <div class="collectible-chips">
-                        ${ranks.map(tr => `<span style="background:${escapeHtml(tr.tier.color)}">${escapeHtml(tr.tier.name)} · ${tr.puntos}</span>`).join('')}
+                        ${ranks.map((tr, i) => `
+                            <button type="button" class="tier-pick ${i === 0 ? 'active' : ''}" onclick="selectCardTier(${i})"
+                                    style="background:${escapeHtml(tr.tier.color)}" title="Ver los puntos de este Tier">
+                                ${escapeHtml(tr.tier.name)} · ${tr.puntos}
+                            </button>
+                        `).join('')}
                     </div>
+                    ${ranks.length > 1 ? '<p class="collectible-hint" data-html2canvas-ignore="true">Toca un Tier para ver sus puntos</p>' : ''}
                 ` : ''}
 
                 ${userTags.length > 0 ? `
@@ -1948,6 +2012,35 @@ function renderProfileCard() {
             </div>
         </div>
     `;
+}
+
+// Al tocar un Tier de la carta, se muestran los puntos de ese Tier
+function selectCardTier(i) {
+    const tr = profileCardRanks[i];
+    const card = document.getElementById('profile-collectible');
+    if (!tr || !card) return;
+
+    const color = (tr.tier && tr.tier.color) || '#c92a52';
+    card.style.setProperty('--tier-color', color);
+
+    const pts = document.getElementById('card-points');
+    if (pts) {
+        pts.textContent = tr.puntos;
+        pts.classList.remove('pts-pop');
+        void pts.offsetWidth; // reinicia la animación
+        pts.classList.add('pts-pop');
+    }
+
+    const label = document.getElementById('card-tier-label');
+    if (label) label.textContent = tr.tier.name;
+
+    const badge = document.getElementById('card-tier-badge');
+    if (badge) {
+        badge.textContent = tr.tier.name;
+        badge.style.background = color;
+    }
+
+    card.querySelectorAll('.tier-pick').forEach((b, idx) => b.classList.toggle('active', idx === i));
 }
 
 async function downloadProfileCard() {
