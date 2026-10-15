@@ -450,7 +450,7 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
 
 /* --- Zonas táctiles mínimas (pantallas táctiles) --- */
 @media (pointer: coarse) {
-    button:not(.carousel-dot):not([onclick^="removeParticipant"]):not([onclick^="deleteTag"]),
+    button:not(.carousel-dot):not(.tier-pick):not([onclick^="removeParticipant"]):not([onclick^="deleteTag"]),
     select {
         min-height: 40px;
     }
@@ -1160,4 +1160,48 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
     #nav-actions button i {
         font-size: 1.2rem;
     }
+}
+
+/* ==========================================================================
+   21. CARTA DE PERFIL: TIERS SELECCIONABLES
+   ========================================================================== */
+.collectible-tier-label {
+    margin-top: -0.4rem;
+    margin-bottom: 0.9rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #e6738c;
+}
+
+.collectible-chips .tier-pick {
+    padding: 0.25rem 0.7rem;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.collectible-chips .tier-pick:hover { opacity: 1; transform: translateY(-1px); }
+.collectible-chips .tier-pick.active {
+    opacity: 1;
+    border-color: #fff;
+    box-shadow: 0 0 14px rgba(255, 255, 255, 0.35);
+}
+
+.collectible-hint {
+    margin-top: 0.5rem;
+    font-size: 0.62rem;
+    color: #8b9bb0;
+    letter-spacing: 0.04em;
+}
+
+.pts-pop { animation: ptsPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes ptsPop {
+    0%   { transform: scale(0.6); opacity: 0.2; }
+    100% { transform: scale(1); opacity: 1; }
 }
