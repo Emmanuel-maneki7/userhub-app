@@ -187,6 +187,29 @@ function promptDialog(message, defaultValue = '', opts = {}) {
     });
 }
 
+// ===== OJITO PARA MOSTRAR / OCULTAR CONTRASEÑAS =====
+function togglePassword(btn) {
+    const input = btn.parentElement.querySelector('input');
+    if (!input) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = `ph-bold ${show ? 'ph-eye-slash' : 'ph-eye'}`;
+    btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    input.focus();
+}
+
+// Al cambiar de vista, todas las contraseñas vuelven a estar ocultas
+function resetPasswordToggles() {
+    document.querySelectorAll('.pw-toggle').forEach(btn => {
+        const input = btn.parentElement.querySelector('input');
+        if (input) input.type = 'password';
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = 'ph-bold ph-eye';
+        btn.setAttribute('aria-label', 'Mostrar contraseña');
+    });
+}
+
 const API_BASE = 'https://userhub-app.onrender.com/api';
 const API_URL = `${API_BASE}/users`;
 
@@ -228,6 +251,18 @@ const MAX_HISTORY = 15;
 function refreshTournamentViews() {
     renderTournamentAdmin();
     renderUserEventsView(true);
+    syncTournamentSetupUI();
+}
+
+function syncTournamentSetupUI() {
+    const area = document.getElementById('event-registration-area');
+    if (!area) return;
+    if (state.activeEvent && state.activeEvent.status === 'SETUP') {
+        area.classList.remove('hidden');
+        renderParticipantsBadges();
+    } else {
+        area.classList.add('hidden');
+    }
 }
 
 // ===== GUARDADO / CARGA DEL EVENTO ACTIVO =====
@@ -412,9 +447,11 @@ async function fetchGlobalConfig() {
 function navigateTo(viewId) {
     const isPrivileged = isPrivilegedUser();
 
-    if ((viewId === 'view-admin' || viewId === 'view-event-history') && !isPrivileged) {
+    if ((viewId === 'view-admin' || viewId === 'view-tournaments' || viewId === 'view-event-history') && !isPrivileged) {
         viewId = 'view-home';
     }
+
+    resetPasswordToggles();
 
     const sections = document.querySelectorAll('.view-section');
     sections.forEach(section => section.classList.add('hidden'));
@@ -428,7 +465,8 @@ function navigateTo(viewId) {
     renderNavActions();
     if (viewId === 'view-home') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderPublicTiers(); renderHomeStats(); });
     if (viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
-    if (viewId === 'view-admin') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderAdminPanel(); renderTournamentAdmin(); });
+    if (viewId === 'view-admin') fetchUsers().then(() => renderAdminPanel());
+    if (viewId === 'view-tournaments') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderTournamentAdmin(); syncTournamentSetupUI(); });
     if (viewId === 'view-events') renderUserEventsView();
     if (viewId === 'view-event-history') renderEventHistory();
     if (viewId === 'view-profile-card') { renderProfileCard(); fetchUsers().then(() => renderProfileCard()); }
@@ -453,6 +491,9 @@ function renderNavActions() {
             ${isPrivileged ? `
                 <button onclick="navigateTo('view-event-history')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                     <i class="ph-bold ph-clock-counter-clockwise"></i> <span>Historial</span>
+                </button>
+                <button onclick="navigateTo('view-tournaments')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-amber-300 text-xs font-semibold flex items-center space-x-1 border border-amber-800/60">
+                    <i class="ph-bold ph-trophy"></i> <span>Control de Torneos</span>
                 </button>
                 <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1 shadow-md shadow-wine-900/40">
                     <i class="ph-bold ph-shield-check"></i> <span>Panel Admin</span>
@@ -3005,7 +3046,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // todos (usuarios, moderadores) lo ven actualizado sin recargar
     setInterval(async () => {
         const evView = document.getElementById('view-events');
-        const adminView = document.getElementById('view-admin');
+        const adminView = document.getElementById('view-tournaments'); // monitor del torneo (Control de Torneos)
         const onEvents = evView && !evView.classList.contains('hidden');
         const onAdmin = adminView && !adminView.classList.contains('hidden');
         const homeView = document.getElementById('view-home');
