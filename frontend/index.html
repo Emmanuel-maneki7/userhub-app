@@ -299,7 +299,7 @@
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Contraseña</label>
                         <div class="relative">
                             <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-11 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm"><button type="button" onclick="togglePassword(this)" class="pw-toggle" aria-label="Mostrar contraseña" title="Mostrar / ocultar contraseña"><i class="ph-bold ph-eye"></i></button>
                         </div>
                     </div>
 
@@ -339,7 +339,7 @@
                         <label class="block text-xs font-semibold text-wine-300 uppercase tracking-wider mb-2">Contraseña</label>
                         <div class="relative">
                             <i class="ph-bold ph-lock-key absolute left-3.5 top-3.5 text-wine-500"></i>
-                            <input type="password" id="reg-password" required placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                            <input type="password" id="reg-password" required placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-10 pr-11 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm"><button type="button" onclick="togglePassword(this)" class="pw-toggle" aria-label="Mostrar contraseña" title="Mostrar / ocultar contraseña"><i class="ph-bold ph-eye"></i></button>
                         </div>
                     </div>
 
@@ -472,11 +472,11 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Nueva Contraseña</label>
-                                <input type="password" id="prof-new-password" placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                                <div class="relative"><input type="password" id="prof-new-password" placeholder="Mínimo 4 caracteres" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-4 pr-11 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm"><button type="button" onclick="togglePassword(this)" class="pw-toggle" aria-label="Mostrar contraseña" title="Mostrar / ocultar contraseña"><i class="ph-bold ph-eye"></i></button></div>
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Confirmar Nueva Contraseña</label>
-                                <input type="password" id="prof-confirm-password" placeholder="Repite la contraseña" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 px-4 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm">
+                                <div class="relative"><input type="password" id="prof-confirm-password" placeholder="Repite la contraseña" class="w-full bg-[#090507] border border-wine-900 rounded-xl py-2.5 pl-4 pr-11 text-slate-100 placeholder-slate-600 focus:outline-none focus:border-wine-500 transition-all text-sm"><button type="button" onclick="togglePassword(this)" class="pw-toggle" aria-label="Mostrar contraseña" title="Mostrar / ocultar contraseña"><i class="ph-bold ph-eye"></i></button></div>
                             </div>
                         </div>
                     </div>
@@ -509,92 +509,7 @@
                         <i class="ph-bold ph-shield-check text-wine-400"></i>
                         <span>Panel de Control - Administrador / Moderador</span>
                     </h2>
-                    <p class="text-slate-400 text-sm">Gestión del Sitio, Tiers y Gestor de Torneos con Sistema Suizo.</p>
-                </div>
-            </div>
-
-            <!-- GESTOR DE EVENTOS Y TORNEOS SUIZO -->
-            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
-                <div class="flex items-center justify-between border-b border-wine-900 pb-4">
-                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                        <i class="ph-bold ph-trophy text-amber-400"></i>
-                        <span>Creador y Gestor de Torneo Suizo</span>
-                    </h3>
-                </div>
-
-                <div id="tournament-setup-box" class="space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Nombre del Evento</label>
-                            <input type="text" id="event-title-input" placeholder="Ej: Torneo Relámpago AWC" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Número de Rondas Suizo</label>
-                            <input type="number" id="event-rounds-input" value="3" min="1" max="10" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
-                        </div>
-                        <div class="flex items-end">
-                            <button onclick="startNewEvent()" class="w-full py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center space-x-2">
-                                <i class="ph-bold ph-play"></i>
-                                <span>Iniciar Nuevo Evento</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- LISTA DE CANCIONES DEL TORNEO -->
-                    <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
-                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
-                                <i class="ph-bold ph-music-notes text-wine-400"></i>
-                                <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
-                            </label>
-                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
-                                Actualizar Canciones
-                            </button>
-                        </div>
-                        <textarea id="event-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Hands Up 140 BPM&#10;Audition - Euro 2005 150 BPM&#10;Audition - Canon 200 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
-                    </div>
-
-                    <!-- INSCRIPCIÓN Y AÑADIR BOTS -->
-                    <div id="event-registration-area" class="hidden pt-4 border-t border-wine-900 space-y-4">
-                        <h4 class="text-sm font-bold text-wine-200">Inscribir Jugadores Registrados o Añadir Bots</h4>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="flex space-x-2">
-                                <select id="registered-user-select" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
-                                    <!-- Inyectado dinámicamente -->
-                                </select>
-                                <button onclick="addRegisteredPlayerToEvent()" class="px-4 py-2 bg-wine-800 hover:bg-wine-700 text-white font-bold text-xs rounded-xl flex-shrink-0">
-                                    Inscribir
-                                </button>
-                            </div>
-
-                            <div class="flex space-x-2">
-                                <input type="text" id="bot-name-input" placeholder="Nombre del Bot" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
-                                <button onclick="addBotToEvent()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex-shrink-0 border border-slate-700">
-                                    + Añadir BOT
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- LISTA DE INSCRITOS -->
-                        <div>
-                            <span class="block text-xs font-semibold text-slate-400 mb-2">Inscritos Actuales:</span>
-                            <div id="event-participants-badges" class="flex flex-wrap gap-2"></div>
-                        </div>
-
-                        <div class="pt-2 flex justify-end">
-                            <button onclick="generateFirstSwissRound()" class="w-full sm:w-auto px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
-                                <i class="ph-bold ph-lightning"></i>
-                                <span>Generar Ronda 1 con Sorteo de Canción</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MONITOR Y CONTROL DEL TORNEO ACTIVO (ADMIN) -->
-                <div id="active-tournament-admin" class="hidden space-y-6 pt-4 border-t border-wine-900">
-                    <div id="swiss-admin-container" class="space-y-6"></div>
-                    <div id="playoffs-admin-container" class="space-y-6"></div>
+                    <p class="text-slate-400 text-sm">Gestión del sitio: pestañas, Tiers, etiquetas, familias y usuarios.</p>
                 </div>
             </div>
 
@@ -711,6 +626,106 @@
                     </table>
                 </div>
             </div>
+        </section>
+
+
+        <!-- VIEW 10: CONTROL DE TORNEOS (ADMIN / MODERADOR) -->
+        <section id="view-tournaments" class="view-section hidden max-w-6xl mx-auto py-6 sm:py-8 space-y-8">
+            <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-5 sm:p-6 shadow-2xl flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <i class="ph-bold ph-trophy text-amber-400"></i>
+                        <span>Control de Torneos</span>
+                    </h2>
+                    <p class="text-slate-400 text-sm">Crea y gestiona eventos con sistema suizo, sorteo de canciones y PlayOffs.</p>
+                </div>
+            </div>
+
+            <!-- GESTOR DE EVENTOS Y TORNEOS SUIZO -->
+            <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
+                <div class="flex items-center justify-between border-b border-wine-900 pb-4">
+                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="ph-bold ph-trophy text-amber-400"></i>
+                        <span>Creador y Gestor de Torneo Suizo</span>
+                    </h3>
+                </div>
+
+                <div id="tournament-setup-box" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Nombre del Evento</label>
+                            <input type="text" id="event-title-input" placeholder="Ej: Torneo Relámpago AWC" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Número de Rondas Suizo</label>
+                            <input type="number" id="event-rounds-input" value="3" min="1" max="10" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
+                        </div>
+                        <div class="flex items-end">
+                            <button onclick="startNewEvent()" class="w-full py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center space-x-2">
+                                <i class="ph-bold ph-play"></i>
+                                <span>Iniciar Nuevo Evento</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- LISTA DE CANCIONES DEL TORNEO -->
+                    <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                <i class="ph-bold ph-music-notes text-wine-400"></i>
+                                <span>Lista de Canciones para el Sorteo (1 por línea o separadas por comas)</span>
+                            </label>
+                            <button onclick="updateTournamentSongsFromAdmin()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
+                                Actualizar Canciones
+                            </button>
+                        </div>
+                        <textarea id="event-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Hands Up 140 BPM&#10;Audition - Euro 2005 150 BPM&#10;Audition - Canon 200 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
+                    </div>
+
+                    <!-- INSCRIPCIÓN Y AÑADIR BOTS -->
+                    <div id="event-registration-area" class="hidden pt-4 border-t border-wine-900 space-y-4">
+                        <h4 class="text-sm font-bold text-wine-200">Inscribir Jugadores Registrados o Añadir Bots</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex space-x-2">
+                                <select id="registered-user-select" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                    <!-- Inyectado dinámicamente -->
+                                </select>
+                                <button onclick="addRegisteredPlayerToEvent()" class="px-4 py-2 bg-wine-800 hover:bg-wine-700 text-white font-bold text-xs rounded-xl flex-shrink-0">
+                                    Inscribir
+                                </button>
+                            </div>
+
+                            <div class="flex space-x-2">
+                                <input type="text" id="bot-name-input" placeholder="Nombre del Bot" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                <button onclick="addBotToEvent()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex-shrink-0 border border-slate-700">
+                                    + Añadir BOT
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- LISTA DE INSCRITOS -->
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 mb-2">Inscritos Actuales:</span>
+                            <div id="event-participants-badges" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button onclick="generateFirstSwissRound()" class="w-full sm:w-auto px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
+                                <i class="ph-bold ph-lightning"></i>
+                                <span>Generar Ronda 1 con Sorteo de Canción</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MONITOR Y CONTROL DEL TORNEO ACTIVO (ADMIN) -->
+                <div id="active-tournament-admin" class="hidden space-y-6 pt-4 border-t border-wine-900">
+                    <div id="swiss-admin-container" class="space-y-6"></div>
+                    <div id="playoffs-admin-container" class="space-y-6"></div>
+                </div>
+            </div>
+
         </section>
 
     </main>
