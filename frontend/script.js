@@ -210,6 +210,24 @@ function resetPasswordToggles() {
     });
 }
 
+// Si el servidor rechaza una acción por permisos, se muestra el motivo en vez de fallar en silencio
+(function patchFetchForPermissionErrors() {
+    const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+    if (!nativeFetch) return;
+    let lastToast = 0;
+    window.fetch = async function (input, init) {
+        const res = await nativeFetch(input, init);
+        try {
+            const method = String((init && init.method) || 'GET').toUpperCase();
+            if ((res.status === 401 || res.status === 403) && method !== 'GET' && Date.now() - lastToast > 4000) {
+                lastToast = Date.now();
+                showToast(`El servidor rechazó la acción (error ${res.status}). Tu backend no está dejando hacer esto al rol actual: debe permitir también el rol MODERATOR en esa ruta.`, 'error');
+            }
+        } catch (e) { /* ignorar */ }
+        return res;
+    };
+})();
+
 const API_BASE = 'https://userhub-app.onrender.com/api';
 const API_URL = `${API_BASE}/users`;
 
@@ -232,17 +250,38 @@ let state = {
 let activeTabId = null;
 
 // Solo admin/mod conservan el evento activo en localStorage; el resto siempre lo pide al servidor
-if (!(state.currentUser && (state.currentUser.nickname.toLowerCase() === 'admin' || state.currentUser.role === 'MODERATOR'))) {
+if (!isPrivilegedUser()) {
     state.activeEvent = null;
     localStorage.removeItem('uh_active_event');
 }
 
 // ===== HELPERS NUEVOS =====
+// Normaliza el rol que venga del servidor: "moderator", "MODERADOR", "ROLE_MODERATOR"... => 'MODERATOR'
+function normalizeRole(r) {
+    const v = String(r || '').trim().toUpperCase().replace(/^ROLE_/, '');
+    if (v === 'MODERATOR' || v === 'MODERADOR' || v === 'MOD') return 'MODERATOR';
+    if (v === 'ADMIN' || v === 'ADMINISTRATOR' || v === 'ADMINISTRADOR') return 'ADMIN';
+    return 'USER';
+}
+
+function currentRoleKey() {
+    const cu = state.currentUser;
+    if (!cu) return 'USER';
+    if (String(cu.nickname || '').toLowerCase() === 'admin') return 'ADMIN';
+    return normalizeRole(cu.role);
+}
+
+// Administrador y moderador tienen exactamente los mismos permisos en la página
 function isPrivilegedUser() {
-    return !!state.currentUser && (
-        state.currentUser.nickname.toLowerCase() === 'admin' ||
-        state.currentUser.role === 'MODERATOR'
-    );
+    const key = currentRoleKey();
+    return !!state.currentUser && (key === 'ADMIN' || key === 'MODERATOR');
+}
+
+function roleChipHTML() {
+    const key = currentRoleKey();
+    if (key === 'ADMIN') return '<span class="role-chip role-admin">ADMIN</span>';
+    if (key === 'MODERATOR') return '<span class="role-chip role-mod">MODERADOR</span>';
+    return '';
 }
 
 const MAX_HISTORY = 15;
@@ -450,7 +489,15 @@ function navigateTo(viewId) {
     const isPrivileged = isPrivilegedUser();
 
     if ((viewId === 'view-admin' || viewId === 'view-tournaments' || viewId === 'view-event-history') && !isPrivileged) {
+        const requestedView = viewId;
         viewId = 'view-home';
+        if (state.currentUser && state.currentUser.id) {
+            // Puede que el admin te haya dado el rol hace poco: se pregunta al servidor y se reintenta
+            fetchUsers().then(() => {
+                if (isPrivilegedUser()) navigateTo(requestedView);
+                else showToast(`Tu cuenta es "${state.currentUser ? (state.currentUser.role || 'USER') : 'USER'}" según el servidor. Pídele al admin que te asigne el rol de Moderador y confirma que se guardó.`, 'warning');
+            });
+        }
     }
 
     resetPasswordToggles();
@@ -487,7 +534,7 @@ function renderNavActions() {
     if (state.currentUser) {
         const isPrivileged = isPrivilegedUser();
         navContainer.innerHTML = `
-            <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b></span>
+            <span class="text-xs text-wine-300 hidden sm:inline">Hola, <b class="text-wine-400">${escapeHtml(state.currentUser.nickname)}</b> ${roleChipHTML()}</span>
             <button onclick="navigateTo('view-events')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-calendar-star"></i> <span>Eventos</span>
             </button>
@@ -567,7 +614,7 @@ async function fetchUsers() {
             if (username && !state.assignments[username]) {
                 state.assignments[username] = { tagIds: [] };
             }
-            if (u.role === 'MODERATOR') {
+            if (normalizeRole(u.role) === 'MODERATOR') {
                 if (!state.assignments[username].tagIds.includes('tag-mod')) {
                     state.assignments[username].tagIds.push('tag-mod');
                 }
@@ -1132,11 +1179,18 @@ async function finishAndSaveEvent() {
 // =====================================================================
 function syncSessionWithServer(users) {
     const cu = state.currentUser;
-    if (!cu || !cu.id) return; // el admin local (id 0) no está en la base de datos
-    const me = users.find(u => String(u.id) === String(cu.id));
+    if (!cu) return;
+    if (!cu.id && String(cu.nickname || '').toLowerCase() === 'admin') return; // admin local: no está en la base de datos
+
+    let me = cu.id ? users.find(u => String(u.id) === String(cu.id)) : null;
+    if (!me) {
+        const nick = String(cu.nickname || '').toLowerCase();
+        me = users.find(u => String(u.nickname || u.name || '').toLowerCase() === nick);
+    }
     if (!me) return;
 
-    const newRole = me.role || 'USER';
+    const newRole = normalizeRole(me.role);
+    if (!cu.id && me.id) cu.id = me.id;
     if (cu.role === newRole) return;
 
     const wasPrivileged = isPrivilegedUser();
@@ -3180,7 +3234,7 @@ async function handleRegister(e) {
                 familia: state.clans[0] || 'Sin Familia / Ninguno',
                 avatar: newUser.avatar || 'https://i.imgur.com/6VBx3io.png',
                 genero: newUser.genero || genero,
-                role: newUser.role || 'USER'
+                role: normalizeRole(newUser.role)
             };
             saveState();
             await fetchUsers();
@@ -3243,10 +3297,10 @@ async function handleLogin(e) {
             familia: foundUser.familia || state.clans[0] || 'Sin Familia / Ninguno',
             avatar: foundUser.avatar || 'https://i.imgur.com/6VBx3io.png',
             genero: foundUser.genero || 'Otros',
-            role: foundUser.role || 'USER'
+            role: normalizeRole(foundUser.role)
         };
         saveState();
-        alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!`);
+        alert(`¡Bienvenido de nuevo, ${state.currentUser.nickname}!${currentRoleKey() === 'MODERATOR' ? ' Sesión de Moderador: tienes acceso a Control de Torneos y Panel Admin.' : ''}`);
         navigateTo('view-home');
     } else {
         alert("Usuario / contraseña incorrecto");
@@ -3312,31 +3366,47 @@ async function updateUserRole(userId, newRole) {
             body: JSON.stringify({ role: newRole })
         });
 
-        if (response.ok) {
-            const updated = await response.json();
-            const username = updated.nickname || updated.name;
+        if (!response.ok) {
+            alert(`No se pudo actualizar el rol (error ${response.status}).`);
+            await fetchUsers();
+            renderAdminUserTable();
+            return;
+        }
 
+        let updated = {};
+        try { updated = await response.json(); } catch (e) { updated = {}; }
+
+        const known = state.users.find(u => String(u.id) === String(userId));
+        const username = (updated && (updated.nickname || updated.name)) || (known && (known.nickname || known.name));
+
+        if (username) {
             if (!state.assignments[username]) {
                 state.assignments[username] = { tagIds: [] };
             }
-            let tagIds = state.assignments[username].tagIds;
-
+            const tagIds = state.assignments[username].tagIds;
             if (newRole === 'MODERATOR' && !tagIds.includes('tag-mod')) {
                 tagIds.push('tag-mod');
             } else if (newRole === 'USER') {
                 state.assignments[username].tagIds = tagIds.filter(id => id !== 'tag-mod');
             }
+        }
 
-            saveState();
-            await fetchUsers();
-            renderAdminUserTable();
-            renderPublicTiers();
-            alert(`Rol actualizado a ${newRole} para ${username}`);
+        saveState();
+        await fetchUsers();
+        renderAdminUserTable();
+        renderPublicTiers();
+
+        // Comprueba que el servidor realmente guardó el rol
+        const after = state.users.find(u => String(u.id) === String(userId));
+        const savedRole = after ? normalizeRole(after.role) : null;
+        if (savedRole !== normalizeRole(newRole)) {
+            showToast(`El servidor NO guardó el rol: ese usuario sigue como "${savedRole || 'desconocido'}". Revisa la ruta PUT /api/users/:id/role de tu backend (debe guardar el campo role y devolverlo en GET /api/users).`, 'error');
         } else {
-            alert("No se pudo actualizar el rol.");
+            alert(`Rol actualizado a ${newRole === 'MODERATOR' ? 'Moderador' : 'Usuario'} para ${username || 'el usuario'}. En su sesión se activa solo en unos segundos.`);
         }
     } catch (err) {
         console.error("Error al actualizar rol:", err);
+        alert('No se pudo conectar con el servidor para actualizar el rol.');
     }
 }
 
@@ -3513,6 +3583,7 @@ function renderProfileCard() {
 
                 <h2 class="collectible-name">${escapeHtml(state.currentUser.nickname)}</h2>
                 <p class="collectible-sub">${escapeHtml(state.currentUser.nombres || 'Sin nombre asignado')} · ${escapeHtml(generoVal)}</p>
+                ${roleChipHTML() ? `<div class="collectible-rolebox">${roleChipHTML()}</div>` : ''}
 
                 <div class="collectible-points">
                     <span id="card-points">${best ? best.puntos : 0}</span><small>PTS</small>
@@ -3970,7 +4041,7 @@ function renderAdminUserTable() {
         const username = user.nickname || user.name || 'Usuario';
         const userAssign = state.assignments[username] || { tagIds: [] };
         const userRanks = user.tierRanks || [];
-        const currentRole = user.role || 'USER';
+        const currentRole = normalizeRole(user.role);
 
         const assignedTierIds = userRanks.map(tr => tr.tierId);
         const availableTiers = state.tiers.filter(t => !assignedTierIds.includes(t.dbId));
