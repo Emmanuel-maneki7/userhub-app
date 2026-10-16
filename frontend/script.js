@@ -256,13 +256,15 @@ function refreshTournamentViews() {
 
 function syncTournamentSetupUI() {
     const area = document.getElementById('event-registration-area');
-    if (!area) return;
-    if (state.activeEvent && state.activeEvent.status === 'SETUP') {
-        area.classList.remove('hidden');
-        renderParticipantsBadges();
-    } else {
-        area.classList.add('hidden');
+    if (area) {
+        if (state.activeEvent && state.activeEvent.type !== 'DIRECT' && state.activeEvent.status === 'SETUP') {
+            area.classList.remove('hidden');
+            renderParticipantsBadges();
+        } else {
+            area.classList.add('hidden');
+        }
     }
+    syncDirectUI();
 }
 
 // ===== GUARDADO / CARGA DEL EVENTO ACTIVO =====
@@ -466,7 +468,11 @@ function navigateTo(viewId) {
     if (viewId === 'view-home') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderPublicTiers(); renderHomeStats(); });
     if (viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') fetchUsers().then(() => renderAdminPanel());
-    if (viewId === 'view-tournaments') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderTournamentAdmin(); syncTournamentSetupUI(); });
+    if (viewId === 'view-tournaments') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => {
+        if (state.activeEvent) setTournamentTab(state.activeEvent.type === 'DIRECT' ? 'direct' : 'swiss');
+        renderTournamentAdmin();
+        syncTournamentSetupUI();
+    });
     if (viewId === 'view-events') renderUserEventsView();
     if (viewId === 'view-event-history') renderEventHistory();
     if (viewId === 'view-profile-card') { renderProfileCard(); fetchUsers().then(() => renderProfileCard()); }
@@ -554,6 +560,7 @@ async function fetchUsers() {
         if (!response.ok) throw new Error(`Estado HTTP: ${response.status}`);
         const users = await response.json();
         state.users = users;
+        syncSessionWithServer(users);
 
         users.forEach(u => {
             const username = u.nickname || u.name;
@@ -578,18 +585,22 @@ async function fetchUsers() {
 let tempParticipants = [];
 
 function populateRegisteredUsersSelect() {
-    const select = document.getElementById('registered-user-select');
-    if (!select) return;
-
     const registeredOnly = state.users.filter(u => (u.nickname || u.name || '').toLowerCase() !== 'admin');
-    
-    select.innerHTML = `<option value="">Seleccionar Usuario Registrado...</option>` +
+    const html = `<option value="">Seleccionar Usuario Registrado...</option>` +
         registeredOnly.map(u => `
             <option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>
         `).join('');
+
+    ['registered-user-select', 'direct-user-select'].forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        const cur = select.value;
+        select.innerHTML = html;
+        if (cur && registeredOnly.some(u => String(u.id) === cur)) select.value = cur;
+    });
 }
 
-function startNewEvent() {
+async function startNewEvent() {
     const title = document.getElementById('event-title-input').value.trim();
     const rounds = parseInt(document.getElementById('event-rounds-input').value, 10) || 3;
     const songInput = document.getElementById('event-song-list-input')?.value || '';
@@ -604,8 +615,11 @@ function startNewEvent() {
         .map(s => s.trim())
         .filter(s => s.length > 0);
 
+    if (!(await confirmReplaceActiveEvent())) return;
+
     state.activeEvent = {
         id: 'evt-' + Date.now(),
+        type: 'SWISS',
         title,
         maxSwissRounds: rounds,
         currentRound: 0,
@@ -725,7 +739,8 @@ function saveHistoryState() {
         participants: state.activeEvent.participants,
         swissRounds: state.activeEvent.swissRounds,
         leaderboard: state.activeEvent.leaderboard,
-        playoffs: state.activeEvent.playoffs
+        playoffs: state.activeEvent.playoffs,
+        direct: state.activeEvent.direct
     })));
     if (state.activeEvent.historyStates.length > MAX_HISTORY) {
         state.activeEvent.historyStates.shift();
@@ -1108,6 +1123,803 @@ async function finishAndSaveEvent() {
     navigateTo('view-event-history');
 }
 
+// =====================================================================
+//  SESIÓN: el rol (moderador) se sincroniza con el servidor
+// =====================================================================
+function syncSessionWithServer(users) {
+    const cu = state.currentUser;
+    if (!cu || !cu.id) return; // el admin local (id 0) no está en la base de datos
+    const me = users.find(u => String(u.id) === String(cu.id));
+    if (!me) return;
+
+    const newRole = me.role || 'USER';
+    if (cu.role === newRole) return;
+
+    const wasPrivileged = isPrivilegedUser();
+    cu.role = newRole;
+    saveState();
+    renderNavActions();
+    const nowPrivileged = isPrivilegedUser();
+
+    if (!wasPrivileged && nowPrivileged) {
+        showToast('Ahora eres Moderador: ya tienes acceso a Control de Torneos y al Panel Admin.', 'success');
+    } else if (wasPrivileged && !nowPrivileged) {
+        showToast('Tu rol de Moderador fue retirado.', 'warning');
+        const guarded = ['view-admin', 'view-tournaments', 'view-event-history'];
+        const onGuardedView = guarded.some(id => {
+            const el = document.getElementById(id);
+            return el && !el.classList.contains('hidden');
+        });
+        if (onGuardedView) navigateTo('view-home');
+    }
+}
+
+// =====================================================================
+//  PLAY OFF DIRECTO (con o sin Lower Bracket)
+// =====================================================================
+const BYE = { id: '__bye', name: 'BYE', isBye: true };
+const isBye = (p) => !!p && p.isBye === true;
+
+let directLowerEnabled = false;
+let directUiLoadedFor = null;
+let tournamentTab = 'swiss';
+
+function shuffleArray(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+function revBits(n, bits) {
+    let r = 0;
+    for (let i = 0; i < bits; i++) {
+        r = (r << 1) | (n & 1);
+        n >>= 1;
+    }
+    return r;
+}
+
+function parseSongList(text) {
+    return String(text || '').split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function pickDirectSong(pool, avoid = []) {
+    if (!pool || pool.length === 0) return 'Canción Libre (Sin lista configurada)';
+    let candidates = pool.filter(s => !avoid.includes(s));
+    if (candidates.length === 0) candidates = pool;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+// Sortea sin repetir hasta agotar la lista; luego vuelve a empezar
+function makeSongDrawer(pool) {
+    let used = [];
+    return () => {
+        const song = pickDirectSong(pool, used);
+        used.push(song);
+        if (pool && used.length >= pool.length) used = [];
+        return song;
+    };
+}
+
+// Si no hay canciones propias para el Lower Bracket, se usan las del bracket principal
+function directLowerPool(evt) {
+    return (evt.lowerSongPool && evt.lowerSongPool.length > 0) ? evt.lowerSongPool : (evt.songPool || []);
+}
+
+function directUpperName(r, k, hasLower) {
+    const fromEnd = k - r;
+    if (!hasLower) {
+        if (fromEnd === 0) return 'GRAN FINAL';
+        if (fromEnd === 1) return 'SEMIFINAL';
+        if (fromEnd === 2) return 'CUARTOS DE FINAL';
+        return `Ronda ${r}`;
+    }
+    if (fromEnd === 0) return 'UPPER FINAL';
+    if (fromEnd === 1) return 'UPPER SEMIFINAL';
+    return `Upper R${r}`;
+}
+
+function newDirectMatch(id, a, b, srcA = null, srcB = null) {
+    return { id, playerA: a, playerB: b, winnerId: null, srcA, srcB };
+}
+const wSrc = (br, r, m) => ({ t: 'W', br, r, m });
+const lSrc = (br, r, m) => ({ t: 'L', br, r, m });
+
+// Construye el bracket completo con los enfrentamientos de la primera ronda al azar
+function buildDirectBracket(evt, prev) {
+    const hasLower = !!evt.hasLower;
+    const players = shuffleArray(evt.participants.filter(p => !isBye(p)))
+        .map(p => ({ id: p.id, name: p.name, avatar: p.avatar, isBot: !!p.isBot }));
+
+    const N = players.length;
+    let P = 2;
+    while (P < N) P *= 2;
+    const k = Math.round(Math.log2(P));
+    const M = P / 2;
+    const byes = P - N;
+    const bits = Math.round(Math.log2(M));
+
+    // Los BYE se reparten por el bracket (orden de bits invertidos)
+    const byeMatches = new Set(Array.from({ length: M }, (_, i) => revBits(i, bits)).slice(0, byes));
+
+    const compatible = !!(prev && prev.size === P && !!prev.hasLower === hasLower);
+    const drawU = makeSongDrawer(evt.songPool);
+    const drawL = makeSongDrawer(directLowerPool(evt));
+
+    // ---- Upper Bracket
+    const upper = [];
+    let pi = 0;
+    for (let r = 1; r <= k; r++) {
+        const cnt = P / Math.pow(2, r);
+        const matches = [];
+        for (let i = 0; i < cnt; i++) {
+            if (r === 1) {
+                const a = players[pi++];
+                const b = byeMatches.has(i) ? BYE : players[pi++];
+                matches.push(newDirectMatch(`U1-${i}`, a, b));
+            } else {
+                matches.push(newDirectMatch(`U${r}-${i}`, null, null, wSrc('U', r - 1, 2 * i), wSrc('U', r - 1, 2 * i + 1)));
+            }
+        }
+        const song = (compatible && prev.upper[r - 1]) ? prev.upper[r - 1].song : drawU();
+        upper.push({ round: r, name: directUpperName(r, k, hasLower), song, matches });
+    }
+
+    // ---- Lower Bracket (doble eliminación)
+    const lower = [];
+    if (hasLower && k >= 2) {
+        const total = 2 * (k - 1);
+        for (let j = 1; j <= total; j++) {
+            const cnt = P / Math.pow(2, Math.ceil(j / 2) + 1);
+            const matches = [];
+            for (let i = 0; i < cnt; i++) {
+                let srcA, srcB;
+                if (j === 1) {
+                    srcA = lSrc('U', 1, 2 * i);
+                    srcB = lSrc('U', 1, 2 * i + 1);
+                } else if (j % 2 === 1) {
+                    srcA = wSrc('L', j - 1, 2 * i);
+                    srcB = wSrc('L', j - 1, 2 * i + 1);
+                } else {
+                    const m = j / 2;
+                    srcA = wSrc('L', j - 1, i);
+                    srcB = lSrc('U', m + 1, cnt - 1 - i);
+                }
+                matches.push(newDirectMatch(`L${j}-${i}`, null, null, srcA, srcB));
+            }
+            const song = (compatible && prev.lower[j - 1]) ? prev.lower[j - 1].song : drawL();
+            lower.push({ round: j, name: j === total ? 'LOWER FINAL' : `Lower R${j}`, song, matches });
+        }
+    }
+
+    // ---- Gran Final (solo con Lower Bracket)
+    let gf = null;
+    if (hasLower) {
+        const song = (compatible && prev.gf) ? prev.gf.song : drawU();
+        gf = {
+            name: 'GRAN FINAL',
+            song,
+            matches: [newDirectMatch('GF-0', null, null, wSrc('U', k, 0), wSrc('L', 2 * (k - 1), 0))]
+        };
+    }
+
+    return { size: P, k, hasLower, upper, lower, gf, gfReset: null, champion: null };
+}
+
+function findDirectMatch(d, br, r, mi) {
+    if (!d) return null;
+    if (br === 'U') return d.upper[r - 1] ? d.upper[r - 1].matches[mi] : null;
+    if (br === 'L') return d.lower[r - 1] ? d.lower[r - 1].matches[mi] : null;
+    if (br === 'GF') return d.gf ? d.gf.matches[0] : null;
+    if (br === 'GR') return d.gfReset ? d.gfReset.matches[0] : null;
+    return null;
+}
+
+// Resultado de un match: null si aún no se puede decidir
+function matchOutcome(m) {
+    const a = m.playerA;
+    const b = m.playerB;
+    if (a === null || a === undefined || b === null || b === undefined) return null;
+    if (isBye(a) && isBye(b)) return { winner: BYE, loser: BYE };
+    if (isBye(a)) return { winner: b, loser: BYE };
+    if (isBye(b)) return { winner: a, loser: BYE };
+    if (m.winnerId) {
+        if (String(m.winnerId) === String(a.id)) return { winner: a, loser: b };
+        if (String(m.winnerId) === String(b.id)) return { winner: b, loser: a };
+    }
+    return null;
+}
+
+function slotFrom(d, src) {
+    const m = findDirectMatch(d, src.br, src.r, src.m);
+    const o = m ? matchOutcome(m) : null;
+    if (!o) return null;
+    return src.t === 'W' ? o.winner : o.loser;
+}
+
+function refreshDirectMatch(d, m) {
+    if (m.srcA) m.playerA = slotFrom(d, m.srcA);
+    if (m.srcB) m.playerB = slotFrom(d, m.srcB);
+    if (m.winnerId) {
+        const ids = [m.playerA, m.playerB].filter(x => x && !isBye(x)).map(x => String(x.id));
+        if (!ids.includes(String(m.winnerId))) m.winnerId = null; // el rival cambió: se limpia
+    }
+}
+
+// Recalcula todos los cruces a partir de los ganadores marcados
+function recomputeDirect(evt) {
+    const d = evt.direct;
+    if (!d) return;
+    const prevChampion = d.champion;
+
+    d.upper.forEach(rd => rd.matches.forEach(m => refreshDirectMatch(d, m)));
+    d.lower.forEach(rd => rd.matches.forEach(m => refreshDirectMatch(d, m)));
+
+    d.champion = null;
+
+    if (!d.hasLower) {
+        const last = d.upper[d.upper.length - 1].matches[0];
+        const o = matchOutcome(last);
+        if (o && !isBye(o.winner)) d.champion = o.winner;
+    } else {
+        const g1 = d.gf.matches[0];
+        refreshDirectMatch(d, g1);
+        const o1 = matchOutcome(g1);
+
+        // Si gana el del Lower Bracket, se juega una segunda Gran Final (reset)
+        if (o1 && g1.playerB && String(o1.winner.id) === String(g1.playerB.id)) {
+            const prevReset = d.gfReset;
+            const m2 = newDirectMatch('GR-0', g1.playerA, g1.playerB);
+            if (prevReset && prevReset.matches[0].winnerId) {
+                const w = String(prevReset.matches[0].winnerId);
+                if (w === String(g1.playerA.id) || w === String(g1.playerB.id)) m2.winnerId = w;
+            }
+            d.gfReset = {
+                name: 'GRAN FINAL · RESET',
+                song: prevReset ? prevReset.song : pickDirectSong(evt.songPool, [d.gf.song]),
+                matches: [m2]
+            };
+            const o2 = matchOutcome(m2);
+            if (o2) d.champion = o2.winner;
+        } else {
+            d.gfReset = null;
+            if (o1) d.champion = o1.winner;
+        }
+    }
+
+    evt.status = d.champion ? 'FINISHED' : 'PLAYOFFS';
+    if (d.champion && !prevChampion) {
+        alert(`🏆 ¡TENEMOS UN GANADOR DEL TORNEO!: ${d.champion.name}`);
+    }
+}
+
+function hasDirectResults(d) {
+    const all = [];
+    d.upper.forEach(rd => rd.matches.forEach(m => all.push(m)));
+    d.lower.forEach(rd => rd.matches.forEach(m => all.push(m)));
+    if (d.gf) all.push(d.gf.matches[0]);
+    return all.some(m => !!m.winnerId);
+}
+
+// Campeón de cualquier tipo de torneo (suizo + playoffs, o play off directo)
+function getEventChampion(e) {
+    if (!e) return null;
+    if (e.type === 'DIRECT') return (e.direct && e.direct.champion) || null;
+    return (e.playoffs && e.playoffs.champion) || null;
+}
+
+// ---------------------------------------------------------------------
+//  ACCIONES DE LA PESTAÑA "PLAY OFF DIRECTO"
+// ---------------------------------------------------------------------
+async function confirmReplaceActiveEvent() {
+    if (!state.activeEvent) return true;
+    return await confirmDialog(
+        `Ya hay un torneo activo: "${state.activeEvent.title}". Si creas uno nuevo, se reemplazará y se perderá su progreso. ¿Continuar?`,
+        { danger: true, confirmText: 'Reemplazar' }
+    );
+}
+
+function setTournamentTab(tab) {
+    tournamentTab = tab;
+    const sw = document.getElementById('tourn-panel-swiss');
+    const di = document.getElementById('tourn-panel-direct');
+    if (sw) sw.classList.toggle('hidden', tab !== 'swiss');
+    if (di) di.classList.toggle('hidden', tab !== 'direct');
+    ['swiss', 'direct'].forEach(t => {
+        const b = document.getElementById('tourn-tab-' + t);
+        if (b) b.classList.toggle('active', t === tab);
+    });
+}
+
+function setDirectLower(flag) {
+    directLowerEnabled = !!flag;
+    const no = document.getElementById('direct-lower-no');
+    const yes = document.getElementById('direct-lower-yes');
+    if (no) no.classList.toggle('active', !directLowerEnabled);
+    if (yes) yes.classList.toggle('active', directLowerEnabled);
+
+    const box = document.getElementById('direct-lower-songs-box');
+    if (box) box.classList.toggle('hidden', !directLowerEnabled);
+
+    const hint = document.getElementById('direct-lower-hint');
+    if (hint) {
+        hint.textContent = directLowerEnabled
+            ? 'Doble eliminación: quien pierde cae al Lower Bracket y tiene una segunda oportunidad. Si el del Lower gana la Gran Final, se juega una segunda Gran Final (reset). Mínimo 3 jugadores.'
+            : 'Eliminación simple: quien pierde queda eliminado. Mínimo 2 jugadores.';
+    }
+}
+
+async function startDirectEvent() {
+    const titleEl = document.getElementById('direct-title-input');
+    const title = titleEl ? titleEl.value.trim() : '';
+    if (!title) {
+        alert('Por favor ingresa un nombre para el evento.');
+        return;
+    }
+
+    const songPool = parseSongList((document.getElementById('direct-song-list-input') || {}).value);
+    const lowerSongPool = parseSongList((document.getElementById('direct-lower-song-list-input') || {}).value);
+    const hasLower = directLowerEnabled;
+
+    if (!(await confirmReplaceActiveEvent())) return;
+
+    state.activeEvent = {
+        id: 'evt-' + Date.now(),
+        type: 'DIRECT',
+        title,
+        status: 'SETUP',
+        hasLower,
+        participants: [],
+        songPool,
+        lowerSongPool,
+        direct: null,
+        // Campos del formato suizo (vacíos) para que el resto del código no falle
+        maxSwissRounds: 0,
+        currentRound: 0,
+        swissRounds: [],
+        leaderboard: [],
+        playoffs: null,
+        historyStates: []
+    };
+
+    directUiLoadedFor = state.activeEvent.id;
+    saveState();
+    syncTournamentSetupUI();
+    renderTournamentAdmin();
+    alert(`Evento "${title}" creado. Ahora inscribe a los participantes.`);
+}
+
+function updateDirectSongs() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT') {
+        alert('No hay ningún Play Off Directo activo.');
+        return;
+    }
+    evt.songPool = parseSongList((document.getElementById('direct-song-list-input') || {}).value);
+    evt.lowerSongPool = parseSongList((document.getElementById('direct-lower-song-list-input') || {}).value);
+    saveState();
+    alert('¡Lista de canciones actualizada con éxito! Se usará en los próximos sorteos.');
+}
+
+function addDirectPlayer() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || evt.status !== 'SETUP') return;
+    const select = document.getElementById('direct-user-select');
+    if (!select || !select.value) return;
+
+    const user = state.users.find(u => String(u.id) === String(select.value));
+    if (!user) return;
+
+    const uname = user.nickname || user.name;
+    if (evt.participants.some(p => p.name === uname)) {
+        alert('El usuario ya está inscrito.');
+        return;
+    }
+
+    evt.participants.push({
+        id: `usr-${user.id}`,
+        name: uname,
+        avatar: user.avatar || 'https://i.imgur.com/6VBx3io.png',
+        isBot: false
+    });
+    saveState();
+    renderDirectParticipantsBadges();
+}
+
+function addDirectBot() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || evt.status !== 'SETUP') return;
+    const input = document.getElementById('direct-bot-input');
+    const name = (input && input.value.trim()) || `Bot_${evt.participants.length + 1}`;
+
+    if (evt.participants.some(p => p.name === name)) {
+        alert('Ya existe un participante o bot con ese nombre.');
+        return;
+    }
+
+    evt.participants.push({
+        id: `bot-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        name,
+        avatar: '🤖',
+        isBot: true
+    });
+    if (input) input.value = '';
+    saveState();
+    renderDirectParticipantsBadges();
+}
+
+function removeDirectParticipant(id) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || evt.status !== 'SETUP') return;
+    evt.participants = evt.participants.filter(p => String(p.id) !== String(id));
+    saveState();
+    renderDirectParticipantsBadges();
+}
+
+function renderDirectParticipantsBadges() {
+    const container = document.getElementById('direct-participants-badges');
+    const counter = document.getElementById('direct-count');
+    const evt = state.activeEvent;
+    const list = (evt && evt.type === 'DIRECT') ? evt.participants : [];
+    if (counter) counter.textContent = list.length;
+    if (!container) return;
+
+    if (list.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500 italic">No hay inscritos aún.</span>`;
+        return;
+    }
+
+    container.innerHTML = list.map(p => `
+        <span class="inline-flex items-center space-x-2 px-3 py-1 rounded-xl bg-wine-900 border border-wine-700 text-xs text-white">
+            ${p.isBot ? '🤖' : `<img src="${escapeHtml(p.avatar)}" class="w-4 h-4 rounded-full object-cover">`}
+            <span class="font-bold">${escapeHtml(p.name)}</span>
+            <button onclick="removeDirectParticipant('${p.id}')" class="text-slate-400 hover:text-red-400 ml-1">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </span>
+    `).join('');
+}
+
+function generateDirectBracketAction() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || evt.status !== 'SETUP') {
+        alert('Primero crea un Play Off Directo.');
+        return;
+    }
+    const min = evt.hasLower ? 3 : 2;
+    if (evt.participants.length < min) {
+        alert(`Se necesitan al menos ${min} participantes${evt.hasLower ? ' para usar Lower Bracket' : ''}.`);
+        return;
+    }
+
+    saveHistoryState();
+    evt.direct = buildDirectBracket(evt, null);
+    recomputeDirect(evt);
+    saveState();
+    refreshTournamentViews();
+}
+
+async function reshuffleDirectBracket() {
+    let evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || !evt.direct) return;
+
+    if (hasDirectResults(evt.direct)) {
+        const ok = await confirmDialog(
+            'Ya hay resultados marcados. Si mezclas de nuevo, se reiniciarán todos los resultados del bracket. ¿Continuar?',
+            { danger: true, confirmText: 'Mezclar de nuevo' }
+        );
+        if (!ok) return;
+    }
+
+    evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT') return;
+
+    saveHistoryState();
+    evt.direct = buildDirectBracket(evt, evt.direct); // conserva las canciones ya sorteadas
+    recomputeDirect(evt);
+    saveState();
+    refreshTournamentViews();
+    showToast('Jugadores mezclados: nuevos enfrentamientos aleatorios.', 'success');
+}
+
+function setDirectWinner(group, r, mi, playerId) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || !evt.direct) return;
+    const m = findDirectMatch(evt.direct, group, r, mi);
+    if (!m) return;
+
+    saveHistoryState();
+    const target = String(playerId);
+    m.winnerId = (String(m.winnerId) === target) ? null : target; // segundo clic = desmarcar
+    recomputeDirect(evt);
+    saveState();
+    refreshTournamentViews();
+}
+
+function rerollDirectSong(group, idx) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || !evt.direct) return;
+    const d = evt.direct;
+
+    let roundObj = null;
+    let pool = evt.songPool;
+    if (group === 'U') roundObj = d.upper[idx];
+    else if (group === 'L') { roundObj = d.lower[idx]; pool = directLowerPool(evt); }
+    else if (group === 'GF') roundObj = d.gf;
+    else if (group === 'GR') roundObj = d.gfReset;
+    if (!roundObj) return;
+
+    saveHistoryState();
+    roundObj.song = pickDirectSong(pool, [roundObj.song]);
+    saveState();
+    refreshTournamentViews();
+}
+
+// Muestra / oculta áreas según el torneo activo y rellena el formulario
+function syncDirectUI() {
+    const evt = state.activeEvent;
+    const isDirect = !!(evt && evt.type === 'DIRECT');
+
+    const reg = document.getElementById('direct-registration-area');
+    if (reg) {
+        if (isDirect && evt.status === 'SETUP') {
+            reg.classList.remove('hidden');
+            renderDirectParticipantsBadges();
+        } else {
+            reg.classList.add('hidden');
+        }
+    }
+
+    if (isDirect && directUiLoadedFor !== evt.id) {
+        directUiLoadedFor = evt.id;
+        setDirectLower(!!evt.hasLower);
+        const up = document.getElementById('direct-song-list-input');
+        const lo = document.getElementById('direct-lower-song-list-input');
+        const ti = document.getElementById('direct-title-input');
+        if (up) up.value = (evt.songPool || []).join('\n');
+        if (lo) lo.value = (evt.lowerSongPool || []).join('\n');
+        if (ti && !ti.value) ti.value = evt.title;
+    }
+
+    const swissNotice = document.getElementById('swiss-notice');
+    if (swissNotice) {
+        if (isDirect) {
+            swissNotice.textContent = `Hay un Play Off Directo activo ("${evt.title}"). Si creas un torneo suizo, lo reemplazará.`;
+            swissNotice.classList.remove('hidden');
+        } else {
+            swissNotice.classList.add('hidden');
+        }
+    }
+    const directNotice = document.getElementById('direct-notice');
+    if (directNotice) {
+        if (evt && !isDirect) {
+            directNotice.textContent = `Hay un torneo suizo activo ("${evt.title}"). Si creas un Play Off Directo, lo reemplazará.`;
+            directNotice.classList.remove('hidden');
+        } else {
+            directNotice.classList.add('hidden');
+        }
+    }
+}
+
+// ---------------------------------------------------------------------
+//  RENDER DEL BRACKET DIRECTO
+// ---------------------------------------------------------------------
+function directMatchHTML(m, group, r, mi, isAdmin) {
+    const out = matchOutcome(m);
+    const winId = (out && out.winner && !isBye(out.winner)) ? String(out.winner.id) : null;
+    const bothReal = !!(m.playerA && m.playerB && !isBye(m.playerA) && !isBye(m.playerB));
+
+    const side = (p) => {
+        if (p === null || p === undefined) {
+            return `<div class="direct-side direct-tbd">Por definir</div>`;
+        }
+        if (isBye(p)) {
+            return `<div class="direct-side direct-bye">BYE · pasa directo</div>`;
+        }
+        const isWin = winId === String(p.id);
+        const isLose = !!winId && !isWin;
+        return `
+            <div class="direct-side ${isWin ? 'direct-win' : (isLose ? 'direct-lose' : '')}">
+                <div class="flex items-center space-x-2 truncate">
+                    ${p.isBot ? '<span class="text-base">🤖</span>' : `<img src="${escapeHtml(p.avatar || '')}" class="w-6 h-6 rounded-full object-cover">`}
+                    <span class="text-xs font-bold truncate">${escapeHtml(p.name)}</span>
+                </div>
+                ${isAdmin && bothReal ? `
+                    <button onclick="setDirectWinner('${group}', ${r}, ${mi}, '${p.id}')" class="direct-pick ${isWin ? 'on' : ''}">
+                        ✔️ ${isWin ? 'Ganador' : 'Elegir'}
+                    </button>
+                ` : ''}
+            </div>
+        `;
+    };
+
+    return `
+        <div class="direct-card">
+            ${side(m.playerA)}
+            <div class="direct-vs">vs</div>
+            ${side(m.playerB)}
+        </div>
+    `;
+}
+
+function directRoundHTML(round, group, idx, isAdmin, hideByeMatches) {
+    const visible = round.matches
+        .map((m, mi) => ({ m, mi }))
+        .filter(({ m }) => {
+            if (isBye(m.playerA) && isBye(m.playerB)) return false;
+            if (hideByeMatches && (isBye(m.playerA) || isBye(m.playerB))) return false;
+            return true;
+        });
+    if (visible.length === 0) return '';
+
+    const started = round.matches.some(m => m.playerA && m.playerB && !isBye(m.playerA) && !isBye(m.playerB));
+    const showSong = isAdmin || started; // los jugadores no ven la canción antes de que empiece la ronda
+    const r = round.round || 1;
+
+    return `
+        <div class="direct-round">
+            <div class="text-center mb-3 space-y-1">
+                <h5 class="text-xs font-extrabold text-wine-400 uppercase">${escapeHtml(round.name)}</h5>
+                ${showSong && round.song ? `<span class="direct-song">🎵 ${escapeHtml(round.song)}</span>` : ''}
+                ${isAdmin ? `
+                    <button onclick="rerollDirectSong('${group}', ${idx})" class="direct-reroll">
+                        <i class="ph-bold ph-shuffle"></i> Re-sortear
+                    </button>
+                ` : ''}
+            </div>
+            <div class="direct-matches">
+                ${visible.map(({ m, mi }) => directMatchHTML(m, group, r, mi, isAdmin)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function getOpenDirectRounds(evt) {
+    const d = evt.direct;
+    const out = [];
+    if (!d) return out;
+    const add = (rd) => {
+        if (!rd) return;
+        const open = rd.matches.some(m =>
+            m.playerA && m.playerB && !isBye(m.playerA) && !isBye(m.playerB) && !matchOutcome(m));
+        if (open) out.push({ label: rd.name, song: rd.song });
+    };
+    d.upper.forEach(add);
+    d.lower.forEach(add);
+    add(d.gf);
+    add(d.gfReset);
+    return out;
+}
+
+function directOpenRoundsHTML(evt) {
+    const open = getOpenDirectRounds(evt);
+    if (open.length === 0) return '';
+    return `
+        <div class="direct-open-grid">
+            ${open.map(o => `
+                <div class="direct-open">
+                    <span class="direct-open-label">${escapeHtml(o.label)} · en juego</span>
+                    <span class="direct-open-song">🎵 ${escapeHtml(o.song)}</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderDirectBracketHTML(evt, isAdmin) {
+    const d = evt.direct;
+    if (!d) return '';
+
+    const upperHTML = d.upper.map((rd, i) => directRoundHTML(rd, 'U', i, isAdmin, false)).join('');
+    const lowerHTML = d.hasLower ? d.lower.map((rd, i) => directRoundHTML(rd, 'L', i, isAdmin, true)).join('') : '';
+    const finalsHTML = d.gf
+        ? directRoundHTML(d.gf, 'GF', 0, isAdmin, false) + (d.gfReset ? directRoundHTML(d.gfReset, 'GR', 0, isAdmin, false) : '')
+        : '';
+
+    return `
+        <div class="direct-bracket-box">
+            ${d.champion ? `
+                <div class="text-center py-6 rounded-2xl bg-amber-500/10 border-2 border-amber-500 neon-gold max-w-md mx-auto">
+                    <h2 class="text-3xl font-black text-amber-400 tracking-wider">🏆 GANADOR 🏆</h2>
+                    <div class="flex items-center justify-center space-x-3 mt-3">
+                        ${d.champion.isBot ? '<span class="text-3xl">🤖</span>' : `<img src="${escapeHtml(d.champion.avatar)}" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400">`}
+                        <span class="text-2xl font-bold text-white">${escapeHtml(d.champion.name)}</span>
+                    </div>
+                </div>
+            ` : ''}
+
+            <div class="direct-section">
+                <h4 class="direct-title">⬆ ${d.hasLower ? 'Upper Bracket' : 'Bracket'}</h4>
+                <div class="direct-scroll"><div class="direct-row">${upperHTML}</div></div>
+            </div>
+
+            ${lowerHTML ? `
+                <div class="direct-section direct-section-lower">
+                    <h4 class="direct-title">⬇ Lower Bracket</h4>
+                    <div class="direct-scroll"><div class="direct-row">${lowerHTML}</div></div>
+                </div>
+            ` : ''}
+
+            ${finalsHTML ? `
+                <div class="direct-section direct-section-final">
+                    <h4 class="direct-title">🏆 Gran Final</h4>
+                    <div class="direct-scroll"><div class="direct-row">${finalsHTML}</div></div>
+                    <p class="text-[11px] text-slate-500 mt-2">Si gana el jugador del Lower Bracket, se juega una segunda Gran Final (reset), porque el del Upper aún no había perdido.</p>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Panel del administrador / moderador
+function renderDirectAdmin() {
+    const box = document.getElementById('direct-active-admin');
+    if (!box) return;
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'DIRECT' || evt.status === 'SETUP' || !evt.direct) {
+        box.classList.add('hidden');
+        return;
+    }
+    box.classList.remove('hidden');
+    const d = evt.direct;
+
+    box.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+            <div>
+                <h4 class="text-lg font-bold text-white">${escapeHtml(evt.title)} - Play Off Directo</h4>
+                <p class="text-xs text-slate-400">
+                    ${d.hasLower ? 'Doble eliminación (con Lower Bracket)' : 'Eliminación simple'} · ${evt.participants.length} jugadores.
+                    Elige con ✔️ al ganador de cada enfrentamiento.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1">
+                    <i class="ph-bold ph-arrow-u-up-left"></i> <span>Retroceder</span>
+                </button>
+                <button onclick="reshuffleDirectBracket()" class="px-3 py-1.5 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold border border-wine-700 flex items-center space-x-1">
+                    <i class="ph-bold ph-shuffle"></i> <span>Mezclar de nuevo</span>
+                </button>
+                ${d.champion ? `
+                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
+                        💾 Finalizar y Guardar en Historial
+                    </button>
+                ` : ''}
+                <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                    <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
+                </button>
+            </div>
+        </div>
+
+        ${directOpenRoundsHTML(evt)}
+
+        ${renderDirectBracketHTML(evt, true)}
+    `;
+}
+
+// Vista de jugadores / visitantes
+function renderDirectUserHTML(evt) {
+    return `
+        <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-wine-900 pb-4">
+                <div>
+                    <span class="px-3 py-1 rounded-full bg-red-950 border border-red-800 text-red-400 text-xs font-bold uppercase tracking-wider animate-pulse">
+                        🔴 En Vivo
+                    </span>
+                    <h3 class="text-2xl font-black text-white mt-2">${escapeHtml(evt.title)}</h3>
+                    <p class="text-xs text-slate-400 mt-1">Play Off Directo · ${evt.direct && evt.direct.hasLower ? 'con Lower Bracket' : 'eliminación simple'}</p>
+                </div>
+            </div>
+
+            ${directOpenRoundsHTML(evt)}
+
+            ${renderDirectBracketHTML(evt, false)}
+        </div>
+    `;
+}
+
 // Tabla de posiciones del sistema suizo (se mantiene visible en PlayOffs y al finalizar)
 function swissStandingsHTML(evt) {
     if (!evt || !evt.leaderboard || evt.leaderboard.length === 0) return '';
@@ -1160,6 +1972,17 @@ function swissStandingsHTML(evt) {
 }
 
 function renderTournamentAdmin() {
+    // Play Off Directo: tiene su propio monitor dentro de su pestaña
+    const directBox = document.getElementById('direct-active-admin');
+    if (state.activeEvent && state.activeEvent.type === 'DIRECT') {
+        const swissActive = document.getElementById('active-tournament-admin');
+        if (swissActive) swissActive.classList.add('hidden');
+        renderDirectAdmin();
+        maybeCelebrate(state.activeEvent);
+        return;
+    }
+    if (directBox) directBox.classList.add('hidden');
+
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
 
@@ -1343,6 +2166,11 @@ async function renderUserEventsView(skipFetch = false) {
     }
 
     const evt = state.activeEvent;
+    if (evt.type === 'DIRECT') {
+        container.innerHTML = renderDirectUserHTML(evt);
+        maybeCelebrate(evt);
+        return;
+    }
     const currentSwissRound = (evt.status === 'SWISS' && evt.swissRounds.length > 0) ? evt.swissRounds[evt.currentRound - 1] : null;
 
     container.innerHTML = `
@@ -1569,9 +2397,10 @@ function renderEventHistory() {
     container.innerHTML = state.eventHistory.map((evt, idx) => `
         <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-6 space-y-4">
             <div class="flex items-center justify-between border-b border-wine-900 pb-3">
-                <div class="flex items-center space-x-3">
+                <div class="flex flex-wrap items-center gap-2">
                     <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
                     <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
+                    ${evt.type === 'DIRECT' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Play Off Directo${evt.hasLower ? ' · Lower Bracket' : ''}</span>` : ''}
                 </div>
                 <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1">
                     <i class="ph-bold ph-trash"></i>
@@ -1579,23 +2408,30 @@ function renderEventHistory() {
                 </button>
             </div>
 
-            <div>
-                <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Tabla de Posiciones Final</h4>
-                <div class="bg-[#090507] p-3 rounded-xl border border-wine-900">
-                    <div class="flex flex-wrap gap-4 text-xs">
-                        ${evt.leaderboard.map((item, pIdx) => `
-                            <span class="text-slate-300">
-                                <b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)
-                            </span>
-                        `).join(' • ')}
+            ${evt.type === 'DIRECT' ? `
+                <div>
+                    <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Bracket</h4>
+                    ${renderDirectBracketHTML(evt, false)}
+                </div>
+            ` : `
+                <div>
+                    <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Tabla de Posiciones Final</h4>
+                    <div class="bg-[#090507] p-3 rounded-xl border border-wine-900">
+                        <div class="flex flex-wrap gap-4 text-xs">
+                            ${(evt.leaderboard || []).map((item, pIdx) => `
+                                <span class="text-slate-300">
+                                    <b class="text-amber-400">#${pIdx + 1}</b> ${escapeHtml(item.participant.name)} (${item.points} pts)
+                                </span>
+                            `).join(' • ')}
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div>
-                <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">PlayOffs Bracket</h4>
-                ${renderPlayoffsBracketHTML(evt.playoffs, false)}
-            </div>
+                <div>
+                    <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">PlayOffs Bracket</h4>
+                    ${renderPlayoffsBracketHTML(evt.playoffs, false)}
+                </div>
+            `}
         </div>
     `).join('');
     observeBrackets();
@@ -2866,7 +3702,7 @@ function renderHallOfFame() {
     const c = document.getElementById('hof-container');
     if (!c) return;
 
-    const champs = state.eventHistory.filter(e => e.playoffs && e.playoffs.champion).slice(0, 6);
+    const champs = state.eventHistory.filter(e => getEventChampion(e)).slice(0, 6);
     if (champs.length === 0) {
         c.innerHTML = emptyStateHTML('ph-crown', 'Aún no hay campeones', 'Los ganadores de cada torneo aparecerán aquí. ¡El primer nombre puede ser el tuyo!');
         return;
@@ -2875,7 +3711,7 @@ function renderHallOfFame() {
     c.innerHTML = `
         <div class="hof-grid">
             ${champs.map(e => {
-                const ch = e.playoffs.champion;
+                const ch = getEventChampion(e);
                 return `
                     <div class="hof-card tilt">
                         <div class="hof-crown">🏆</div>
@@ -2937,7 +3773,7 @@ function fireConfetti() {
 }
 
 function maybeCelebrate(evt) {
-    const champ = evt && evt.playoffs && evt.playoffs.champion;
+    const champ = getEventChampion(evt);
     const key = champ ? `${evt.id}|${champ.id}` : null;
     if (lastChampionKey === undefined) { lastChampionKey = key; return; }
     if (key && key !== lastChampionKey) fireConfetti();
@@ -3135,6 +3971,11 @@ document.addEventListener('DOMContentLoaded', () => {
     navigateTo('view-home');
     startCarouselTimer();
 
+    // Refresca el rol de la sesión: si el admin te nombra moderador con la página abierta, se activa solo
+    setInterval(() => {
+        if (state.currentUser && state.currentUser.id && !document.hidden) fetchUsers();
+    }, 20000);
+
     // Sincroniza con el servidor cada 5 s: si el admin elimina o cambia el torneo,
     // todos (usuarios, moderadores) lo ven actualizado sin recargar
     setInterval(async () => {
@@ -3151,7 +3992,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (JSON.stringify(state.activeEvent) === before) return; // sin cambios: no se redibuja
 
         if (onEvents) renderUserEventsView(true);
-        if (onAdmin) renderTournamentAdmin();
+        if (onAdmin) { renderTournamentAdmin(); syncTournamentSetupUI(); }
         if (onHome) renderHomeStats();
     }, 5000);
 });
