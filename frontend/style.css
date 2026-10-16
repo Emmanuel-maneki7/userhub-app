@@ -1416,3 +1416,127 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
     .tourn-tab { padding: 0.6rem 0.5rem; font-size: 0.78rem; }
     .direct-round { width: 14.5rem; }
 }
+
+/* ==========================================================================
+   24. FORMATO POR PUNTAJE: SALAS, PUNTOS Y PODIO
+   ========================================================================== */
+.tourn-tab span { white-space: nowrap; }
+
+.score-rooms {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+.score-room {
+    padding: 0.75rem;
+    border-radius: 14px;
+    background: rgba(28, 10, 17, 0.85);
+    border: 1px solid rgba(128, 0, 32, 0.6);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+.score-room-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(128, 0, 32, 0.5);
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: #fff;
+    text-transform: uppercase;
+}
+.score-room-head small {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: #e6738c;
+}
+.score-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 0.3rem;
+    border-radius: 8px;
+}
+.score-row + .score-row { border-top: 1px solid rgba(128, 0, 32, 0.25); }
+.score-row:hover { background: rgba(128, 0, 32, 0.18); }
+
+.score-total {
+    font-size: 10px;
+    font-weight: 700;
+    color: #fbbf24;
+    white-space: nowrap;
+}
+.score-input {
+    width: 4.5rem;
+    padding: 0.35rem 0.4rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #fbbf24;
+    background: #090507;
+    border: 1px solid rgba(128, 0, 32, 0.8);
+}
+.score-input:focus { outline: none; border-color: #f59e0b; box-shadow: 0 0 10px rgba(245, 158, 11, 0.35); }
+.score-input:disabled { opacity: 0.55; cursor: not-allowed; }
+.score-pill {
+    min-width: 2.5rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: #fbbf24;
+    background: rgba(69, 26, 3, 0.55);
+    border: 1px solid rgba(180, 83, 9, 0.5);
+}
+
+.score-round-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.score-round-tab {
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    background: #1c0a11;
+    border: 1px solid rgba(128, 0, 32, 0.6);
+}
+.score-round-tab:hover { color: #fff; background: #3b1120; }
+.score-round-tab.active {
+    color: #fff;
+    background: #800020;
+    border-color: #c92a52;
+    box-shadow: 0 0 14px rgba(201, 42, 82, 0.35);
+}
+
+.score-podium-box {
+    padding: 1rem;
+    border-radius: 18px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(245, 158, 11, 0.15), rgba(9, 5, 7, 0.9) 70%);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.15);
+}
+.podium-bot {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+}
+
+@media (max-width: 639px) {
+    .score-rooms { grid-template-columns: 1fr; }
+    .tourn-tab { font-size: 0.7rem; gap: 0.3rem; padding: 0.6rem 0.3rem; }
+    .tourn-tab span { white-space: normal; line-height: 1.1; }
+}
