@@ -641,6 +641,20 @@
                 </div>
             </div>
 
+            <!-- PESTAÑAS DEL CONTROL DE TORNEOS -->
+            <div class="tourn-tabs" role="tablist">
+                <button type="button" id="tourn-tab-swiss" onclick="setTournamentTab('swiss')" class="tourn-tab active">
+                    <i class="ph-bold ph-trophy"></i> <span>Torneo Suizo</span>
+                </button>
+                <button type="button" id="tourn-tab-direct" onclick="setTournamentTab('direct')" class="tourn-tab">
+                    <i class="ph-bold ph-lightning"></i> <span>Play Off Directo</span>
+                </button>
+            </div>
+
+            <!-- PESTAÑA 1: TORNEO SUIZO -->
+            <div id="tourn-panel-swiss" class="space-y-6">
+                <div id="swiss-notice" class="hidden tourn-notice"></div>
+
             <!-- GESTOR DE EVENTOS Y TORNEOS SUIZO -->
             <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
                 <div class="flex items-center justify-between border-b border-wine-900 pb-4">
@@ -726,6 +740,116 @@
                 </div>
             </div>
 
+            </div>
+
+            <!-- PESTAÑA 2: PLAY OFF DIRECTO -->
+            <div id="tourn-panel-direct" class="hidden space-y-6">
+                <div id="direct-notice" class="hidden tourn-notice"></div>
+
+                <div class="bg-wine-950/60 border border-wine-900 rounded-2xl p-4 sm:p-6 shadow-2xl space-y-6">
+                    <div class="flex items-center justify-between border-b border-wine-900 pb-4">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                            <i class="ph-bold ph-lightning text-amber-400"></i>
+                            <span>Creador y Gestor de Play Off Directo</span>
+                        </h3>
+                    </div>
+
+                    <div id="direct-setup-box" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-semibold text-wine-300 uppercase mb-2">Nombre del Evento</label>
+                                <input type="text" id="direct-title-input" placeholder="Ej: Copa Relámpago AWC" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-wine-500">
+                            </div>
+                            <div class="flex items-end">
+                                <button onclick="startDirectEvent()" class="w-full py-2.5 bg-wine-700 hover:bg-wine-600 text-white font-bold rounded-xl shadow-lg transition-all text-xs flex items-center justify-center space-x-2">
+                                    <i class="ph-bold ph-play"></i>
+                                    <span>Crear Play Off Directo</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- OPCIÓN: LOWER BRACKET -->
+                        <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-3">
+                            <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                <i class="ph-bold ph-git-fork text-wine-400"></i>
+                                <span>¿Habrá Lower Bracket?</span>
+                            </label>
+                            <div class="seg-toggle" role="group" aria-label="Lower Bracket">
+                                <button type="button" id="direct-lower-no" onclick="setDirectLower(false)" class="active">Sin Lower Bracket</button>
+                                <button type="button" id="direct-lower-yes" onclick="setDirectLower(true)">Con Lower Bracket</button>
+                            </div>
+                            <p id="direct-lower-hint" class="text-xs text-slate-400">Eliminación simple: quien pierde queda eliminado. Mínimo 2 jugadores.</p>
+                        </div>
+
+                        <!-- CANCIONES DEL BRACKET PRINCIPAL -->
+                        <div class="bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                    <i class="ph-bold ph-music-notes text-wine-400"></i>
+                                    <span>Canciones del Bracket Principal (1 por línea o separadas por comas)</span>
+                                </label>
+                                <button onclick="updateDirectSongs()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
+                                    Actualizar Canciones
+                                </button>
+                            </div>
+                            <textarea id="direct-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Hands Up 140 BPM&#10;Audition - Euro 2005 150 BPM&#10;Audition - Canon 200 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
+                        </div>
+
+                        <!-- CANCIONES DEL LOWER BRACKET (solo si hay Lower Bracket) -->
+                        <div id="direct-lower-songs-box" class="hidden bg-[#090507] border border-wine-900 rounded-xl p-4 space-y-2">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                <label class="block text-xs font-semibold text-wine-300 uppercase flex items-center gap-1.5">
+                                    <i class="ph-bold ph-music-notes text-wine-400"></i>
+                                    <span>Canciones del Lower Bracket (1 por línea o separadas por comas)</span>
+                                </label>
+                                <button onclick="updateDirectSongs()" class="px-3 py-1 bg-wine-800 hover:bg-wine-700 text-white rounded-lg text-xs font-bold transition-all flex-shrink-0">
+                                    Actualizar Canciones
+                                </button>
+                            </div>
+                            <textarea id="direct-lower-song-list-input" rows="3" placeholder="Ejemplo:&#10;Audition - Rock Star 160 BPM&#10;Audition - Night Fever 170 BPM" class="w-full bg-wine-950/80 border border-wine-900 rounded-xl p-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-wine-500"></textarea>
+                            <p class="text-[11px] text-slate-500">Si lo dejas vacío, el Lower Bracket usará las canciones del bracket principal.</p>
+                        </div>
+                    </div>
+
+                    <!-- INSCRIPCIÓN -->
+                    <div id="direct-registration-area" class="hidden pt-4 border-t border-wine-900 space-y-4">
+                        <h4 class="text-sm font-bold text-wine-200">Inscribir Jugadores Registrados o Añadir Bots</h4>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex space-x-2">
+                                <select id="direct-user-select" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                    <!-- Inyectado dinámicamente -->
+                                </select>
+                                <button onclick="addDirectPlayer()" class="px-4 py-2 bg-wine-800 hover:bg-wine-700 text-white font-bold text-xs rounded-xl flex-shrink-0">
+                                    Inscribir
+                                </button>
+                            </div>
+
+                            <div class="flex space-x-2">
+                                <input type="text" id="direct-bot-input" placeholder="Nombre del Bot" class="w-full bg-[#090507] border border-wine-900 rounded-xl px-3 py-2 text-xs text-white">
+                                <button onclick="addDirectBot()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl flex-shrink-0 border border-slate-700">
+                                    + Añadir BOT
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <span class="block text-xs font-semibold text-slate-400 mb-2">Inscritos Actuales (<span id="direct-count">0</span>):</span>
+                            <div id="direct-participants-badges" class="flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <div class="pt-2 flex justify-end">
+                            <button onclick="generateDirectBracketAction()" class="w-full sm:w-auto px-6 py-2.5 bg-green-700 hover:bg-green-600 text-white font-bold text-xs rounded-xl shadow-lg flex items-center justify-center space-x-2">
+                                <i class="ph-bold ph-shuffle"></i>
+                                <span>Generar Bracket con Versus Aleatorios</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- MONITOR DEL PLAY OFF DIRECTO ACTIVO -->
+                    <div id="direct-active-admin" class="hidden space-y-6 pt-4 border-t border-wine-900"></div>
+                </div>
+            </div>
         </section>
 
     </main>
