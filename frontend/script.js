@@ -257,7 +257,7 @@ function refreshTournamentViews() {
 function syncTournamentSetupUI() {
     const area = document.getElementById('event-registration-area');
     if (area) {
-        if (state.activeEvent && state.activeEvent.type !== 'DIRECT' && state.activeEvent.status === 'SETUP') {
+        if (state.activeEvent && (!state.activeEvent.type || state.activeEvent.type === 'SWISS') && state.activeEvent.status === 'SETUP') {
             area.classList.remove('hidden');
             renderParticipantsBadges();
         } else {
@@ -469,7 +469,7 @@ function navigateTo(viewId) {
     if (viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') fetchUsers().then(() => renderAdminPanel());
     if (viewId === 'view-tournaments') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => {
-        if (state.activeEvent) setTournamentTab(state.activeEvent.type === 'DIRECT' ? 'direct' : 'swiss');
+        if (state.activeEvent) setTournamentTab(tabForEvent(state.activeEvent));
         renderTournamentAdmin();
         syncTournamentSetupUI();
     });
@@ -591,7 +591,7 @@ function populateRegisteredUsersSelect() {
             <option value="${u.id}">${escapeHtml(u.nickname || u.name)}</option>
         `).join('');
 
-    ['registered-user-select', 'direct-user-select'].forEach(id => {
+    ['registered-user-select', 'direct-user-select', 'score-user-select'].forEach(id => {
         const select = document.getElementById(id);
         if (!select) return;
         const cur = select.value;
@@ -740,7 +740,11 @@ function saveHistoryState() {
         swissRounds: state.activeEvent.swissRounds,
         leaderboard: state.activeEvent.leaderboard,
         playoffs: state.activeEvent.playoffs,
-        direct: state.activeEvent.direct
+        direct: state.activeEvent.direct,
+        rooms: state.activeEvent.rooms,
+        scoreRounds: state.activeEvent.scoreRounds,
+        totalRounds: state.activeEvent.totalRounds,
+        winners: state.activeEvent.winners
     })));
     if (state.activeEvent.historyStates.length > MAX_HISTORY) {
         state.activeEvent.historyStates.shift();
@@ -1408,6 +1412,7 @@ function hasDirectResults(d) {
 function getEventChampion(e) {
     if (!e) return null;
     if (e.type === 'DIRECT') return (e.direct && e.direct.champion) || null;
+    if (e.type === 'SCORE') return (e.winners && e.winners[0]) || null;
     return (e.playoffs && e.playoffs.champion) || null;
 }
 
@@ -1424,13 +1429,11 @@ async function confirmReplaceActiveEvent() {
 
 function setTournamentTab(tab) {
     tournamentTab = tab;
-    const sw = document.getElementById('tourn-panel-swiss');
-    const di = document.getElementById('tourn-panel-direct');
-    if (sw) sw.classList.toggle('hidden', tab !== 'swiss');
-    if (di) di.classList.toggle('hidden', tab !== 'direct');
-    ['swiss', 'direct'].forEach(t => {
-        const b = document.getElementById('tourn-tab-' + t);
-        if (b) b.classList.toggle('active', t === tab);
+    ['swiss', 'direct', 'score'].forEach(t => {
+        const panel = document.getElementById('tourn-panel-' + t);
+        if (panel) panel.classList.toggle('hidden', t !== tab);
+        const btn = document.getElementById('tourn-tab-' + t);
+        if (btn) btn.classList.toggle('active', t === tab);
     });
 }
 
@@ -1684,24 +1687,8 @@ function syncDirectUI() {
         if (ti && !ti.value) ti.value = evt.title;
     }
 
-    const swissNotice = document.getElementById('swiss-notice');
-    if (swissNotice) {
-        if (isDirect) {
-            swissNotice.textContent = `Hay un Play Off Directo activo ("${evt.title}"). Si creas un torneo suizo, lo reemplazará.`;
-            swissNotice.classList.remove('hidden');
-        } else {
-            swissNotice.classList.add('hidden');
-        }
-    }
-    const directNotice = document.getElementById('direct-notice');
-    if (directNotice) {
-        if (evt && !isDirect) {
-            directNotice.textContent = `Hay un torneo suizo activo ("${evt.title}"). Si creas un Play Off Directo, lo reemplazará.`;
-            directNotice.classList.remove('hidden');
-        } else {
-            directNotice.classList.add('hidden');
-        }
-    }
+    syncTournamentNotices();
+    syncScoreUI();
 }
 
 // ---------------------------------------------------------------------
@@ -1920,6 +1907,717 @@ function renderDirectUserHTML(evt) {
     `;
 }
 
+// =====================================================================
+//  FORMATO POR PUNTAJE (salas fijas + puntos por ronda + podio)
+// =====================================================================
+const SCORE_ROOM_MAX = 6;
+let scoreViewRound = 0;
+let scoreViewFor = null;
+let scoreUiLoadedFor = null;
+
+function fmtPts(n) {
+    const v = Math.round((Number(n) || 0) * 100) / 100;
+    return Number.isInteger(v) ? String(v) : String(v);
+}
+
+// Reparte a los inscritos en salas de máximo 6, lo más parejas posible (23 -> 6, 6, 6 y 5)
+function buildScoreRooms(participants) {
+    const ids = shuffleArray(participants).map(p => p.id);
+    const N = ids.length;
+    if (N === 0) return [];
+    const roomCount = Math.ceil(N / SCORE_ROOM_MAX);
+    const base = Math.floor(N / roomCount);
+    const extra = N % roomCount;
+
+    const rooms = [];
+    let idx = 0;
+    for (let i = 0; i < roomCount; i++) {
+        const size = base + (i < extra ? 1 : 0);
+        rooms.push({ name: `Sala ${i + 1}`, playerIds: ids.slice(idx, idx + size) });
+        idx += size;
+    }
+    return rooms;
+}
+
+function newScoreRound(evt, number) {
+    const used = (evt.scoreRounds || []).map(r => r.song);
+    return { number, song: pickDirectSong(evt.songPool, used), songRollId: Date.now(), scores: {} };
+}
+
+function scoreSongKey(evt, round) {
+    return `${evt.id}|score|${round.number}|${round.songRollId || ''}|${round.song}`;
+}
+
+// Tabla de posiciones: suma de puntos de todas las rondas
+function computeScoreStandings(evt) {
+    const rounds = evt.scoreRounds || [];
+    const roomOf = {};
+    (evt.rooms || []).forEach(r => r.playerIds.forEach(id => { roomOf[id] = r.name; }));
+
+    const rows = (evt.participants || []).map(p => {
+        const per = rounds.map(r => {
+            const v = r.scores ? r.scores[p.id] : undefined;
+            return typeof v === 'number' ? v : 0;
+        });
+        const total = Math.round(per.reduce((a, b) => a + b, 0) * 100) / 100;
+        return { player: p, per, total, room: roomOf[p.id] || '-' };
+    });
+
+    // Desempate: más puntos en las últimas rondas, luego orden alfabético
+    rows.sort((a, b) => {
+        if (b.total !== a.total) return b.total - a.total;
+        for (let i = a.per.length - 1; i >= 0; i--) {
+            if (b.per[i] !== a.per[i]) return b.per[i] - a.per[i];
+        }
+        return String(a.player.name).localeCompare(String(b.player.name));
+    });
+    return rows;
+}
+
+function buildScoreWinners(evt) {
+    return computeScoreStandings(evt).slice(0, 3).map((row, i) => ({
+        id: row.player.id,
+        name: row.player.name,
+        avatar: row.player.avatar,
+        isBot: !!row.player.isBot,
+        points: row.total,
+        place: i + 1
+    }));
+}
+
+function scoreStandingsInner(evt) {
+    const rows = computeScoreStandings(evt);
+    const rounds = evt.scoreRounds || [];
+    const medal = ['🥇', '🥈', '🥉'];
+
+    return `
+        <div class="flex items-center justify-between border-b border-wine-900 pb-2 mb-3">
+            <h5 class="text-sm font-bold text-wine-300">Tabla de Posiciones</h5>
+            <span class="text-[10px] text-slate-400">${rounds.length} ${rounds.length === 1 ? 'ronda' : 'rondas'}</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-slate-300">
+                <thead class="text-wine-400 uppercase border-b border-wine-900/60">
+                    <tr>
+                        <th class="py-2 pr-2">Puesto</th>
+                        <th class="py-2 pr-2">Jugador</th>
+                        <th class="py-2 pr-2">Sala</th>
+                        ${rounds.map(r => `<th class="py-2 px-1 text-center">R${r.number}</th>`).join('')}
+                        <th class="py-2 pl-2 text-center">Total</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-wine-900/40">
+                    ${rows.map((row, idx) => `
+                        <tr>
+                            <td class="py-2 pr-2 font-bold text-wine-400">${idx < 3 && row.total > 0 ? medal[idx] : '#' + (idx + 1)}</td>
+                            <td class="py-2 pr-2">
+                                <div class="flex items-center space-x-2">
+                                    ${row.player.isBot ? '🤖' : `<img src="${escapeHtml(row.player.avatar)}" class="w-5 h-5 rounded-full object-cover">`}
+                                    <span class="font-bold text-white">${escapeHtml(row.player.name)}</span>
+                                </div>
+                            </td>
+                            <td class="py-2 pr-2 text-slate-400">${escapeHtml(row.room)}</td>
+                            ${row.per.map(v => `<td class="py-2 px-1 text-center text-slate-300">${fmtPts(v)}</td>`).join('')}
+                            <td class="py-2 pl-2 text-center font-extrabold text-amber-400">${fmtPts(row.total)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function scorePodiumHTML(winners) {
+    if (!winners || winners.length === 0) return '';
+    const order = [winners[1], winners[0], winners[2]].filter(Boolean);
+    const cls = { 1: 'first', 2: 'second', 3: 'third' };
+    const medal = { 1: '🥇', 2: '🥈', 3: '🥉' };
+
+    return `
+        <div class="score-podium-box" style="--tier-color:#f59e0b">
+            <h4 class="direct-title text-center">🏆 Podio de Ganadores</h4>
+            <div class="podium px-2 pt-8 pb-2">
+                ${order.map(w => `
+                    <div class="podium-card tilt ${cls[w.place]}">
+                        <div class="podium-medal">${medal[w.place]}</div>
+                        <div class="podium-avatar">
+                            ${w.isBot ? '<span class="podium-bot">🤖</span>' : `<img src="${escapeHtml(w.avatar || '')}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="">`}
+                        </div>
+                        <span class="podium-name">${escapeHtml(w.name)}</span>
+                        <div class="podium-points">${fmtPts(w.points)}<small>PTS</small></div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Salas con sus jugadores. editable = campo de puntos junto a cada participante
+function scoreRoomsHTML(evt, roundNumber, editable) {
+    const byId = {};
+    (evt.participants || []).forEach(p => { byId[p.id] = p; });
+    const totals = {};
+    computeScoreStandings(evt).forEach(r => { totals[r.player.id] = r.total; });
+    const round = (evt.scoreRounds || [])[roundNumber - 1];
+    const disabled = evt.status !== 'PLAYING';
+
+    return `
+        <div class="score-rooms">
+            ${(evt.rooms || []).map(room => `
+                <div class="score-room">
+                    <div class="score-room-head">
+                        <span>${escapeHtml(room.name)}</span>
+                        <small>${room.playerIds.length} jugadores</small>
+                    </div>
+                    ${room.playerIds.map(id => {
+                        const p = byId[id];
+                        if (!p) return '';
+                        const v = round && round.scores ? round.scores[id] : undefined;
+                        return `
+                            <div class="score-row">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    ${p.isBot ? '<span class="text-base">🤖</span>' : `<img src="${escapeHtml(p.avatar)}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">`}
+                                    <span class="text-xs font-bold text-white truncate">${escapeHtml(p.name)}</span>
+                                </div>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <span class="score-total" data-total="${escapeHtml(id)}">Total: ${fmtPts(totals[id] || 0)}</span>
+                                    ${editable ? `
+                                        <input type="number" step="any" inputmode="decimal" class="score-input" placeholder="0"
+                                               value="${typeof v === 'number' ? v : ''}" ${disabled ? 'disabled' : ''}
+                                               onchange="setScorePoints(${roundNumber}, '${escapeHtml(id)}', this.value)">
+                                    ` : `<span class="score-pill">${typeof v === 'number' ? fmtPts(v) : '–'}</span>`}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `).join('')}
+        </div>
+    `;
+}
+
+function scoreSongBannerHTML(evt, round, isAdmin) {
+    if (!round) return '';
+    return `
+        <div class="bg-gradient-to-r from-wine-950 via-wine-900 to-wine-950 p-4 rounded-xl border-2 border-amber-500/80 shadow-lg flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-amber-500/20 text-amber-400 rounded-lg text-xl border border-amber-500/40">🎵</div>
+                <div>
+                    <span class="text-xs font-extrabold uppercase text-amber-400 tracking-wider block">La canción de la ronda ${round.number} es:</span>
+                    <span class="song-text text-lg font-black text-white">${escapeHtml(round.song)}</span>
+                </div>
+            </div>
+            ${isAdmin ? `
+                <button onclick="rerollScoreSong(${round.number - 1})" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-md flex items-center space-x-1">
+                    <i class="ph-bold ph-shuffle"></i> <span>Re-sortear Canción</span>
+                </button>
+            ` : ''}
+        </div>
+    `;
+}
+
+// Monitor del administrador / moderador
+function renderScoreAdmin() {
+    const box = document.getElementById('score-active-admin');
+    if (!box) return;
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status === 'SETUP') {
+        box.classList.add('hidden');
+        return;
+    }
+    box.classList.remove('hidden');
+
+    if (scoreViewFor !== evt.id) {
+        scoreViewFor = evt.id;
+        scoreViewRound = evt.currentRound;
+    }
+    if (!scoreViewRound || scoreViewRound > evt.scoreRounds.length) scoreViewRound = evt.currentRound;
+
+    const finished = evt.status === 'FINISHED';
+    const current = evt.scoreRounds[evt.currentRound - 1];
+
+    box.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800">
+            <div>
+                <h4 class="text-lg font-bold text-white">${escapeHtml(evt.title)} - Formato por Puntaje</h4>
+                <p class="text-xs text-slate-400">
+                    Ronda ${evt.currentRound} de ${evt.totalRounds} · ${evt.rooms.length} salas · ${evt.participants.length} jugadores.
+                    ${finished ? 'Torneo finalizado.' : 'Escribe los puntos junto a cada participante.'}
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="undoTournamentStep()" class="px-3 py-1.5 bg-amber-950 hover:bg-amber-900 text-amber-300 rounded-lg text-xs font-bold border border-amber-800/60 flex items-center space-x-1">
+                    <i class="ph-bold ph-arrow-u-up-left"></i> <span>Retroceder</span>
+                </button>
+                ${!finished && evt.currentRound < evt.totalRounds ? `
+                    <button onclick="nextScoreRound()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
+                        Siguiente Ronda ➔
+                    </button>
+                ` : ''}
+                ${!finished ? `
+                    <button onclick="giveScoreWinners()" class="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-lg text-xs font-bold shadow-lg">
+                        🏆 Dar Ganadores
+                    </button>
+                ` : `
+                    <button onclick="finishAndSaveEvent()" class="px-4 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg text-xs font-bold shadow-lg">
+                        💾 Finalizar y Guardar en Historial
+                    </button>
+                `}
+                <button onclick="deleteActiveEvent()" class="px-3 py-1.5 bg-red-950/80 hover:bg-red-900 text-red-400 rounded-lg text-xs font-bold border border-red-800/60 transition-all flex items-center space-x-1" title="Eliminar torneo activo">
+                    <i class="ph-bold ph-trash"></i> <span>Eliminar Torneo</span>
+                </button>
+            </div>
+        </div>
+
+        ${finished ? scorePodiumHTML(evt.winners) : ''}
+
+        ${scoreSongBannerHTML(evt, current, true)}
+
+        <div class="score-round-tabs">
+            ${evt.scoreRounds.map(r => `
+                <button type="button" onclick="selectScoreRound(${r.number})" class="score-round-tab ${r.number === scoreViewRound ? 'active' : ''}">
+                    Ronda ${r.number}
+                </button>
+            `).join('')}
+        </div>
+
+        <div>
+            <h5 class="text-sm font-bold text-wine-300 mb-3">Puntos de la Ronda ${scoreViewRound}</h5>
+            ${scoreRoomsHTML(evt, scoreViewRound, true)}
+        </div>
+
+        <div id="score-standings-admin" class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+            ${scoreStandingsInner(evt)}
+        </div>
+    `;
+
+    if (current) spinSongIfChanged('score-active-admin', scoreSongKey(evt, current), current.song);
+}
+
+// Vista de jugadores / visitantes
+function renderScoreUserHTML(evt) {
+    const finished = evt.status === 'FINISHED';
+    const current = evt.scoreRounds[evt.currentRound - 1];
+
+    return `
+        <div class="bg-wine-950/80 border border-wine-900 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div class="flex items-center justify-between border-b border-wine-900 pb-4">
+                <div>
+                    <span class="px-3 py-1 rounded-full ${finished ? 'bg-green-950 border border-green-800 text-green-400' : 'bg-red-950 border border-red-800 text-red-400 animate-pulse'} text-xs font-bold uppercase tracking-wider">
+                        ${finished ? '🏁 Finalizado' : '🔴 En Vivo'}
+                    </span>
+                    <h3 class="text-2xl font-black text-white mt-2">${escapeHtml(evt.title)}</h3>
+                    <p class="text-xs text-slate-400 mt-1">Formato por puntaje · Ronda ${evt.currentRound} de ${evt.totalRounds}</p>
+                </div>
+            </div>
+
+            ${finished ? scorePodiumHTML(evt.winners) : scoreSongBannerHTML(evt, current, false)}
+
+            ${finished ? '' : `
+                <div>
+                    <h4 class="text-sm font-bold text-wine-300 uppercase tracking-wider mb-3">Salas - Ronda ${evt.currentRound}</h4>
+                    ${scoreRoomsHTML(evt, evt.currentRound, false)}
+                </div>
+            `}
+
+            <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+                ${scoreStandingsInner(evt)}
+            </div>
+        </div>
+    `;
+}
+
+// Historial: podio + tabla final
+function scoreHistoryHTML(evt) {
+    return `
+        ${scorePodiumHTML(evt.winners)}
+        <div>
+            <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Tabla de Posiciones Final</h4>
+            <div class="bg-[#090507] border border-wine-900 rounded-xl p-4">
+                ${scoreStandingsInner(evt)}
+            </div>
+        </div>
+    `;
+}
+
+// ---------------------------------------------------------------------
+//  ACCIONES
+// ---------------------------------------------------------------------
+async function startScoreEvent() {
+    const titleEl = document.getElementById('score-title-input');
+    const title = titleEl ? titleEl.value.trim() : '';
+    if (!title) {
+        alert('Por favor ingresa un nombre para el evento.');
+        return;
+    }
+    const songPool = parseSongList((document.getElementById('score-song-list-input') || {}).value);
+
+    if (!(await confirmReplaceActiveEvent())) return;
+
+    state.activeEvent = {
+        id: 'evt-' + Date.now(),
+        type: 'SCORE',
+        title,
+        status: 'SETUP',
+        participants: [],
+        songPool,
+        rooms: [],
+        totalRounds: 3,
+        currentRound: 0,
+        scoreRounds: [],
+        winners: null,
+        // Campos del formato suizo (vacíos) para que el resto del código no falle
+        maxSwissRounds: 0,
+        swissRounds: [],
+        leaderboard: [],
+        playoffs: null,
+        historyStates: []
+    };
+
+    scoreUiLoadedFor = state.activeEvent.id;
+    scoreViewFor = null;
+    saveState();
+    syncTournamentSetupUI();
+    renderTournamentAdmin();
+    alert(`Evento "${title}" creado. Ahora inscribe a los participantes.`);
+}
+
+function updateScoreSongs() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE') {
+        alert('No hay ningún torneo por puntaje activo.');
+        return;
+    }
+    evt.songPool = parseSongList((document.getElementById('score-song-list-input') || {}).value);
+    saveState();
+    alert('¡Lista de canciones actualizada con éxito! Se usará en los próximos sorteos.');
+}
+
+function addScorePlayer() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    const select = document.getElementById('score-user-select');
+    if (!select || !select.value) return;
+
+    const user = state.users.find(u => String(u.id) === String(select.value));
+    if (!user) return;
+
+    const uname = user.nickname || user.name;
+    if (evt.participants.some(p => p.name === uname)) {
+        alert('El usuario ya está inscrito.');
+        return;
+    }
+
+    evt.participants.push({
+        id: `usr-${user.id}`,
+        name: uname,
+        avatar: user.avatar || 'https://i.imgur.com/6VBx3io.png',
+        isBot: false
+    });
+    evt.rooms = []; // cambió la lista: hay que volver a generar las salas
+    saveState();
+    syncTournamentSetupUI();
+}
+
+function addScoreBot() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    const input = document.getElementById('score-bot-input');
+    const name = (input && input.value.trim()) || `Bot_${evt.participants.length + 1}`;
+
+    if (evt.participants.some(p => p.name === name)) {
+        alert('Ya existe un participante o bot con ese nombre.');
+        return;
+    }
+
+    evt.participants.push({
+        id: `bot-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+        name,
+        avatar: '🤖',
+        isBot: true
+    });
+    if (input) input.value = '';
+    evt.rooms = [];
+    saveState();
+    syncTournamentSetupUI();
+}
+
+function removeScoreParticipant(id) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    evt.participants = evt.participants.filter(p => String(p.id) !== String(id));
+    evt.rooms = [];
+    saveState();
+    syncTournamentSetupUI();
+}
+
+function renderScoreParticipantsBadges() {
+    const container = document.getElementById('score-participants-badges');
+    const counter = document.getElementById('score-count');
+    const evt = state.activeEvent;
+    const list = (evt && evt.type === 'SCORE') ? evt.participants : [];
+    if (counter) counter.textContent = list.length;
+    if (!container) return;
+
+    if (list.length === 0) {
+        container.innerHTML = `<span class="text-xs text-slate-500 italic">No hay inscritos aún.</span>`;
+        return;
+    }
+
+    container.innerHTML = list.map(p => `
+        <span class="inline-flex items-center space-x-2 px-3 py-1 rounded-xl bg-wine-900 border border-wine-700 text-xs text-white">
+            ${p.isBot ? '🤖' : `<img src="${escapeHtml(p.avatar)}" class="w-4 h-4 rounded-full object-cover">`}
+            <span class="font-bold">${escapeHtml(p.name)}</span>
+            <button onclick="removeScoreParticipant('${p.id}')" class="text-slate-400 hover:text-red-400 ml-1">
+                <i class="ph-bold ph-x"></i>
+            </button>
+        </span>
+    `).join('');
+}
+
+function generateScoreRoomsAction() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') {
+        alert('Primero crea un torneo por puntaje.');
+        return;
+    }
+    if (evt.participants.length < 2) {
+        alert('Se necesitan al menos 2 participantes.');
+        return;
+    }
+    evt.rooms = buildScoreRooms(evt.participants);
+    saveState();
+    syncTournamentSetupUI();
+}
+
+function reshuffleScoreRooms() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    if (evt.participants.length < 2) return;
+    evt.rooms = buildScoreRooms(evt.participants);
+    saveState();
+    syncTournamentSetupUI();
+    showToast('Inscritos mezclados: salas nuevas generadas al azar.', 'success');
+}
+
+function setScoreRounds(value) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    const n = Math.max(1, Math.min(50, parseInt(value, 10) || 3));
+    evt.totalRounds = n;
+    const input = document.getElementById('score-rounds-input');
+    if (input) input.value = n;
+    saveState();
+}
+
+async function startScoreTournament() {
+    let evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+    if (!evt.rooms || evt.rooms.length === 0) {
+        alert('Primero genera las salas.');
+        return;
+    }
+
+    const rounds = Math.max(1, Math.min(50, parseInt(evt.totalRounds, 10) || 3));
+    const ok = await confirmDialog(
+        `Se iniciará el torneo con ${evt.rooms.length} salas y ${rounds} rondas. Las salas se mantendrán iguales durante todo el torneo. ¿Comenzar?`,
+        { confirmText: 'Comenzar torneo' }
+    );
+    if (!ok) return;
+
+    evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'SETUP') return;
+
+    saveHistoryState();
+    evt.totalRounds = rounds;
+    evt.status = 'PLAYING';
+    evt.currentRound = 1;
+    evt.scoreRounds = [newScoreRound(evt, 1)];
+    evt.winners = null;
+    scoreViewFor = evt.id;
+    scoreViewRound = 1;
+
+    saveState();
+    refreshTournamentViews();
+}
+
+function nextScoreRound() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'PLAYING') return;
+    if (evt.currentRound >= evt.totalRounds) {
+        alert('Estás en la última ronda. Usa "Dar Ganadores" para terminar el torneo.');
+        return;
+    }
+
+    saveHistoryState();
+    evt.currentRound += 1;
+    evt.scoreRounds.push(newScoreRound(evt, evt.currentRound));
+    scoreViewRound = evt.currentRound;
+
+    saveState();
+    refreshTournamentViews();
+}
+
+function rerollScoreSong(idx) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE') return;
+    const round = evt.scoreRounds[idx];
+    if (!round) return;
+
+    saveHistoryState();
+    round.song = pickDirectSong(evt.songPool, [round.song]);
+    round.songRollId = Date.now();
+    saveState();
+    refreshTournamentViews();
+}
+
+function selectScoreRound(n) {
+    scoreViewRound = n;
+    renderScoreAdmin();
+}
+
+// Guarda los puntos sin volver a dibujar los campos (así puedes seguir escribiendo con Tab)
+function setScorePoints(roundNumber, playerId, value) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'PLAYING') return;
+    const round = evt.scoreRounds[roundNumber - 1];
+    if (!round) return;
+    if (!round.scores) round.scores = {};
+
+    const raw = String(value).trim();
+    const num = parseFloat(raw);
+    if (raw === '' || isNaN(num)) delete round.scores[playerId];
+    else round.scores[playerId] = Math.round(num * 100) / 100;
+
+    saveState();
+
+    const st = document.getElementById('score-standings-admin');
+    if (st) st.innerHTML = scoreStandingsInner(evt);
+    const totals = {};
+    computeScoreStandings(evt).forEach(r => { totals[r.player.id] = r.total; });
+    document.querySelectorAll('#score-active-admin [data-total]').forEach(el => {
+        el.textContent = 'Total: ' + fmtPts(totals[el.dataset.total] || 0);
+    });
+}
+
+async function giveScoreWinners() {
+    let evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'PLAYING') return;
+
+    const ok = await confirmDialog(
+        'Se tomarán los 3 mejores de la tabla de posiciones y se mostrará el podio. Podrás deshacerlo con "Retroceder". ¿Dar ganadores?',
+        { confirmText: 'Dar ganadores' }
+    );
+    if (!ok) return;
+
+    evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'PLAYING') return;
+
+    saveHistoryState();
+    evt.winners = buildScoreWinners(evt);
+    evt.status = 'FINISHED';
+    saveState();
+    refreshTournamentViews();
+}
+
+// ---------------------------------------------------------------------
+//  INTERFAZ DE LA PESTAÑA
+// ---------------------------------------------------------------------
+function renderScoreRoomsPreview() {
+    const evt = state.activeEvent;
+    const grid = document.getElementById('score-rooms-grid');
+    const input = document.getElementById('score-rounds-input');
+    if (!evt || evt.type !== 'SCORE' || !grid) return;
+    if (input) input.value = evt.totalRounds || 3;
+
+    const byId = {};
+    evt.participants.forEach(p => { byId[p.id] = p; });
+
+    grid.innerHTML = evt.rooms.map(room => `
+        <div class="score-room">
+            <div class="score-room-head">
+                <span>${escapeHtml(room.name)}</span>
+                <small>${room.playerIds.length} jugadores</small>
+            </div>
+            ${room.playerIds.map(id => {
+                const p = byId[id];
+                if (!p) return '';
+                return `
+                    <div class="score-row">
+                        <div class="flex items-center gap-2 min-w-0">
+                            ${p.isBot ? '<span class="text-base">🤖</span>' : `<img src="${escapeHtml(p.avatar)}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">`}
+                            <span class="text-xs font-bold text-white truncate">${escapeHtml(p.name)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `).join('');
+}
+
+function syncScoreUI() {
+    const evt = state.activeEvent;
+    const isScore = !!(evt && evt.type === 'SCORE');
+    const setup = isScore && evt.status === 'SETUP';
+
+    const reg = document.getElementById('score-registration-area');
+    if (reg) {
+        if (setup) {
+            reg.classList.remove('hidden');
+            renderScoreParticipantsBadges();
+        } else {
+            reg.classList.add('hidden');
+        }
+    }
+
+    const preview = document.getElementById('score-rooms-preview');
+    if (preview) {
+        if (setup && evt.rooms && evt.rooms.length > 0) {
+            preview.classList.remove('hidden');
+            renderScoreRoomsPreview();
+        } else {
+            preview.classList.add('hidden');
+        }
+    }
+
+    if (isScore && scoreUiLoadedFor !== evt.id) {
+        scoreUiLoadedFor = evt.id;
+        const ti = document.getElementById('score-title-input');
+        const so = document.getElementById('score-song-list-input');
+        if (ti && !ti.value) ti.value = evt.title;
+        if (so) so.value = (evt.songPool || []).join('\n');
+    }
+}
+
+function tournamentTypeLabel(evt) {
+    if (evt.type === 'DIRECT') return 'Play Off Directo';
+    if (evt.type === 'SCORE') return 'torneo por puntaje';
+    return 'torneo suizo';
+}
+
+// Avisa en cada pestaña cuando el torneo activo es de otro tipo
+function syncTournamentNotices() {
+    const evt = state.activeEvent;
+    const type = evt ? (evt.type || 'SWISS') : null;
+    [['swiss-notice', 'SWISS'], ['direct-notice', 'DIRECT'], ['score-notice', 'SCORE']].forEach(([id, t]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (evt && type !== t) {
+            el.textContent = `Hay un ${tournamentTypeLabel(evt)} activo ("${evt.title}"). Si creas uno nuevo aquí, lo reemplazará.`;
+            el.classList.remove('hidden');
+        } else {
+            el.classList.add('hidden');
+        }
+    });
+}
+
+function tabForEvent(evt) {
+    if (!evt) return 'swiss';
+    if (evt.type === 'DIRECT') return 'direct';
+    if (evt.type === 'SCORE') return 'score';
+    return 'swiss';
+}
+
 // Tabla de posiciones del sistema suizo (se mantiene visible en PlayOffs y al finalizar)
 function swissStandingsHTML(evt) {
     if (!evt || !evt.leaderboard || evt.leaderboard.length === 0) return '';
@@ -1972,16 +2670,21 @@ function swissStandingsHTML(evt) {
 }
 
 function renderTournamentAdmin() {
-    // Play Off Directo: tiene su propio monitor dentro de su pestaña
+    // Play Off Directo y Formato por Puntaje tienen su propio monitor dentro de su pestaña
+    const evtType = state.activeEvent ? state.activeEvent.type : null;
     const directBox = document.getElementById('direct-active-admin');
-    if (state.activeEvent && state.activeEvent.type === 'DIRECT') {
+    const scoreBox = document.getElementById('score-active-admin');
+    if (evtType !== 'DIRECT' && directBox) directBox.classList.add('hidden');
+    if (evtType !== 'SCORE' && scoreBox) scoreBox.classList.add('hidden');
+
+    if (evtType === 'DIRECT' || evtType === 'SCORE') {
         const swissActive = document.getElementById('active-tournament-admin');
         if (swissActive) swissActive.classList.add('hidden');
-        renderDirectAdmin();
+        if (evtType === 'DIRECT') renderDirectAdmin();
+        else renderScoreAdmin();
         maybeCelebrate(state.activeEvent);
         return;
     }
-    if (directBox) directBox.classList.add('hidden');
 
     const activeBox = document.getElementById('active-tournament-admin');
     const swissBox = document.getElementById('swiss-admin-container');
@@ -2168,6 +2871,15 @@ async function renderUserEventsView(skipFetch = false) {
     const evt = state.activeEvent;
     if (evt.type === 'DIRECT') {
         container.innerHTML = renderDirectUserHTML(evt);
+        maybeCelebrate(evt);
+        return;
+    }
+    if (evt.type === 'SCORE') {
+        container.innerHTML = renderScoreUserHTML(evt);
+        const cur = evt.scoreRounds[evt.currentRound - 1];
+        if (cur && evt.status === 'PLAYING') {
+            spinSongIfChanged('user-events-view-container', scoreSongKey(evt, cur), cur.song);
+        }
         maybeCelebrate(evt);
         return;
     }
@@ -2401,6 +3113,7 @@ function renderEventHistory() {
                     <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
                     <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
                     ${evt.type === 'DIRECT' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Play Off Directo${evt.hasLower ? ' · Lower Bracket' : ''}</span>` : ''}
+                    ${evt.type === 'SCORE' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Formato por Puntaje · ${(evt.scoreRounds || []).length} rondas</span>` : ''}
                 </div>
                 <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1">
                     <i class="ph-bold ph-trash"></i>
@@ -2408,7 +3121,7 @@ function renderEventHistory() {
                 </button>
             </div>
 
-            ${evt.type === 'DIRECT' ? `
+            ${evt.type === 'SCORE' ? scoreHistoryHTML(evt) : (evt.type === 'DIRECT' ? `
                 <div>
                     <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">Bracket</h4>
                     ${renderDirectBracketHTML(evt, false)}
@@ -2431,7 +3144,7 @@ function renderEventHistory() {
                     <h4 class="text-xs font-bold text-wine-300 uppercase mb-2">PlayOffs Bracket</h4>
                     ${renderPlayoffsBracketHTML(evt.playoffs, false)}
                 </div>
-            `}
+            `)}
         </div>
     `).join('');
     observeBrackets();
