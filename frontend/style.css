@@ -1205,3 +1205,214 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
     0%   { transform: scale(0.6); opacity: 0.2; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* ==========================================================================
+   22. CONTROL DE TORNEOS: PESTAÑAS Y AVISOS
+   ========================================================================== */
+.tourn-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.35rem;
+    border-radius: 16px;
+    background: rgba(28, 10, 17, 0.8);
+    border: 1px solid rgba(128, 0, 32, 0.5);
+}
+.tourn-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #94a3b8;
+    background: transparent;
+}
+.tourn-tab:hover { color: #fff; background: rgba(128, 0, 32, 0.3); }
+.tourn-tab.active {
+    color: #fff;
+    background: linear-gradient(135deg, #800020, #a31d3f);
+    box-shadow: 0 0 18px rgba(201, 42, 82, 0.35);
+}
+
+.tourn-notice {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: #fde68a;
+    background: rgba(120, 53, 15, 0.3);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.seg-toggle {
+    display: inline-flex;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(128, 0, 32, 0.7);
+}
+.seg-toggle button {
+    padding: 0.6rem 1.1rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    background: #090507;
+    border-radius: 0;
+}
+.seg-toggle button.active {
+    color: #fff;
+    background: #800020;
+}
+
+/* ==========================================================================
+   23. PLAY OFF DIRECTO: BRACKET (UPPER / LOWER / GRAN FINAL)
+   ========================================================================== */
+.direct-bracket-box {
+    padding: 1rem;
+    border-radius: 16px;
+    background: #090507;
+    border: 1px solid rgba(128, 0, 32, 0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.direct-section {
+    padding: 0.9rem;
+    border-radius: 14px;
+    border: 1px solid rgba(128, 0, 32, 0.45);
+    background: rgba(28, 10, 17, 0.4);
+}
+.direct-section-lower { border-color: rgba(96, 165, 250, 0.4); }
+.direct-section-final { border-color: rgba(245, 158, 11, 0.55); background: rgba(245, 158, 11, 0.05); }
+
+.direct-title {
+    margin-bottom: 0.75rem;
+    font-family: 'Rajdhani', 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #fff;
+}
+.direct-scroll { overflow-x: auto; padding-bottom: 0.5rem; }
+.direct-row {
+    display: flex;
+    align-items: stretch;
+    gap: 1.5rem;
+    min-width: max-content;
+}
+.direct-round {
+    width: 16.5rem;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+.direct-matches {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    gap: 0.9rem;
+}
+
+.direct-card {
+    padding: 0.6rem;
+    border-radius: 12px;
+    background: rgba(28, 10, 17, 0.92);
+    border: 1px solid rgba(128, 0, 32, 0.7);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+.direct-vs {
+    margin: 0.2rem 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    color: #c92a52;
+}
+.direct-side {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 8px;
+    color: #cbd5e1;
+}
+.direct-tbd { color: #8b9bb0; font-size: 0.72rem; font-style: italic; }
+.direct-bye { color: #8b9bb0; font-size: 0.7rem; font-weight: 700; }
+.direct-win {
+    color: #86efac;
+    font-weight: 700;
+    background: rgba(5, 46, 22, 0.9);
+    border: 1px solid #16a34a;
+}
+.direct-lose { color: #f87171; opacity: 0.6; }
+
+.direct-pick {
+    flex-shrink: 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #e2e8f0;
+    background: #3b1120;
+}
+.direct-pick:hover { background: #15803d; }
+.direct-pick.on { background: #16a34a; color: #fff; }
+
+.direct-song {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fbbf24;
+    background: rgba(69, 26, 3, 0.6);
+    border: 1px solid rgba(180, 83, 9, 0.6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.direct-reroll {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    background: #b45309;
+}
+.direct-reroll:hover { background: #d97706; }
+
+.direct-open-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.75rem;
+}
+.direct-open {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.8rem 1rem;
+    border-radius: 14px;
+    background: linear-gradient(90deg, #1c0a11, #3b1120, #1c0a11);
+    border: 2px solid rgba(245, 158, 11, 0.7);
+}
+.direct-open-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #fbbf24;
+}
+.direct-open-song { font-size: 1rem; font-weight: 800; color: #fff; word-break: break-word; }
+
+@media (max-width: 639px) {
+    .tourn-tab { padding: 0.6rem 0.5rem; font-size: 0.78rem; }
+    .direct-round { width: 14.5rem; }
+}
