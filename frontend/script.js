@@ -1999,7 +1999,40 @@ function buildScoreRooms(participants) {
 
 function newScoreRound(evt, number) {
     const used = (evt.scoreRounds || []).map(r => r.song);
-    return { number, song: pickDirectSong(evt.songPool, used), songRollId: Date.now(), scores: {} };
+    return { number, song: pickDirectSong(evt.songPool, used), songRollId: Date.now(), scores: {}, beat: {} };
+}
+
+// ===== MODO DEL TORNEO: puntos libres o Beat Up (posición + perfect) =====
+const BEATUP_DEFAULTS = { posPoints: [6, 5, 4, 3, 2, 1], perfectValue: 1 };
+let scoreModeSelected = 'FREE';
+
+function scoreMode(evt) {
+    return evt && evt.mode === 'BEATUP' ? 'BEATUP' : 'FREE';
+}
+
+function beatConfig(evt) {
+    const c = (evt && evt.beatConfig) || {};
+    const pp = (Array.isArray(c.posPoints) && c.posPoints.length) ? c.posPoints : BEATUP_DEFAULTS.posPoints;
+    const pv = Number(c.perfectValue);
+    return {
+        posPoints: pp.map(v => Number(v) || 0),
+        perfectValue: (c.perfectValue !== undefined && c.perfectValue !== null && Number.isFinite(pv)) ? pv : BEATUP_DEFAULTS.perfectValue
+    };
+}
+
+// Datos de un jugador en una ronda: posición, perfect y puntos resultantes
+function scoreRoundData(evt, round, playerId) {
+    if (scoreMode(evt) === 'BEATUP') {
+        const b = (round && round.beat) ? round.beat[playerId] : undefined;
+        const pos = (b && typeof b.pos === 'number') ? b.pos : null;
+        const perfect = (b && typeof b.perfect === 'number') ? b.perfect : null;
+        const cfg = beatConfig(evt);
+        const posPts = pos ? (cfg.posPoints[pos - 1] || 0) : 0;
+        const points = Math.round((posPts + (perfect || 0) * cfg.perfectValue) * 100) / 100;
+        return { pos, perfect, points, raw: undefined };
+    }
+    const v = (round && round.scores) ? round.scores[playerId] : undefined;
+    return { pos: null, perfect: null, points: typeof v === 'number' ? v : 0, raw: v };
 }
 
 function scoreSongKey(evt, round) {
@@ -2009,21 +2042,22 @@ function scoreSongKey(evt, round) {
 // Tabla de posiciones: suma de puntos de todas las rondas
 function computeScoreStandings(evt) {
     const rounds = evt.scoreRounds || [];
+    const beat = scoreMode(evt) === 'BEATUP';
     const roomOf = {};
     (evt.rooms || []).forEach(r => r.playerIds.forEach(id => { roomOf[id] = r.name; }));
 
     const rows = (evt.participants || []).map(p => {
-        const per = rounds.map(r => {
-            const v = r.scores ? r.scores[p.id] : undefined;
-            return typeof v === 'number' ? v : 0;
-        });
+        const detail = rounds.map(r => scoreRoundData(evt, r, p.id));
+        const per = detail.map(d => d.points);
         const total = Math.round(per.reduce((a, b) => a + b, 0) * 100) / 100;
-        return { player: p, per, total, room: roomOf[p.id] || '-' };
+        const perfects = detail.reduce((a, d) => a + (d.perfect || 0), 0);
+        return { player: p, per, detail, total, perfects, room: roomOf[p.id] || '-' };
     });
 
-    // Desempate: más puntos en las últimas rondas, luego orden alfabético
+    // Desempate: (Beat Up) más Perfect en total, luego más puntos en las últimas rondas, luego alfabético
     rows.sort((a, b) => {
         if (b.total !== a.total) return b.total - a.total;
+        if (beat && b.perfects !== a.perfects) return b.perfects - a.perfects;
         for (let i = a.per.length - 1; i >= 0; i--) {
             if (b.per[i] !== a.per[i]) return b.per[i] - a.per[i];
         }
@@ -2046,11 +2080,12 @@ function buildScoreWinners(evt) {
 function scoreStandingsInner(evt) {
     const rows = computeScoreStandings(evt);
     const rounds = evt.scoreRounds || [];
+    const beat = scoreMode(evt) === 'BEATUP';
     const medal = ['🥇', '🥈', '🥉'];
 
     return `
         <div class="flex items-center justify-between border-b border-wine-900 pb-2 mb-3">
-            <h5 class="text-sm font-bold text-wine-300">Tabla de Posiciones</h5>
+            <h5 class="text-sm font-bold text-wine-300">Tabla de Posiciones${beat ? ' · Beat Up' : ''}</h5>
             <span class="text-[10px] text-slate-400">${rounds.length} ${rounds.length === 1 ? 'ronda' : 'rondas'}</span>
         </div>
         <div class="overflow-x-auto">
@@ -2060,7 +2095,9 @@ function scoreStandingsInner(evt) {
                         <th class="py-2 pr-2">Puesto</th>
                         <th class="py-2 pr-2">Jugador</th>
                         <th class="py-2 pr-2">Sala</th>
-                        ${rounds.map(r => `<th class="py-2 px-1 text-center">R${r.number}</th>`).join('')}
+                        ${rounds.map(r => beat
+                            ? `<th class="py-2 px-1 text-center whitespace-nowrap">Posición R${r.number}</th><th class="py-2 px-1 text-center whitespace-nowrap">Perfect R${r.number}</th>`
+                            : `<th class="py-2 px-1 text-center">R${r.number}</th>`).join('')}
                         <th class="py-2 pl-2 text-center">Total</th>
                     </tr>
                 </thead>
@@ -2075,7 +2112,9 @@ function scoreStandingsInner(evt) {
                                 </div>
                             </td>
                             <td class="py-2 pr-2 text-slate-400">${escapeHtml(row.room)}</td>
-                            ${row.per.map(v => `<td class="py-2 px-1 text-center text-slate-300">${fmtPts(v)}</td>`).join('')}
+                            ${row.detail.map(d => beat
+                                ? `<td class="py-2 px-1 text-center text-slate-300">${d.pos ? d.pos + 'º' : '–'}</td><td class="py-2 px-1 text-center text-sky-300">${d.perfect !== null ? d.perfect : '–'}</td>`
+                                : `<td class="py-2 px-1 text-center text-slate-300">${fmtPts(d.points)}</td>`).join('')}
                             <td class="py-2 pl-2 text-center font-extrabold text-amber-400">${fmtPts(row.total)}</td>
                         </tr>
                     `).join('')}
@@ -2111,7 +2150,15 @@ function scorePodiumHTML(winners) {
 }
 
 // Salas con sus jugadores. editable = campo de puntos junto a cada participante
+function scoreBeatLegendHTML(evt) {
+    const cfg = beatConfig(evt);
+    const list = cfg.posPoints.map((v, i) => `${i + 1}º = ${fmtPts(v)}`).join(' · ');
+    return `<p class="text-[11px] text-slate-400 mb-3">Puntos por posición: ${list} · Cada Perfect = ${fmtPts(cfg.perfectValue)} pt. Si hay empate, gana quien tenga más Perfect.</p>`;
+}
+
+// Salas con sus jugadores. editable = campos junto a cada participante
 function scoreRoomsHTML(evt, roundNumber, editable) {
+    const beat = scoreMode(evt) === 'BEATUP';
     const byId = {};
     (evt.participants || []).forEach(p => { byId[p.id] = p; });
     const totals = {};
@@ -2121,7 +2168,16 @@ function scoreRoomsHTML(evt, roundNumber, editable) {
 
     return `
         <div class="score-rooms">
-            ${(evt.rooms || []).map(room => `
+            ${(evt.rooms || []).map((room, roomIdx) => {
+                // posiciones repetidas dentro de la sala (se marcan en rojo)
+                const posCount = {};
+                if (beat) {
+                    room.playerIds.forEach(id => {
+                        const d = scoreRoundData(evt, round, id);
+                        if (d.pos) posCount[d.pos] = (posCount[d.pos] || 0) + 1;
+                    });
+                }
+                return `
                 <div class="score-room">
                     <div class="score-room-head">
                         <span>${escapeHtml(room.name)}</span>
@@ -2130,7 +2186,37 @@ function scoreRoomsHTML(evt, roundNumber, editable) {
                     ${room.playerIds.map(id => {
                         const p = byId[id];
                         if (!p) return '';
-                        const v = round && round.scores ? round.scores[id] : undefined;
+                        const d = scoreRoundData(evt, round, id);
+                        const sid = escapeHtml(id);
+
+                        let control;
+                        if (!editable) {
+                            control = beat
+                                ? `<span class="score-pill">${d.pos ? d.pos + 'º' : '–'}</span><span class="score-pill score-pill-perf">${d.perfect !== null ? d.perfect + ' P' : '–'}</span>`
+                                : `<span class="score-pill">${typeof d.raw === 'number' ? fmtPts(d.raw) : '–'}</span>`;
+                        } else if (beat) {
+                            control = `
+                                <div class="score-inputs">
+                                    <input type="number" min="1" max="${SCORE_ROOM_MAX}" step="1" inputmode="numeric"
+                                           class="score-input score-input-sm ${d.pos && posCount[d.pos] > 1 ? 'score-dup' : ''}" placeholder="Pos" title="Posición en la sala"
+                                           data-room="${roomIdx}" data-field="pos" data-pid="${sid}" data-round="${roundNumber}"
+                                           value="${d.pos !== null ? d.pos : ''}" ${disabled ? 'disabled' : ''}
+                                           onchange="setBeatUpValue(${roundNumber}, '${sid}', 'pos', this.value)">
+                                    <input type="number" min="0" step="1" inputmode="numeric"
+                                           class="score-input score-input-sm score-input-perf" placeholder="Perf" title="Cantidad de Perfect"
+                                           data-room="${roomIdx}" data-field="perfect" data-pid="${sid}" data-round="${roundNumber}"
+                                           value="${d.perfect !== null ? d.perfect : ''}" ${disabled ? 'disabled' : ''}
+                                           onchange="setBeatUpValue(${roundNumber}, '${sid}', 'perfect', this.value)">
+                                </div>
+                            `;
+                        } else {
+                            control = `
+                                <input type="number" step="any" inputmode="decimal" class="score-input" placeholder="0"
+                                       value="${typeof d.raw === 'number' ? d.raw : ''}" ${disabled ? 'disabled' : ''}
+                                       onchange="setScorePoints(${roundNumber}, '${sid}', this.value)">
+                            `;
+                        }
+
                         return `
                             <div class="score-row">
                                 <div class="flex items-center gap-2 min-w-0">
@@ -2138,18 +2224,15 @@ function scoreRoomsHTML(evt, roundNumber, editable) {
                                     <span class="text-xs font-bold text-white truncate">${escapeHtml(p.name)}</span>
                                 </div>
                                 <div class="flex items-center gap-2 flex-shrink-0">
-                                    <span class="score-total" data-total="${escapeHtml(id)}">Total: ${fmtPts(totals[id] || 0)}</span>
-                                    ${editable ? `
-                                        <input type="number" step="any" inputmode="decimal" class="score-input" placeholder="0"
-                                               value="${typeof v === 'number' ? v : ''}" ${disabled ? 'disabled' : ''}
-                                               onchange="setScorePoints(${roundNumber}, '${escapeHtml(id)}', this.value)">
-                                    ` : `<span class="score-pill">${typeof v === 'number' ? fmtPts(v) : '–'}</span>`}
+                                    <span class="score-total" data-total="${sid}">Total: ${fmtPts(totals[id] || 0)}</span>
+                                    ${control}
                                 </div>
                             </div>
                         `;
                     }).join('')}
                 </div>
-            `).join('')}
+            `;
+            }).join('')}
         </div>
     `;
 }
@@ -2197,10 +2280,10 @@ function renderScoreAdmin() {
     box.innerHTML = `
         <div class="flex flex-wrap items-center justify-between gap-3 bg-wine-900/40 p-4 rounded-xl border border-wine-800">
             <div>
-                <h4 class="text-lg font-bold text-white">${escapeHtml(evt.title)} - Formato por Puntaje</h4>
+                <h4 class="text-lg font-bold text-white">${escapeHtml(evt.title)} - Formato por Puntaje${scoreMode(evt) === 'BEATUP' ? ' (Beat Up)' : ''}</h4>
                 <p class="text-xs text-slate-400">
                     Ronda ${evt.currentRound} de ${evt.totalRounds} · ${evt.rooms.length} salas · ${evt.participants.length} jugadores.
-                    ${finished ? 'Torneo finalizado.' : 'Escribe los puntos junto a cada participante.'}
+                    ${finished ? 'Torneo finalizado.' : (scoreMode(evt) === 'BEATUP' ? 'Modo Beat Up: escribe la posición y los Perfect de cada participante.' : 'Escribe los puntos junto a cada participante.')}
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -2240,7 +2323,8 @@ function renderScoreAdmin() {
         </div>
 
         <div>
-            <h5 class="text-sm font-bold text-wine-300 mb-3">Puntos de la Ronda ${scoreViewRound}</h5>
+            <h5 class="text-sm font-bold text-wine-300 mb-2">${scoreMode(evt) === 'BEATUP' ? 'Posición y Perfect' : 'Puntos'} de la Ronda ${scoreViewRound}</h5>
+            ${scoreMode(evt) === 'BEATUP' ? scoreBeatLegendHTML(evt) : ''}
             ${scoreRoomsHTML(evt, scoreViewRound, true)}
         </div>
 
@@ -2317,6 +2401,8 @@ async function startScoreEvent() {
         type: 'SCORE',
         title,
         status: 'SETUP',
+        mode: scoreModeSelected,
+        beatConfig: readBeatConfigFromForm(),
         participants: [],
         songPool,
         rooms: [],
@@ -2548,7 +2634,65 @@ function setScorePoints(roundNumber, playerId, value) {
     else round.scores[playerId] = Math.round(num * 100) / 100;
 
     saveState();
+    refreshScoreLive();
+}
 
+// Beat Up: guarda la posición en la sala o la cantidad de Perfect de un jugador
+function setBeatUpValue(roundNumber, playerId, field, value) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status !== 'PLAYING' || scoreMode(evt) !== 'BEATUP') return;
+    const round = evt.scoreRounds[roundNumber - 1];
+    if (!round) return;
+    if (!round.beat) round.beat = {};
+
+    const entry = Object.assign({}, round.beat[playerId]);
+    const raw = String(value).trim();
+    let num = parseInt(raw, 10);
+    if (raw === '' || isNaN(num) || num < 0) {
+        delete entry[field];
+    } else {
+        if (field === 'pos') num = Math.max(1, Math.min(SCORE_ROOM_MAX, num));
+        entry[field] = num;
+    }
+    if (Object.keys(entry).length === 0) delete round.beat[playerId];
+    else round.beat[playerId] = entry;
+
+    saveState();
+    refreshScoreLive();
+    markDuplicatePositions(roundNumber);
+
+    // si el valor se ajustó (por ejemplo, posición 9 -> 6), se refleja en el campo
+    const inputs = document.querySelectorAll('#score-active-admin input[data-field="' + field + '"]');
+    Array.prototype.forEach.call(inputs, el => {
+        if (el.dataset.pid === String(playerId) && String(el.dataset.round) === String(roundNumber)) {
+            el.value = entry[field] !== undefined ? entry[field] : '';
+        }
+    });
+}
+
+// Marca en rojo las posiciones repetidas dentro de una misma sala
+function markDuplicatePositions(roundNumber) {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE') return;
+    const round = evt.scoreRounds[roundNumber - 1];
+    (evt.rooms || []).forEach((room, ri) => {
+        const count = {};
+        room.playerIds.forEach(id => {
+            const d = scoreRoundData(evt, round, id);
+            if (d.pos) count[d.pos] = (count[d.pos] || 0) + 1;
+        });
+        const inputs = document.querySelectorAll('#score-active-admin input[data-field="pos"][data-room="' + ri + '"]');
+        Array.prototype.forEach.call(inputs, el => {
+            const d = scoreRoundData(evt, round, el.dataset.pid);
+            el.classList.toggle('score-dup', !!(d.pos && count[d.pos] > 1));
+        });
+    });
+}
+
+// Actualiza la tabla y los totales sin volver a dibujar los campos (así puedes seguir escribiendo con Tab)
+function refreshScoreLive() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE') return;
     const st = document.getElementById('score-standings-admin');
     if (st) st.innerHTML = scoreStandingsInner(evt);
     const totals = {};
@@ -2556,6 +2700,68 @@ function setScorePoints(roundNumber, playerId, value) {
     document.querySelectorAll('#score-active-admin [data-total]').forEach(el => {
         el.textContent = 'Total: ' + fmtPts(totals[el.dataset.total] || 0);
     });
+}
+
+// ---- Selector de modo y configuración de puntos de Beat Up (formulario del admin)
+function applyScoreModeUI(mode) {
+    const free = document.getElementById('score-mode-free');
+    const beat = document.getElementById('score-mode-beat');
+    if (free) free.classList.toggle('active', mode !== 'BEATUP');
+    if (beat) beat.classList.toggle('active', mode === 'BEATUP');
+    const cfg = document.getElementById('score-beat-config');
+    if (cfg) cfg.classList.toggle('hidden', mode !== 'BEATUP');
+    const hint = document.getElementById('score-mode-hint');
+    if (hint) {
+        hint.textContent = mode === 'BEATUP'
+            ? 'Beat Up: en cada ronda escribes la posición de cada jugador en su sala y cuántos Perfect hizo. La tabla muestra POSICIÓN y PERFECT de cada ronda y el TOTAL.'
+            : 'Puntos libres: escribes directamente los puntos de cada participante en cada ronda.';
+    }
+}
+
+function setScoreMode(mode) {
+    const evt = state.activeEvent;
+    if (evt && evt.type === 'SCORE' && evt.status !== 'SETUP') {
+        showToast('El modo no se puede cambiar cuando el torneo ya empezó.', 'warning');
+        applyScoreModeUI(scoreMode(evt));
+        return;
+    }
+    scoreModeSelected = mode === 'BEATUP' ? 'BEATUP' : 'FREE';
+    if (evt && evt.type === 'SCORE') {
+        evt.mode = scoreModeSelected;
+        saveState();
+    }
+    applyScoreModeUI(scoreModeSelected);
+}
+
+function readBeatConfigFromForm() {
+    const pp = [];
+    for (let i = 1; i <= SCORE_ROOM_MAX; i++) {
+        const el = document.getElementById('score-beat-pos-' + i);
+        const v = parseFloat(el ? el.value : '');
+        pp.push(isNaN(v) ? BEATUP_DEFAULTS.posPoints[i - 1] : v);
+    }
+    const pvEl = document.getElementById('score-beat-perfect');
+    const pv = parseFloat(pvEl ? pvEl.value : '');
+    return { posPoints: pp, perfectValue: isNaN(pv) ? BEATUP_DEFAULTS.perfectValue : pv };
+}
+
+function fillBeatConfigForm(cfg) {
+    for (let i = 1; i <= SCORE_ROOM_MAX; i++) {
+        const el = document.getElementById('score-beat-pos-' + i);
+        if (el) el.value = cfg.posPoints[i - 1] !== undefined ? cfg.posPoints[i - 1] : '';
+    }
+    const pvEl = document.getElementById('score-beat-perfect');
+    if (pvEl) pvEl.value = cfg.perfectValue;
+}
+
+// Se puede ajustar incluso con el torneo en marcha: la tabla se recalcula sola
+function updateBeatConfig() {
+    const evt = state.activeEvent;
+    if (!evt || evt.type !== 'SCORE' || evt.status === 'FINISHED') return;
+    evt.beatConfig = readBeatConfigFromForm();
+    saveState();
+    refreshScoreLive();
+    if (evt.status === 'PLAYING') renderScoreAdmin();
 }
 
 async function giveScoreWinners() {
@@ -2644,6 +2850,9 @@ function syncScoreUI() {
         const so = document.getElementById('score-song-list-input');
         if (ti && !ti.value) ti.value = evt.title;
         if (so) so.value = (evt.songPool || []).join('\n');
+        scoreModeSelected = scoreMode(evt);
+        applyScoreModeUI(scoreModeSelected);
+        fillBeatConfigForm(beatConfig(evt));
     }
 }
 
@@ -3171,7 +3380,7 @@ function renderEventHistory() {
                     <h3 class="text-xl font-bold text-white">${escapeHtml(evt.title)}</h3>
                     <span class="text-xs px-3 py-1 rounded-full bg-green-950 text-green-400 border border-green-800">Finalizado</span>
                     ${evt.type === 'DIRECT' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Play Off Directo${evt.hasLower ? ' · Lower Bracket' : ''}</span>` : ''}
-                    ${evt.type === 'SCORE' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Formato por Puntaje · ${(evt.scoreRounds || []).length} rondas</span>` : ''}
+                    ${evt.type === 'SCORE' ? `<span class="text-xs px-3 py-1 rounded-full bg-amber-950 text-amber-300 border border-amber-800/60">Formato por Puntaje${evt.mode === 'BEATUP' ? ' · Beat Up' : ''} · ${(evt.scoreRounds || []).length} rondas</span>` : ''}
                 </div>
                 <button onclick="deleteHistoryEvent(${idx})" class="px-3 py-1.5 bg-red-950/60 hover:bg-red-900/80 text-red-400 border border-red-800/60 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1">
                     <i class="ph-bold ph-trash"></i>
