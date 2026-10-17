@@ -1563,3 +1563,56 @@ button.bg-wine-700:hover, button.bg-amber-600:hover, button.bg-green-700:hover {
     display: flex;
     justify-content: center;
 }
+
+/* ==========================================================================
+   26. FORMATO POR PUNTAJE: MODO BEAT UP (POSICIÓN + PERFECT)
+   ========================================================================== */
+.score-inputs { display: flex; gap: 0.35rem; }
+.score-input-sm { width: 3.4rem; padding-left: 0.2rem; padding-right: 0.2rem; }
+.score-input-perf { color: #7dd3fc; border-color: rgba(14, 165, 233, 0.55); }
+.score-input-perf:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.35); }
+.score-input.score-dup {
+    color: #fca5a5;
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.45);
+}
+.score-pill-perf {
+    margin-left: 0.25rem;
+    color: #7dd3fc;
+    background: rgba(12, 74, 110, 0.45);
+    border-color: rgba(14, 165, 233, 0.5);
+}
+
+.score-beat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+    gap: 0.6rem;
+}
+.score-beat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #e6738c;
+}
+.score-beat-cell input {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #fbbf24;
+    background: #090507;
+    border: 1px solid rgba(128, 0, 32, 0.8);
+}
+.score-beat-cell input:focus { outline: none; border-color: #f59e0b; }
+.score-beat-perfect { grid-column: span 2; }
+.score-beat-perfect input { color: #7dd3fc; border-color: rgba(14, 165, 233, 0.55); }
+
+@media (max-width: 639px) {
+    .score-row { flex-wrap: wrap; }
+}
