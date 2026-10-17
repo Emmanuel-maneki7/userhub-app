@@ -611,13 +611,17 @@ async function fetchUsers() {
 
         users.forEach(u => {
             const username = u.nickname || u.name;
-            if (username && !state.assignments[username]) {
+            if (!username) return;
+            if (!state.assignments[username]) {
                 state.assignments[username] = { tagIds: [] };
             }
+            // La etiqueta MODERADOR depende del rol real que guarda el servidor (no se puede poner "a mano")
+            const ids = state.assignments[username].tagIds;
+            const hasModTag = ids.includes('tag-mod');
             if (normalizeRole(u.role) === 'MODERATOR') {
-                if (!state.assignments[username].tagIds.includes('tag-mod')) {
-                    state.assignments[username].tagIds.push('tag-mod');
-                }
+                if (!hasModTag) ids.push('tag-mod');
+            } else if (hasModTag) {
+                state.assignments[username].tagIds = ids.filter(id => id !== 'tag-mod');
             }
         });
 
@@ -4058,6 +4062,7 @@ function renderAdminUserTable() {
                 <td class="py-3 px-4 text-slate-300 align-top font-medium">
                     ${escapeHtml(user.nombres || 'Sin nombre asignado')}
                     <div class="mt-2">
+                        <span class="block text-[10px] text-wine-400 uppercase font-semibold mb-1">Rol de la cuenta</span>
                         <select onchange="updateUserRole(${user.id}, this.value)" class="bg-wine-950 border border-wine-800 rounded-lg py-1 px-2 text-xs text-wine-300 focus:outline-none focus:border-wine-500">
                             <option value="USER" ${currentRole === 'USER' ? 'selected' : ''}>Usuario</option>
                             <option value="MODERATOR" ${currentRole === 'MODERATOR' ? 'selected' : ''}>Moderador</option>
@@ -4100,7 +4105,7 @@ function renderAdminUserTable() {
                         ${state.tags.map(tag => {
                             const isChecked = userAssign.tagIds.includes(tag.id);
                             return `
-                                <button onclick="toggleUserTag('${username}', '${tag.id}')" 
+                                <button onclick="toggleUserTag('${username}', '${tag.id}')" title="${tag.id === 'tag-mod' ? 'Da o quita el rol REAL de Moderador' : 'Etiqueta visual'}" 
                                     class="px-2 py-0.5 rounded text-[11px] font-semibold border transition-all ${isChecked ? 'text-white border-transparent' : 'text-slate-500 border-wine-900 bg-[#090507]'}"
                                     style="${isChecked ? `background-color: ${tag.color}` : ''}">
                                     ${escapeHtml(tag.name)}
@@ -4123,6 +4128,14 @@ function renderAdminUserTable() {
 }
 
 function toggleUserTag(username, tagId) {
+    if (tagId === 'tag-mod') {
+        const target = state.users.find(u => (u.nickname || u.name) === username);
+        if (target) {
+            const isMod = normalizeRole(target.role) === 'MODERATOR';
+            updateUserRole(target.id, isMod ? 'USER' : 'MODERATOR');
+        }
+        return;
+    }
     if (!state.assignments[username]) {
         state.assignments[username] = { tagIds: [] };
     }
