@@ -2015,7 +2015,7 @@ function newScoreRound(evt, number) {
 }
 
 // ===== MODO DEL TORNEO: puntos libres o Beat Up (posición + perfect) =====
-const BEATUP_DEFAULTS = { posPoints: [6, 5, 4, 3, 2, 1], perfectValue: 1 };
+const BEATUP_DEFAULTS = { posPoints: [6, 5, 4, 3, 2, 1] };
 let scoreModeSelected = 'FREE';
 
 function scoreMode(evt) {
@@ -2025,11 +2025,7 @@ function scoreMode(evt) {
 function beatConfig(evt) {
     const c = (evt && evt.beatConfig) || {};
     const pp = (Array.isArray(c.posPoints) && c.posPoints.length) ? c.posPoints : BEATUP_DEFAULTS.posPoints;
-    const pv = Number(c.perfectValue);
-    return {
-        posPoints: pp.map(v => Number(v) || 0),
-        perfectValue: (c.perfectValue !== undefined && c.perfectValue !== null && Number.isFinite(pv)) ? pv : BEATUP_DEFAULTS.perfectValue
-    };
+    return { posPoints: pp.map(v => Number(v) || 0) };
 }
 
 // Datos de un jugador en una ronda: posición, perfect y puntos resultantes
@@ -2040,7 +2036,7 @@ function scoreRoundData(evt, round, playerId) {
         const perfect = (b && typeof b.perfect === 'number') ? b.perfect : null;
         const cfg = beatConfig(evt);
         const posPts = pos ? (cfg.posPoints[pos - 1] || 0) : 0;
-        const points = Math.round((posPts + (perfect || 0) * cfg.perfectValue) * 100) / 100;
+        const points = Math.round((posPts + (perfect || 0)) * 100) / 100; // el Perfect se suma tal cual
         return { pos, perfect, points, raw: undefined };
     }
     const v = (round && round.scores) ? round.scores[playerId] : undefined;
@@ -2165,7 +2161,7 @@ function scorePodiumHTML(winners) {
 function scoreBeatLegendHTML(evt) {
     const cfg = beatConfig(evt);
     const list = cfg.posPoints.map((v, i) => `${i + 1}º = ${fmtPts(v)}`).join(' · ');
-    return `<p class="text-[11px] text-slate-400 mb-3">Puntos por posición: ${list} · Cada Perfect = ${fmtPts(cfg.perfectValue)} pt. Si hay empate, gana quien tenga más Perfect.</p>`;
+    return `<p class="text-[11px] text-slate-400 mb-3">Puntos por posición: ${list}. Lo que escribas en <b class="text-sky-300">Perfect</b> se suma directo a la tabla (si pones 6, recibe 6 puntos). Si hay empate, gana quien tenga más Perfect.</p>`;
 }
 
 // Salas con sus jugadores. editable = campos junto a cada participante
@@ -2214,8 +2210,8 @@ function scoreRoomsHTML(evt, roundNumber, editable) {
                                            data-room="${roomIdx}" data-field="pos" data-pid="${sid}" data-round="${roundNumber}"
                                            value="${d.pos !== null ? d.pos : ''}" ${disabled ? 'disabled' : ''}
                                            onchange="setBeatUpValue(${roundNumber}, '${sid}', 'pos', this.value)">
-                                    <input type="number" min="0" step="1" inputmode="numeric"
-                                           class="score-input score-input-sm score-input-perf" placeholder="Perf" title="Cantidad de Perfect"
+                                    <input type="number" min="0" step="any" inputmode="decimal"
+                                           class="score-input score-input-sm score-input-perf" placeholder="Perf" title="Puntos de Perfect: lo que escribas se suma directo al total"
                                            data-room="${roomIdx}" data-field="perfect" data-pid="${sid}" data-round="${roundNumber}"
                                            value="${d.perfect !== null ? d.perfect : ''}" ${disabled ? 'disabled' : ''}
                                            onchange="setBeatUpValue(${roundNumber}, '${sid}', 'perfect', this.value)">
@@ -2659,11 +2655,12 @@ function setBeatUpValue(roundNumber, playerId, field, value) {
 
     const entry = Object.assign({}, round.beat[playerId]);
     const raw = String(value).trim();
-    let num = parseInt(raw, 10);
+    let num = field === 'pos' ? parseInt(raw, 10) : parseFloat(raw);
     if (raw === '' || isNaN(num) || num < 0) {
         delete entry[field];
     } else {
         if (field === 'pos') num = Math.max(1, Math.min(SCORE_ROOM_MAX, num));
+        else num = Math.round(num * 100) / 100;
         entry[field] = num;
     }
     if (Object.keys(entry).length === 0) delete round.beat[playerId];
@@ -2725,7 +2722,7 @@ function applyScoreModeUI(mode) {
     const hint = document.getElementById('score-mode-hint');
     if (hint) {
         hint.textContent = mode === 'BEATUP'
-            ? 'Beat Up: en cada ronda escribes la posición de cada jugador en su sala y cuántos Perfect hizo. La tabla muestra POSICIÓN y PERFECT de cada ronda y el TOTAL.'
+            ? 'Beat Up: en cada ronda escribes la posición de cada jugador en su sala y los puntos de Perfect que le das (se suman directo al total). La tabla muestra POSICIÓN y PERFECT de cada ronda y el TOTAL.'
             : 'Puntos libres: escribes directamente los puntos de cada participante en cada ronda.';
     }
 }
@@ -2752,9 +2749,7 @@ function readBeatConfigFromForm() {
         const v = parseFloat(el ? el.value : '');
         pp.push(isNaN(v) ? BEATUP_DEFAULTS.posPoints[i - 1] : v);
     }
-    const pvEl = document.getElementById('score-beat-perfect');
-    const pv = parseFloat(pvEl ? pvEl.value : '');
-    return { posPoints: pp, perfectValue: isNaN(pv) ? BEATUP_DEFAULTS.perfectValue : pv };
+    return { posPoints: pp };
 }
 
 function fillBeatConfigForm(cfg) {
@@ -2762,8 +2757,6 @@ function fillBeatConfigForm(cfg) {
         const el = document.getElementById('score-beat-pos-' + i);
         if (el) el.value = cfg.posPoints[i - 1] !== undefined ? cfg.posPoints[i - 1] : '';
     }
-    const pvEl = document.getElementById('score-beat-perfect');
-    if (pvEl) pvEl.value = cfg.perfectValue;
 }
 
 // Se puede ajustar incluso con el torneo en marcha: la tabla se recalcula sola
