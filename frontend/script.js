@@ -457,9 +457,11 @@ async function fetchGlobalConfig() {
 
         if (clansRes.ok) {
             const dbClans = await clansRes.json();
-            if (dbClans.length > 0) {
-                state.clans = ['Sin Familia / Ninguno', ...dbClans.map(c => c.name).filter(n => n !== 'Sin Familia / Ninguno')];
+            const realClans = dbClans.map(c => c.name).filter(n => n !== 'Sin Familia / Ninguno' && !isLiveClanName(n));
+            if (realClans.length > 0) {
+                state.clans = ['Sin Familia / Ninguno', ...realClans];
             }
+            applyLiveFromClans(dbClans);
         }
 
         if (tabsRes.ok) {
@@ -512,6 +514,14 @@ function navigateTo(viewId) {
     }
 
     renderNavActions();
+    if (viewId !== 'view-live') {
+        const liveBox = document.getElementById('live-view-container');
+        if (liveBox) liveBox.innerHTML = '';
+        liveRenderedSig = null;
+    } else {
+        renderLiveView();
+        refreshLiveOnly().then(() => renderLiveView());
+    }
     if (viewId === 'view-home') Promise.all([fetchUsers(), fetchActiveEventFromDB()]).then(() => { renderPublicTiers(); renderHomeStats(); });
     if (viewId === 'view-tiers') fetchUsers().then(() => renderPublicTiers());
     if (viewId === 'view-admin') fetchUsers().then(() => renderAdminPanel());
@@ -548,10 +558,11 @@ function renderNavActions() {
                 <button onclick="navigateTo('view-tournaments')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-amber-300 text-xs font-semibold flex items-center space-x-1 border border-amber-800/60">
                     <i class="ph-bold ph-trophy"></i> <span>Control de Torneos</span>
                 </button>
+${liveNavButtonHTML()}
                 <button onclick="navigateTo('view-admin')" class="px-3 py-1.5 rounded-lg bg-wine-700 hover:bg-wine-600 text-white text-xs font-semibold flex items-center space-x-1 shadow-md shadow-wine-900/40">
                     <i class="ph-bold ph-shield-check"></i> <span>Panel Admin</span>
                 </button>
-            ` : ''}
+            ` : liveNavButtonHTML()}
             <button onclick="navigateTo('view-profile-card')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-user"></i> <span>Mi Perfil</span>
             </button>
@@ -577,6 +588,7 @@ function renderNavActions() {
             <button onclick="navigateTo('view-tiers')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-wine-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-ranking"></i> <span>Tabla Tiers</span>
             </button>
+            ${liveNavButtonHTML()}
             <button onclick="navigateTo('view-login')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 text-slate-200 text-xs font-semibold flex items-center space-x-1 border border-wine-800">
                 <i class="ph-bold ph-sign-in"></i> <span>Iniciar Sesión</span>
             </button>
@@ -2885,6 +2897,500 @@ function tabForEvent(evt) {
     return 'swiss';
 }
 
+// =====================================================================
+//  EN VIVO: transmisión de un streamer (YouTube, Twitch, Facebook, TikTok, Kick u otra)
+// =====================================================================
+// Los datos se guardan en el servidor para que TODOS los vean. Como tu servidor no tiene una ruta propia
+// para esto, se guardan dentro de la lista de familias (/api/clans) como filas especiales que empiezan por
+// "__LIVE__" y que la página oculta. Nunca aparecen como familias en la web.
+const LIVE_PREFIX = '__LIVE__';
+const LIVE_CHUNK = 90;
+state.live = null;
+let liveRenderedSig = null;
+let liveFormFor = null;
+let liveSaving = false;
+
+const LIVE_PLATFORMS = {
+    youtube:   { label: 'YouTube',   icon: 'ph-youtube-logo',   color: '#ff0033' },
+    twitch:    { label: 'Twitch',    icon: 'ph-twitch-logo',    color: '#9146ff' },
+    facebook:  { label: 'Facebook',  icon: 'ph-facebook-logo',  color: '#1877f2' },
+    tiktok:    { label: 'TikTok',    icon: 'ph-tiktok-logo',    color: '#fe2c55' },
+    kick:      { label: 'Kick',      icon: 'ph-broadcast',      color: '#2fa30e' },
+    instagram: { label: 'Instagram', icon: 'ph-instagram-logo', color: '#e1306c' },
+    other:     { label: 'En vivo',   icon: 'ph-broadcast',      color: '#c92a52' }
+};
+
+function isLiveClanName(n) {
+    return typeof n === 'string' && n.indexOf(LIVE_PREFIX) === 0;
+}
+
+function b64urlEncode(str) {
+    return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function b64urlDecode(s) {
+    let b = String(s).replace(/-/g, '+').replace(/_/g, '/');
+    while (b.length % 4) b += '=';
+    return decodeURIComponent(escape(atob(b)));
+}
+
+function liveHostKey(host) {
+    if (host === 'youtube.com' || host === 'youtu.be' || host === 'youtube-nocookie.com') return 'youtube';
+    if (host === 'twitch.tv') return 'twitch';
+    if (host === 'facebook.com' || host === 'fb.watch' || host === 'fb.com' || host === 'fb.gg') return 'facebook';
+    if (host === 'tiktok.com' || host === 'vm.tiktok.com' || host === 'vt.tiktok.com') return 'tiktok';
+    if (host === 'kick.com') return 'kick';
+    if (host === 'instagram.com') return 'instagram';
+    return 'other';
+}
+
+// Analiza el enlace: valida, detecta la plataforma y arma (si se puede) la vista previa incrustada
+function parseStreamUrl(raw) {
+    let text = String(raw || '').trim();
+    if (!text) return { ok: false, error: 'Escribe el enlace de la transmisión.' };
+    if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) text = 'https://' + text;
+
+    let u;
+    try { u = new URL(text); } catch (e) { return { ok: false, error: 'El enlace no es válido.' }; }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+        return { ok: false, error: 'El enlace debe empezar con http:// o https://' };
+    }
+
+    const host = u.hostname.toLowerCase().replace(/^(www|m|web|mbasic|mobile)\./, '');
+    const key = liveHostKey(host);
+    const base = LIVE_PLATFORMS[key];
+    const platform = key === 'other'
+        ? { key, label: host, icon: base.icon, color: base.color }
+        : { key, label: base.label, icon: base.icon, color: base.color };
+
+    const parts = u.pathname.split('/').filter(Boolean);
+    const parentHost = (typeof location !== 'undefined' && location.hostname) ? location.hostname : '';
+    let embed = null;
+    let note = '';
+
+    if (key === 'youtube') {
+        const idRe = /^[A-Za-z0-9_-]{11}$/;
+        let id = null;
+        if (host === 'youtu.be' && parts[0] && idRe.test(parts[0])) id = parts[0];
+        else if (u.searchParams.get('v') && idRe.test(u.searchParams.get('v'))) id = u.searchParams.get('v');
+        else if ((parts[0] === 'live' || parts[0] === 'embed' || parts[0] === 'shorts') && parts[1] && idRe.test(parts[1])) id = parts[1];
+
+        if (id) {
+            embed = 'https://www.youtube.com/embed/' + id + '?autoplay=1&mute=1&playsinline=1&rel=0';
+        } else if (parts[0] === 'channel' && /^UC[A-Za-z0-9_-]{22}$/.test(parts[1] || '')) {
+            embed = 'https://www.youtube.com/embed/live_stream?channel=' + parts[1] + '&autoplay=1&mute=1&playsinline=1';
+        } else {
+            note = 'Con un enlace de canal tipo @nombre no se puede mostrar vista previa. Usa el enlace del directo (youtube.com/watch?v=...) para verla aquí.';
+        }
+    } else if (key === 'twitch') {
+        const ch = parts[0];
+        if (parentHost && ch && ch !== 'videos' && /^[A-Za-z0-9_]{3,25}$/.test(ch)) {
+            embed = 'https://player.twitch.tv/?channel=' + ch + '&parent=' + encodeURIComponent(parentHost) + '&muted=true&autoplay=true';
+        } else if (parentHost && ch === 'videos' && /^\d+$/.test(parts[1] || '')) {
+            embed = 'https://player.twitch.tv/?video=' + parts[1] + '&parent=' + encodeURIComponent(parentHost) + '&muted=true&autoplay=true';
+        }
+    } else if (key === 'kick') {
+        const ch = parts[0];
+        if (ch && /^[A-Za-z0-9_-]{2,40}$/.test(ch)) {
+            embed = 'https://player.kick.com/' + ch + '?autoplay=true&muted=true';
+        }
+    } else if (key === 'facebook') {
+        const looksLikeVideo = host === 'fb.watch' || host === 'fb.gg' ||
+            /\/(videos|watch|reel|reels|live)(\/|$)/i.test(u.pathname) || u.searchParams.has('v');
+        if (looksLikeVideo) {
+            embed = 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(u.href) + '&show_text=false&autoplay=true&mute=true';
+        } else {
+            note = 'Para ver la vista previa de Facebook usa el enlace directo del en vivo (facebook.com/.../videos/...). Con el enlace de la página solo se muestra un botón.';
+        }
+    } else if (key === 'tiktok') {
+        const m = u.pathname.match(/\/video\/(\d+)/);
+        if (m) embed = 'https://www.tiktok.com/embed/v2/' + m[1];
+        else note = 'TikTok no permite ver sus transmisiones dentro de otras páginas: al tocar la tarjeta se abre el en vivo en TikTok.';
+    } else if (key === 'instagram') {
+        note = 'Instagram no permite ver sus transmisiones dentro de otras páginas: al tocar la tarjeta se abre el en vivo en Instagram.';
+    }
+
+    return { ok: true, url: u.href, host, platform, embed, note };
+}
+
+// ---------------------------------------------------------------------
+//  Guardado compartido (filas especiales dentro de /api/clans)
+// ---------------------------------------------------------------------
+function liveSignature(l) {
+    return l ? `${l.on ? 1 : 0}|${l.ts}|${l.url}|${l.name}` : 'none';
+}
+
+// Lee la transmisión guardada: toma la versión más nueva que esté completa
+function parseLiveFromClans(dbClans) {
+    const groups = {};
+    (dbClans || []).forEach(c => {
+        const name = c && c.name;
+        if (!isLiveClanName(name)) return;
+        const m = name.slice(LIVE_PREFIX.length).match(/^([a-z0-9]+)_(\d+)_(\d+)_(.+)$/);
+        if (!m) return;
+        const g = groups[m[1]] = groups[m[1]] || { count: parseInt(m[3], 10), chunks: {} };
+        g.chunks[parseInt(m[2], 10)] = m[4];
+    });
+
+    const versions = Object.keys(groups).sort((a, b) => parseInt(b, 36) - parseInt(a, 36));
+    for (const v of versions) {
+        const g = groups[v];
+        if (Object.keys(g.chunks).length !== g.count) continue; // versión incompleta: se ignora
+        try {
+            const joined = Array.from({ length: g.count }, (_, i) => g.chunks[i]).join('');
+            const data = JSON.parse(b64urlDecode(joined));
+            if (data && typeof data === 'object') return data;
+        } catch (e) { /* se prueba con la versión anterior */ }
+    }
+    return null;
+}
+
+function applyLiveFromClans(dbClans) {
+    const next = parseLiveFromClans(dbClans);
+    const before = liveSignature(state.live);
+    state.live = next;
+    if (liveSignature(next) !== before) onLiveChanged();
+}
+
+function onLiveChanged() {
+    renderNavActions();
+    renderLiveBanner();
+    const v = document.getElementById('view-live');
+    if (v && !v.classList.contains('hidden')) renderLiveView();
+    renderLiveAdmin();
+}
+
+async function refreshLiveOnly() {
+    try {
+        const res = await fetch(`${API_BASE}/clans`);
+        if (!res.ok) return;
+        applyLiveFromClans(await res.json());
+    } catch (e) { /* sin conexión: se mantiene lo que había */ }
+}
+
+async function persistLive(data) {
+    const ver = Date.now().toString(36);
+    const myPrefix = (LIVE_PREFIX + ver + '_').toLowerCase();
+
+    // Borra las filas de ESTA versión (aunque el servidor haya cambiado mayúsculas/minúsculas)
+    const cleanupVersion = async () => {
+        try {
+            const r = await fetch(`${API_BASE}/clans`);
+            if (!r.ok) return;
+            const rows = (await r.json()).map(c => c.name).filter(n => typeof n === 'string' && n.toLowerCase().indexOf(myPrefix) === 0);
+            for (const n of rows) {
+                try { await fetch(`${API_BASE}/clans/${encodeURIComponent(n)}`, { method: 'DELETE' }); } catch (e) { /* ignorar */ }
+            }
+        } catch (e) { /* ignorar */ }
+    };
+
+    try {
+        const listRes = await fetch(`${API_BASE}/clans`);
+        if (!listRes.ok) throw new Error('No se pudo leer la lista (' + listRes.status + ')');
+        const oldRows = (await listRes.json()).map(c => c.name).filter(isLiveClanName);
+
+        const enc = b64urlEncode(JSON.stringify(data));
+        const chunks = enc.match(new RegExp('.{1,' + LIVE_CHUNK + '}', 'g')) || [];
+
+        for (let i = 0; i < chunks.length; i++) {
+            const name = `${LIVE_PREFIX}${ver}_${i}_${chunks.length}_${chunks[i]}`;
+            const res = await fetch(`${API_BASE}/clans`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            if (!res.ok) {
+                await cleanupVersion();
+                showToast(`El servidor no aceptó guardar la transmisión (error ${res.status}).`, 'error');
+                return false;
+            }
+        }
+
+        // Verifica que quedó guardado tal cual
+        const checkRes = await fetch(`${API_BASE}/clans`);
+        const check = checkRes.ok ? await checkRes.json() : [];
+        const saved = parseLiveFromClans(check);
+        if (!saved || saved.ts !== data.ts || saved.url !== data.url || saved.name !== data.name) {
+            await cleanupVersion();
+            showToast('El servidor no guardó bien los datos de la transmisión. Intenta de nuevo.', 'error');
+            return false;
+        }
+
+        applyLiveFromClans(check);
+        for (const n of oldRows) { // borra las versiones anteriores
+            try { await fetch(`${API_BASE}/clans/${encodeURIComponent(n)}`, { method: 'DELETE' }); } catch (e) { /* ignorar */ }
+        }
+        return true;
+    } catch (err) {
+        console.error('Error guardando la transmisión:', err);
+        await cleanupVersion();
+        showToast('No se pudo conectar con el servidor para guardar la transmisión.', 'error');
+        return false;
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Panel Admin: formulario
+// ---------------------------------------------------------------------
+function liveVal(id) {
+    const el = document.getElementById(id);
+    return el ? String(el.value || '').trim() : '';
+}
+
+function onLiveUrlInput() {
+    const hint = document.getElementById('live-url-hint');
+    if (!hint) return;
+    const raw = liveVal('live-url-input');
+    if (!raw) {
+        hint.textContent = 'Pega el enlace del en vivo (YouTube, Twitch, Facebook, TikTok, Kick u otra página).';
+        hint.className = 'text-[11px] text-slate-500';
+        return;
+    }
+    const info = parseStreamUrl(raw);
+    if (!info.ok) {
+        hint.textContent = '⚠️ ' + info.error;
+        hint.className = 'text-[11px] text-red-400';
+    } else if (info.embed) {
+        hint.textContent = `✔ ${info.platform.label}: se mostrará una vista previa dentro de la página y, al tocarla, abrirá el en vivo.`;
+        hint.className = 'text-[11px] text-green-400';
+    } else {
+        hint.textContent = `ℹ️ ${info.platform.label}: ${info.note || 'esta plataforma no permite vista previa; se mostrará una tarjeta que abre el en vivo al tocarla.'}`;
+        hint.className = 'text-[11px] text-amber-300';
+    }
+}
+
+function renderLiveAdmin() {
+    const status = document.getElementById('live-admin-status');
+    if (!status) return;
+    const live = state.live;
+
+    if (live && live.on) {
+        const info = parseStreamUrl(live.url);
+        status.innerHTML = `<span class="live-badge"><span class="live-badge-dot"></span> EN VIVO</span> <span class="text-slate-300">${escapeHtml(live.name)}${info.ok ? ' · ' + escapeHtml(info.platform.label) : ''}</span>`;
+    } else {
+        status.innerHTML = `<span class="text-slate-500">Sin transmisión activa</span>`;
+    }
+
+    // Rellena el formulario solo cuando cambian los datos guardados (así no se pisa lo que estás escribiendo)
+    const sig = liveSignature(live);
+    if (live && liveFormFor !== sig) {
+        liveFormFor = sig;
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        set('live-name-input', live.name);
+        set('live-title-input', live.title);
+        set('live-url-input', live.url);
+        set('live-avatar-input', live.avatar);
+        onLiveUrlInput();
+    }
+
+    const endBtn = document.getElementById('live-end-btn');
+    if (endBtn) endBtn.classList.toggle('hidden', !(live && live.on));
+}
+
+async function saveLiveStream() {
+    if (!isPrivilegedUser()) {
+        showToast('Solo el administrador o un moderador puede publicar una transmisión.', 'warning');
+        return;
+    }
+    if (liveSaving) return;
+
+    const name = liveVal('live-name-input');
+    const title = liveVal('live-title-input');
+    const avatarRaw = liveVal('live-avatar-input');
+
+    if (name.length < 2) { alert('Por favor escribe el nombre del streamer.'); return; }
+    if (name.length > 60) { alert('El nombre del streamer es muy largo (máximo 60 caracteres).'); return; }
+    if (title.length > 120) { alert('El título es muy largo (máximo 120 caracteres).'); return; }
+
+    const info = parseStreamUrl(liveVal('live-url-input'));
+    if (!info.ok) { alert(info.error); return; }
+
+    let avatar = '';
+    if (avatarRaw) {
+        try {
+            const au = new URL(/^https?:\/\//i.test(avatarRaw) ? avatarRaw : 'https://' + avatarRaw);
+            if (au.protocol !== 'https:' && au.protocol !== 'http:') throw new Error('protocolo');
+            avatar = au.href;
+        } catch (e) {
+            alert('El enlace de la foto del streamer no es válido.');
+            return;
+        }
+    }
+
+    liveSaving = true;
+    showToast('Publicando la transmisión…', 'info');
+    const ok = await persistLive({ on: true, name, title, url: info.url, avatar, ts: Date.now() });
+    liveSaving = false;
+
+    if (ok) {
+        liveFormFor = liveSignature(state.live);
+        renderLiveAdmin();
+        alert('¡Transmisión publicada! Ya aparece en la pestaña "En vivo" para todos.');
+    }
+}
+
+async function endLiveStream() {
+    if (!isPrivilegedUser()) return;
+    if (!state.live || !state.live.on) {
+        alert('No hay ninguna transmisión activa.');
+        return;
+    }
+    const ok = await confirmDialog('La transmisión dejará de mostrarse a los demás. Podrás volver a publicarla cuando quieras.', {
+        title: 'Finalizar transmisión', confirmText: 'Finalizar', danger: true
+    });
+    if (!ok || !state.live) return;
+    if (liveSaving) return;
+
+    liveSaving = true;
+    const done = await persistLive(Object.assign({}, state.live, { on: false, ts: Date.now() }));
+    liveSaving = false;
+    if (done) {
+        renderLiveAdmin();
+        alert('La transmisión fue finalizada correctamente.');
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Vista pública "En vivo"
+// ---------------------------------------------------------------------
+function liveStageHTML(info) {
+    const url = escapeHtml(info.url);
+    if (info.embed) {
+        return `
+            <div class="live-frame">
+                <iframe src="${escapeHtml(info.embed)}" title="Vista previa de la transmisión" loading="lazy"
+                        allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen
+                        referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                <a class="live-overlay" href="${url}" target="_blank" rel="noopener noreferrer" aria-label="Abrir el en vivo en ${escapeHtml(info.platform.label)}">
+                    <span class="live-overlay-hint"><i class="ph-bold ph-arrow-square-out"></i> Ver en vivo en ${escapeHtml(info.platform.label)}</span>
+                </a>
+            </div>
+        `;
+    }
+    return `
+        <a class="live-fallback" href="${url}" target="_blank" rel="noopener noreferrer" style="--plat:${escapeHtml(info.platform.color)}">
+            <span class="live-badge"><span class="live-badge-dot"></span> EN VIVO</span>
+            <i class="ph-bold ${escapeHtml(info.platform.icon)}"></i>
+            <strong>Toca para ver el en vivo en ${escapeHtml(info.platform.label)}</strong>
+            <small>Se abrirá en una pestaña nueva</small>
+        </a>
+    `;
+}
+
+function renderLiveView(force) {
+    const container = document.getElementById('live-view-container');
+    if (!container) return;
+    const live = state.live;
+    const sig = liveSignature(live);
+    if (!force && liveRenderedSig === sig && container.innerHTML) return; // sin cambios: no se recarga el reproductor
+    liveRenderedSig = sig;
+
+    if (!live || !live.on) {
+        container.innerHTML = emptyStateHTML(
+            'ph-broadcast',
+            'No hay ninguna transmisión en vivo ahora',
+            'Cuando haya un en vivo, aparecerá aquí con el nombre del streamer y una vista previa. Esta página se actualiza sola.',
+            isPrivilegedUser()
+                ? `<button onclick="navigateTo('view-admin')" class="mt-3 px-5 py-2.5 rounded-xl bg-wine-700 hover:bg-wine-600 text-white text-sm font-semibold inline-flex items-center space-x-2"><i class="ph-bold ph-gear"></i> <span>Configurar en el Panel Admin</span></button>`
+                : ''
+        );
+        return;
+    }
+
+    const info = parseStreamUrl(live.url);
+    if (!info.ok) {
+        container.innerHTML = emptyStateHTML('ph-warning', 'El enlace de la transmisión no es válido', 'Avisa a un administrador para que lo corrija.');
+        return;
+    }
+
+    const avatar = live.avatar || 'https://i.imgur.com/6VBx3io.png';
+    container.innerHTML = `
+        <div class="live-wrap">
+            <div class="live-head">
+                <div class="live-avatar">
+                    <img src="${escapeHtml(avatar)}" onerror="this.src='https://i.imgur.com/6VBx3io.png'" alt="">
+                </div>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="live-badge"><span class="live-badge-dot"></span> EN VIVO</span>
+                        <span class="live-platform" style="--plat:${escapeHtml(info.platform.color)}"><i class="ph-bold ${escapeHtml(info.platform.icon)}"></i> ${escapeHtml(info.platform.label)}</span>
+                    </div>
+                    <h3 class="live-name">${escapeHtml(live.name)}</h3>
+                    ${live.title ? `<p class="live-title">${escapeHtml(live.title)}</p>` : ''}
+                </div>
+            </div>
+
+            ${liveStageHTML(info)}
+
+            <div class="live-actions">
+                <a class="live-btn-primary" href="${escapeHtml(info.url)}" target="_blank" rel="noopener noreferrer">
+                    <i class="ph-bold ph-arrow-square-out"></i> <span>Ver en vivo en ${escapeHtml(info.platform.label)}</span>
+                </a>
+                ${info.embed ? `
+                    <button type="button" class="live-btn-secondary" onclick="toggleLiveInteractive(this)">
+                        <i class="ph-bold ph-cursor-click"></i> <span>Controlar aquí</span>
+                    </button>
+                ` : ''}
+                <button type="button" class="live-btn-secondary" onclick="copyLiveLink()">
+                    <i class="ph-bold ph-copy"></i> <span>Copiar enlace</span>
+                </button>
+            </div>
+
+            <p class="live-note">
+                ${info.embed
+                    ? 'La vista previa va sin sonido. Toca el video para abrir el en vivo en la plataforma, o usa "Controlar aquí" para manejar el reproductor desde esta página. Si la vista previa no carga, usa el botón "Ver en vivo".'
+                    : escapeHtml(info.note || 'Esta plataforma no permite vista previa dentro de otras páginas. Toca la tarjeta o el botón para abrir el en vivo.')}
+            </p>
+        </div>
+    `;
+}
+
+function toggleLiveInteractive(btn) {
+    const wrap = btn && btn.closest ? btn.closest('.live-wrap') : null;
+    const frame = wrap ? wrap.querySelector('.live-frame') : null;
+    if (!frame) return;
+    const on = frame.classList.toggle('live-interactive');
+    const label = btn.querySelector('span');
+    if (label) label.textContent = on ? 'Volver a la vista previa' : 'Controlar aquí';
+}
+
+function copyLiveLink() {
+    const url = state.live && state.live.url;
+    if (!url) return;
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(
+            () => showToast('Enlace copiado.', 'success'),
+            () => showToast('No se pudo copiar el enlace.', 'error')
+        );
+    } else {
+        showToast('Tu navegador no permite copiar automáticamente: ' + url, 'warning');
+    }
+}
+
+// ---------------------------------------------------------------------
+//  Botón de la barra de navegación y franja de la portada
+// ---------------------------------------------------------------------
+function liveNavButtonHTML() {
+    const on = !!(state.live && state.live.on);
+    return `
+                <button onclick="navigateTo('view-live')" class="px-3 py-1.5 rounded-lg bg-wine-950 hover:bg-wine-900 ${on ? 'text-red-300 border-red-700/70 nav-live-on' : 'text-wine-200 border-wine-800'} text-xs font-semibold flex items-center space-x-1 border" title="En vivo">
+                    <i class="ph-bold ph-broadcast"></i> <span>En vivo</span>
+                </button>`;
+}
+
+function renderLiveBanner() {
+    const banner = document.getElementById('stream-banner');
+    const label = document.getElementById('stream-banner-text');
+    if (!banner) return;
+    const live = state.live;
+    const on = !!(live && live.on);
+    banner.classList.toggle('hidden', !on);
+    if (on && label) {
+        const info = parseStreamUrl(live.url);
+        label.textContent = `${live.name} está en vivo${info.ok ? ' en ' + info.platform.label : ''}`;
+    }
+}
+
 // Tabla de posiciones del sistema suizo (se mantiene visible en PlayOffs y al finalizar)
 function swissStandingsHTML(evt) {
     if (!evt || !evt.leaderboard || evt.leaderboard.length === 0) return '';
@@ -3911,6 +4417,7 @@ function renderAdminPanel() {
     renderAdminTagsList();
     renderAdminClansList();
     renderAdminUserTable();
+    renderLiveAdmin();
 }
 
 async function handleCreateTab(e) {
@@ -4976,6 +5483,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     navigateTo('view-home');
     startCarouselTimer();
+
+    // Mantiene al día la transmisión en vivo (punto rojo del botón y vista "En vivo")
+    let liveTick = 0;
+    setInterval(() => {
+        if (document.hidden) return;
+        liveTick++;
+        const lv = document.getElementById('view-live');
+        const onLive = lv && !lv.classList.contains('hidden');
+        if (onLive || liveTick % 3 === 0) refreshLiveOnly();
+    }, 10000);
 
     // Refresca el rol de la sesión: si el admin te nombra moderador con la página abierta, se activa solo
     setInterval(() => {
