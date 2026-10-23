@@ -1007,19 +1007,15 @@
                                     </label>
                                 </div>
 
-                                <div class="flex flex-wrap items-center gap-3 rounded-xl border border-sky-700/60 bg-sky-950/30 p-3">
-                                    <div class="flex items-center gap-2">
-                                        <i class="ph-bold ph-star text-sky-300 text-xl"></i>
-                                        <div>
-                                            <p class="text-xs font-bold text-sky-200 uppercase tracking-wider">Valor de cada Perfect</p>
-                                            <p class="text-[11px] text-slate-400">Puntos que suma cada Perfect que haga el jugador.</p>
-                                        </div>
+                                <div class="flex items-start gap-3 rounded-xl border border-sky-700/60 bg-sky-950/30 p-3">
+                                    <i class="ph-bold ph-star text-sky-300 text-xl mt-0.5"></i>
+                                    <div>
+                                        <p class="text-xs font-bold text-sky-200 uppercase tracking-wider">Perfect</p>
+                                        <p class="text-[11px] text-slate-400">El número que escribas en la casilla <b class="text-sky-300">Perf</b> de cada jugador se suma directo a la tabla: si le das 6, recibe 6 puntos.</p>
                                     </div>
-                                    <input type="number" step="any" id="score-beat-perfect" value="1" onchange="updateBeatConfig()"
-                                           class="ml-auto w-28 rounded-lg border border-sky-700 bg-[#090507] py-2 text-center text-xl font-extrabold text-sky-300 caret-sky-300 placeholder-slate-600 [color-scheme:dark] focus:border-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-400/60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none">
                                 </div>
 
-                                <p class="text-[11px] text-slate-500">Ajusta estos valores a tu reglamento. Puedes cambiarlos incluso con el torneo en marcha y la tabla se recalcula sola. Total de cada ronda = puntos de la posición + (Perfect × valor del Perfect).</p>
+                                <p class="text-[11px] text-slate-500">Ajusta los puntos por posición a tu reglamento. Puedes cambiarlos incluso con el torneo en marcha y la tabla se recalcula sola. Total de cada ronda = puntos de la posición + los puntos de Perfect que escribas.</p>
                             </div>
                         </div>
 
